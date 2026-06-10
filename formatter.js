@@ -78,9 +78,52 @@ function esc(str) {
     .replace(/>/g, "&gt;");
 }
 
+function isSingleKibanaHit(data) {
+  return data && typeof data === "object" && !Array.isArray(data) &&
+    "_id" in data && ("fields" in data || "_source" in data);
+}
+
 function isKibanaHits(data) {
   return Array.isArray(data) && data.length > 0 &&
-    typeof data[0] === "object" && "fields" in data[0] && "_id" in data[0];
+    typeof data[0] === "object" && ("fields" in data[0] || "_source" in data[0]) && "_id" in data[0];
+}
+
+/**
+ * Normalize input: wrap single hit into array, ensure fields exist from _source if needed.
+ */
+function normalizeInput(data) {
+  // Handle single hit
+  if (isSingleKibanaHit(data)) {
+    data = [data];
+  }
+
+  if (!Array.isArray(data)) return data;
+
+  // Ensure each hit has fields (fallback to _source)
+  return data.map(hit => {
+    if (hit.fields) return hit;
+    if (hit._source) {
+      // Convert _source to fields-like format (wrap values in arrays)
+      const fields = {};
+      flattenSource(hit._source, "", fields);
+      return { ...hit, fields };
+    }
+    return hit;
+  });
+}
+
+/**
+ * Flatten nested _source object into dot-notation keys with array values.
+ */
+function flattenSource(obj, prefix, result) {
+  for (const [key, value] of Object.entries(obj)) {
+    const fullKey = prefix ? `${prefix}.${key}` : key;
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      flattenSource(value, fullKey, result);
+    } else {
+      result[fullKey] = Array.isArray(value) ? value : [value];
+    }
+  }
 }
 
 /**
@@ -95,6 +138,9 @@ function formatLogs(rawJson, sortOrder = "asc") {
   } catch (e) {
     return { error: `JSON parse error: ${e.message}` };
   }
+
+  // Normalize: handle single hit, convert _source to fields if needed
+  data = normalizeInput(data);
 
   if (!isKibanaHits(data)) {
     // Fallback: pretty-print

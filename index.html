@@ -105,7 +105,8 @@
       setStatus(`JSON parse error: ${e.message}`, "err"); return;
     }
 
-    parsedData = data;
+    // Normalize: handle single hit, convert _source to fields if needed
+    parsedData = normalizeInput(data);
     if (searchInput.value.trim()) {
       applyFilter();
     } else {
