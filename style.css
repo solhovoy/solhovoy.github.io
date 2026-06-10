@@ -215,10 +215,13 @@ textarea::placeholder { color: var(--text-dim); }
   font-size: 12px;
   line-height: 1.7;
   padding: 12px;
-  white-space: pre-wrap;
-  word-break: break-all;
   color: var(--text);
   min-height: 100%;
+}
+#output .fallback-json {
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 0;
 }
 
 /* log level colours */
@@ -232,6 +235,58 @@ textarea::placeholder { color: var(--text-dim); }
 #output .lvl-warn  { color: var(--warn); }
 #output .lvl-error { color: var(--error); }
 #output .lvl-debug { color: var(--debug); }
+
+/* ── Log entry with raw JSON toggle ── */
+.log-entry {
+  margin-bottom: 8px;
+  border-left: 2px solid transparent;
+  padding-left: 4px;
+  transition: border-color 0.15s;
+}
+.log-entry.expanded {
+  border-left-color: var(--accent);
+}
+.log-line {
+  display: block;
+  word-break: break-word;
+  padding-left: 18px;
+  text-indent: -18px;
+}
+.log-line .msg {
+  /* message can wrap naturally */
+}
+.raw-toggle {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 10px;
+  padding: 0 4px;
+  line-height: 1.7;
+  transition: color 0.15s, transform 0.15s;
+  display: inline-block;
+  vertical-align: top;
+}
+.raw-toggle:hover { color: var(--accent); }
+.log-entry.expanded .raw-toggle {
+  transform: rotate(90deg);
+  color: var(--accent);
+}
+.raw-json {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  margin: 6px 0 6px 20px;
+  padding: 10px 12px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 200px;
+  overflow: auto;
+}
+.raw-json[hidden] { display: none; }
 
 /* ── Action bar ── */
 .action-bar {

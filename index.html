@@ -48,7 +48,7 @@
       <span id="search-meta"></span>
     </div>
     <div id="output-wrap">
-      <pre id="output"></pre>
+      <div id="output"></div>
     </div>
   </div>
 
@@ -248,6 +248,17 @@
 
   // ── Copy (header button) ─────────────────────────────────────────────────
   copyOutputBtn.addEventListener("click", () => doCopy());
+
+  // ── Raw JSON toggle (event delegation) ──────────────────────────────────
+  outputEl.addEventListener("click", (e) => {
+    const toggle = e.target.closest(".raw-toggle");
+    if (!toggle) return;
+    const entry = toggle.closest(".log-entry");
+    if (!entry) return;
+    const rawJson = entry.querySelector(".raw-json");
+    const isExpanded = entry.classList.toggle("expanded");
+    rawJson.hidden = !isExpanded;
+  });
 
   let toastTimer;
   function showToast() {
