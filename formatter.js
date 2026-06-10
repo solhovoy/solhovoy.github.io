@@ -51,7 +51,7 @@ function formatHit(hit) {
   // strip the "firstText= " prefix added by kv-parsing
   const message = String(rawMessage).replace(/^firstText=\s*/, "");
 
-  const host = `h=${hostname}.x1.xcal.tv`;
+  const host = `h=${hostname}`;
   const lvlPadded = level.padEnd(5);
 
   // ── plain text ────────────────────────────────────────────────────────────
