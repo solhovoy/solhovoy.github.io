@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ELK Log Formatter</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header>
+  <h1>ELK Log Formatter</h1>
+</header>
+
+<main>
+  <!-- ── Input panel ── -->
+  <div class="panel" id="panel-input">
+    <div class="panel-header">
+      <span class="panel-label">Raw JSON Input</span>
+      <div class="panel-header-right">
+        <span class="panel-meta" id="input-meta"></span>
+        <button class="btn-collapse" id="collapse-input" title="Collapse input">▲</button>
+      </div>
+    </div>
+    <textarea id="input"
+      placeholder='Paste Kibana hits JSON here…&#10;&#10;[{"_id":"...","fields":{...}}, ...]'
+      spellcheck="false"
+    ></textarea>
+  </div>
+
+  <!-- ── Output panel ── -->
+  <div class="panel" id="panel-output">
+    <div class="panel-header">
+      <span class="panel-label">Formatted Output</span>
+      <div class="panel-header-right">
+        <span class="panel-meta" id="output-meta"></span>
+        <button class="btn-collapse" id="btn-sort" title="Toggle sort order">↑ ASC</button>
+        <button class="btn-collapse" id="copy-output" title="Copy to clipboard" disabled>⧉ Copy</button>
+      </div>
+    </div>
+    <div class="search-bar">
+      <div class="search-input-wrap">
+        <input type="text" id="search-input"
+          placeholder='Filter: r:"abc" AND c:"Guide" AND ("startup" OR "tune")'
+          spellcheck="false" autocomplete="off" />
+        <button id="search-clear" title="Clear filter" hidden>✕</button>
+      </div>
+      <span id="search-meta"></span>
+    </div>
+    <div id="output-wrap">
+      <pre id="output"></pre>
+    </div>
+  </div>
+
+  <!-- ── Action bar ── -->
+  <div class="action-bar">
+    <button id="btn-format">
+      ⚡ Format
+    </button>
+    <button id="btn-clear">
+      ✕ Clear
+    </button>
+    <span class="status" id="status"></span>
+  </div>
+</main>
+
+<div id="toast">Copied to clipboard!</div>
+
+<script src="lib/lucene-query-parser.min.js"></script>
+<script src="formatter.js"></script>
+<script src="search.js"></script>
+<script>
+  const inputEl    = document.getElementById("input");
+  const outputEl   = document.getElementById("output");
+  const inputMeta  = document.getElementById("input-meta");
+  const outputMeta = document.getElementById("output-meta");
+  const statusEl   = document.getElementById("status");
+  const btnFormat      = document.getElementById("btn-format");
+  const btnSort        = document.getElementById("btn-sort");
+  const btnClear       = document.getElementById("btn-clear");
+  const copyOutputBtn  = document.getElementById("copy-output");
+
+  const searchInput  = document.getElementById("search-input");
+  const searchClear  = document.getElementById("search-clear");
+  const searchMeta   = document.getElementById("search-meta");
+
+  let plainText  = "";
+  let sortOrder  = "asc";
+  let parsedData = [];   // raw hits kept for filtering
+
+  // ── Sort toggle ──────────────────────────────────────────────────────────
+  btnSort.addEventListener("click", () => {
+    sortOrder = sortOrder === "asc" ? "desc" : "asc";
+    btnSort.textContent = sortOrder === "asc" ? "↑ ASC" : "↓ DESC";
+    if (parsedData.length) applyFilter();
+  });
+
+  // ── Format ──────────────────────────────────────────────────────────────
+  function doFormat() {
+    const raw = inputEl.value.trim();
+    if (!raw) { setStatus("Paste some JSON first.", ""); return; }
+
+    let data;
+    try { data = JSON.parse(raw); } catch (e) {
+      setStatus(`JSON parse error: ${e.message}`, "err"); return;
+    }
+
+    parsedData = data;
+    if (searchInput.value.trim()) {
+      applyFilter();
+    } else {
+      renderHits(data);
+    }
+  }
+
+  function renderHits(hits) {
+    const result = formatLogs(JSON.stringify(hits), sortOrder);
+
+    if (result.error) {
+      outputEl.innerHTML = "";
+      plainText = "";
+      copyOutputBtn.disabled = true;
+      setStatus(result.error, "err");
+      outputMeta.textContent = "";
+      return;
+    }
+
+    outputEl.innerHTML = result.html;
+    plainText = result.plain;
+    copyOutputBtn.disabled = false;
+
+    if (result.warning) {
+      setStatus(result.warning, "warn");
+    } else {
+      setStatus(`✓ ${result.count} entries formatted`, "ok");
+    }
+    outputMeta.textContent = result.count ? `${result.count} entries` : "";
+  }
+
+  btnFormat.addEventListener("click", doFormat);
+
+  // Auto-format on paste
+  inputEl.addEventListener("paste", () => setTimeout(doFormat, 0));
+
+  // Format on Ctrl/Cmd+Enter
+  inputEl.addEventListener("keydown", e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      e.preventDefault();
+      doFormat();
+    }
+  });
+
+  // Update input char/line count
+  inputEl.addEventListener("input", () => {
+    const lines = inputEl.value.split("\n").length;
+    const chars = inputEl.value.length;
+    inputMeta.textContent = chars ? `${chars.toLocaleString()} chars` : "";
+  });
+
+  // ── Search / filter ──────────────────────────────────────────────────────
+  searchInput.addEventListener("input", () => {
+    searchClear.hidden = !searchInput.value;
+    applyFilter();
+  });
+
+  searchClear.addEventListener("click", () => {
+    searchInput.value = "";
+    searchClear.hidden = true;
+    searchMeta.textContent = "";
+    searchInput.classList.remove("search-error");
+    renderHits(parsedData);
+    searchInput.focus();
+  });
+
+  function applyFilter() {
+    const q = searchInput.value.trim();
+    if (!q) {
+      searchMeta.textContent = "";
+      searchInput.classList.remove("search-error");
+      renderHits(parsedData);
+      return;
+    }
+    const result = filterHits(parsedData, q);
+    if (result && result.error) {
+      searchInput.classList.add("search-error");
+      searchMeta.textContent = result.error;
+      return;
+    }
+    searchInput.classList.remove("search-error");
+    searchMeta.textContent = `${result.length} / ${parsedData.length}`;
+    renderHits(result);
+  }
+
+  // ── Copy ────────────────────────────────────────────────────────────────
+  async function doCopy() {
+    if (!plainText) return;
+    try {
+      await navigator.clipboard.writeText(plainText);
+      showToast();
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = plainText;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      showToast();
+    }
+  }
+
+  // ── Clear ───────────────────────────────────────────────────────────────
+  btnClear.addEventListener("click", () => {
+    inputEl.value = "";
+    outputEl.innerHTML = "";
+    plainText = "";
+    parsedData = [];
+    copyOutputBtn.disabled = true;
+    searchInput.value = "";
+    searchClear.hidden = true;
+    searchMeta.textContent = "";
+    searchInput.classList.remove("search-error");
+    inputMeta.textContent = "";
+    outputMeta.textContent = "";
+    setStatus("", "");
+    inputEl.focus();
+  });
+
+  // ── Helpers ─────────────────────────────────────────────────────────────
+  function setStatus(msg, cls) {
+    statusEl.textContent = msg;
+    statusEl.className = "status" + (cls ? " " + cls : "");
+  }
+
+  // ── Collapse / expand ────────────────────────────────────────────────────
+  function makeCollapsible(btnId, panelId, isInput) {
+    const btn   = document.getElementById(btnId);
+    const panel = document.getElementById(panelId);
+    btn.addEventListener("click", () => {
+      const collapsed = panel.classList.toggle("collapsed");
+      btn.textContent = collapsed ? (isInput ? "▼" : "▲") : (isInput ? "▲" : "▼");
+      btn.title = collapsed ? "Expand" : "Collapse";
+    });
+  }
+  makeCollapsible("collapse-input", "panel-input", true);
+
+  // ── Copy (header button) ─────────────────────────────────────────────────
+  copyOutputBtn.addEventListener("click", () => doCopy());
+
+  let toastTimer;
+  function showToast() {
+    toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove("show"), 2000);
+  }
+</script>
+</body>
+</html>
+
