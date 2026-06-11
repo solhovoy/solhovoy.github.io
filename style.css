@@ -79,7 +79,7 @@ main {
   border-bottom: 1px solid var(--border);
 }
 .panel:first-child textarea {
-  height: calc(10 * 1.6 * 12px + 24px); /* ~10 visible lines */
+  height: calc(5 * 1.6 * 12px + 24px); /* ~5 visible lines */
   flex: none;
 }
 
