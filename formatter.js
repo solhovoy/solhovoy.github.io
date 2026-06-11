@@ -51,18 +51,25 @@ function formatHit(hit, index) {
   // strip the "firstText= " prefix added by kv-parsing
   const message = String(rawMessage).replace(/^firstText=\s*/, "");
 
+  // Extract custom json_ fields for this class
+  const customData = extractCustomFields(fields, cls);
+
   const host = `h=${hostname}`;
   const lvlPadded = level.padEnd(5);
 
   // ── plain text ────────────────────────────────────────────────────────────
-  const plain =
+  let plain =
     `${ts} t=${thread} a=${actor} r=${r} p=${p} ${host}  ${lvlPadded} c=${cls} ${message}`;
+  if (customData) {
+    plain += ` ${customData}`;
+  }
 
   // ── raw JSON (pretty-printed) ─────────────────────────────────────────────
   const rawJson = JSON.stringify(hit, null, 2);
 
   // ── html (coloured) ───────────────────────────────────────────────────────
   const lvlClass = LEVEL_CLASS[level] ?? "";
+  const customHtml = customData ? ` <span class="msg">${esc(customData)}</span>` : "";
   const html =
     `<div class="log-entry" data-index="${index}">` +
     `<div class="log-line">` +
@@ -73,6 +80,7 @@ function formatHit(hit, index) {
     `  <span class="level ${lvlClass}">${esc(lvlPadded)}</span>` +
     ` <span class="cls">c=${esc(cls)}</span>` +
     ` <span class="msg">${esc(message)}</span>` +
+    customHtml +
     `</div>` +
     `<div class="raw-json" hidden>` +
     `<button class="raw-copy" title="Copy raw JSON">⧉</button>` +
@@ -81,6 +89,64 @@ function formatHit(hit, index) {
     `</div>`;
 
   return { plain, html };
+}
+
+/**
+ * Extract custom json_{className} or json_{className}.* fields.
+ * Returns formatted string or null if no custom data found.
+ */
+function extractCustomFields(fields, className) {
+  if (!className || className === "?") return null;
+
+  const prefix = `json_${className}`;
+  const customPairs = [];
+
+  for (const [key, value] of Object.entries(fields)) {
+    if (key === prefix) {
+      // Case: json_ClassName (object value)
+      const val = unwrap(value);
+      if (val && typeof val === "object") {
+        // Flatten the object into key=value pairs
+        const flattened = flattenObject(val);
+        for (const [k, v] of Object.entries(flattened)) {
+          customPairs.push(`${k}=${formatValue(v)}`);
+        }
+      } else {
+        customPairs.push(`${className}=${formatValue(val)}`);
+      }
+    } else if (key.startsWith(prefix + ".")) {
+      // Case: json_ClassName.fieldName
+      const fieldName = key.substring(prefix.length + 1);
+      const val = unwrap(value);
+      customPairs.push(`${fieldName}=${formatValue(val)}`);
+    }
+  }
+
+  return customPairs.length > 0 ? customPairs.join(" ") : null;
+}
+
+/**
+ * Flatten a nested object into dot-notation key-value pairs.
+ */
+function flattenObject(obj, prefix = "") {
+  const result = {};
+  for (const [key, value] of Object.entries(obj)) {
+    const fullKey = prefix ? `${prefix}.${key}` : key;
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      Object.assign(result, flattenObject(value, fullKey));
+    } else {
+      result[fullKey] = value;
+    }
+  }
+  return result;
+}
+
+/**
+ * Format a value for display.
+ */
+function formatValue(val) {
+  if (val === null || val === undefined) return "null";
+  return String(val);
 }
 
 function esc(str) {
