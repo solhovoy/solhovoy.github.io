@@ -58,19 +58,45 @@ function evalNode(node, hit) {
 
 /**
  * Build a matcher function from a term.
- * - If the term contains "*", treat it as a wildcard pattern (regex).
- * - Otherwise, require an exact whole-word match (word boundary).
+ * Wildcard patterns:
+ *   *tune  - word ends with "tune"
+ *   tune*  - word starts with "tune"  
+ *   *tune* - contains "tune" anywhere
+ * No wildcards: exact whole-word match.
  */
 function buildMatcher(term) {
   const t = term.toLowerCase();
-  if (t.includes("*")) {
-    // Convert wildcard pattern to regex: escape regex chars except *, then replace * with .*
-    const escaped = t.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*");
-    const re = new RegExp(escaped, "i");
+  
+  if (!t.includes("*")) {
+    // No wildcards - exact whole-word match
+    const escaped = t.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
+    const re = new RegExp(`(?<![\\w])${escaped}(?![\\w])`, "i");
     return val => re.test(String(val));
   }
-  // Exact word-boundary match (case-insensitive)
-  const re = new RegExp(`(?<![\\w])${t.replace(/[.+?^${}()|[\]\\*]/g, "\\$&")}(?![\\w])`, "i");
+  
+  const startsWithStar = t.startsWith("*");
+  const endsWithStar = t.endsWith("*");
+  
+  // Remove leading/trailing wildcards and escape the core
+  let core = t.replace(/^\*+|\*+$/g, "");
+  const escaped = core.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*");
+  
+  let pattern;
+  if (startsWithStar && endsWithStar) {
+    // *tune* - contains anywhere
+    pattern = escaped;
+  } else if (startsWithStar) {
+    // *tune - ends with (word boundary after)
+    pattern = escaped + "(?![\\w])";
+  } else if (endsWithStar) {
+    // tune* - starts with (word boundary before)
+    pattern = "(?<![\\w])" + escaped;
+  } else {
+    // Internal wildcards only
+    pattern = escaped;
+  }
+  
+  const re = new RegExp(pattern, "i");
   return val => re.test(String(val));
 }
 
