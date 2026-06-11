@@ -37,7 +37,7 @@ const CORE_FIELDS = [
 ];
 
 // Additional fields to exclude from "extra fields" output (can be customized)
-const EXCLUDED_FIELDS = [];
+const EXCLUDED_FIELDS = ["isVectorDebug"];
 
 /**
  * Returns { plain: string, html: string } for a single hit.
@@ -65,8 +65,8 @@ function formatHit(hit, index) {
   // Extract custom json_ fields for this class
   const customData = extractCustomFields(fields, cls);
 
-  // Extract remaining fields not already displayed
-  const extraFields = extractExtraFields(fields, cls);
+  // Extract remaining fields not already displayed (pass message to avoid duplicates)
+  const extraFields = extractExtraFields(fields, cls, message);
 
   // Don't show "?" message if we have custom or extra fields
   const displayMessage = (message === "?" && (customData || extraFields)) ? "" : message;
@@ -155,7 +155,7 @@ function extractCustomFields(fields, className) {
  * Extract fields not already handled by core fields or json_ custom fields.
  * Returns formatted string or null if no extra fields found.
  */
-function extractExtraFields(fields, className) {
+function extractExtraFields(fields, className, message = "") {
   const prefix = className && className !== "?" ? `json_${className}` : null;
   const extraPairs = [];
 
@@ -172,11 +172,33 @@ function extractExtraFields(fields, className) {
     // Skip any other json_ prefixed fields
     if (key.startsWith("json_")) continue;
 
+    // Skip kv_obj.* fields (internal kv-parsing artifacts, duplicates of other fields)
+    if (key.startsWith("kv_obj.")) continue;
+
+    // Skip internal metadata fields from kv-parsing
+    if (key.endsWith("_kv") || key.endsWith("_length") || key === "length_diff") continue;
+
+    // Skip fields already present in the message (kv-parsed fields)
+    if (message && isFieldInMessage(key, message)) continue;
+
     const val = unwrap(value);
     extraPairs.push(`${key}=${formatValue(val)}`);
   }
 
   return extraPairs.length > 0 ? extraPairs.join(" ") : null;
+}
+
+/**
+ * Check if a field key=value pattern already exists in the message.
+ */
+function isFieldInMessage(key, message) {
+  // Check for key= pattern (with word boundary to avoid partial matches)
+  const pattern = new RegExp(`(?:^|\\s)${escapeRegex(key)}=`, "i");
+  return pattern.test(message);
+}
+
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 /**
