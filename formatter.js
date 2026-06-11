@@ -28,6 +28,17 @@ function formatTimestamp(raw) {
   }
 }
 
+// Fields that are already handled in the core output format
+const CORE_FIELDS = [
+  "@timestamp", "log.level", "a", "c", "t", "host.hostname", "r", "p", "s",
+  "event_action_original", "event_action_before_kv_parsing", "event.action",
+  // Meta fields we don't need to display
+  "source_type", "path", "stack", "container.id", "event.size"
+];
+
+// Additional fields to exclude from "extra fields" output (can be customized)
+const EXCLUDED_FIELDS = [];
+
 /**
  * Returns { plain: string, html: string } for a single hit.
  */
@@ -54,14 +65,26 @@ function formatHit(hit, index) {
   // Extract custom json_ fields for this class
   const customData = extractCustomFields(fields, cls);
 
+  // Extract remaining fields not already displayed
+  const extraFields = extractExtraFields(fields, cls);
+
+  // Don't show "?" message if we have custom or extra fields
+  const displayMessage = (message === "?" && (customData || extraFields)) ? "" : message;
+
   const host = `h=${hostname}`;
   const lvlPadded = level.padEnd(5);
 
   // ── plain text ────────────────────────────────────────────────────────────
   let plain =
-    `${ts} t=${thread} a=${actor} r=${r} p=${p} ${host}  ${lvlPadded} c=${cls} ${message}`;
+    `${ts} t=${thread} a=${actor} r=${r} p=${p} ${host}  ${lvlPadded} c=${cls}`;
+  if (displayMessage) {
+    plain += ` ${displayMessage}`;
+  }
   if (customData) {
     plain += ` ${customData}`;
+  }
+  if (extraFields) {
+    plain += ` ${extraFields}`;
   }
 
   // ── raw JSON (pretty-printed) ─────────────────────────────────────────────
@@ -69,7 +92,9 @@ function formatHit(hit, index) {
 
   // ── html (coloured) ───────────────────────────────────────────────────────
   const lvlClass = LEVEL_CLASS[level] ?? "";
+  const msgHtml = displayMessage ? ` <span class="msg">${esc(displayMessage)}</span>` : "";
   const customHtml = customData ? ` <span class="msg">${esc(customData)}</span>` : "";
+  const extraHtml = extraFields ? ` <span class="msg">${esc(extraFields)}</span>` : "";
   const html =
     `<div class="log-entry" data-index="${index}">` +
     `<div class="log-line">` +
@@ -79,8 +104,9 @@ function formatHit(hit, index) {
     ` <span class="host">${esc(host)}</span>` +
     `  <span class="level ${lvlClass}">${esc(lvlPadded)}</span>` +
     ` <span class="cls">c=${esc(cls)}</span>` +
-    ` <span class="msg">${esc(message)}</span>` +
+    msgHtml +
     customHtml +
+    extraHtml +
     `</div>` +
     `<div class="raw-json" hidden>` +
     `<button class="raw-copy" title="Copy raw JSON">⧉</button>` +
@@ -123,6 +149,34 @@ function extractCustomFields(fields, className) {
   }
 
   return customPairs.length > 0 ? customPairs.join(" ") : null;
+}
+
+/**
+ * Extract fields not already handled by core fields or json_ custom fields.
+ * Returns formatted string or null if no extra fields found.
+ */
+function extractExtraFields(fields, className) {
+  const prefix = className && className !== "?" ? `json_${className}` : null;
+  const extraPairs = [];
+
+  for (const [key, value] of Object.entries(fields)) {
+    // Skip core fields
+    if (CORE_FIELDS.includes(key)) continue;
+
+    // Skip user-excluded fields
+    if (EXCLUDED_FIELDS.includes(key)) continue;
+
+    // Skip json_ custom fields (already handled)
+    if (prefix && (key === prefix || key.startsWith(prefix + "."))) continue;
+
+    // Skip any other json_ prefixed fields
+    if (key.startsWith("json_")) continue;
+
+    const val = unwrap(value);
+    extraPairs.push(`${key}=${formatValue(val)}`);
+  }
+
+  return extraPairs.length > 0 ? extraPairs.join(" ") : null;
 }
 
 /**
