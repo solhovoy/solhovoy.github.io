@@ -251,6 +251,16 @@
 
   // ── Raw JSON toggle (event delegation) ──────────────────────────────────
   outputEl.addEventListener("click", (e) => {
+    // Handle copy button
+    const copyBtn = e.target.closest(".raw-copy");
+    if (copyBtn) {
+      const rawJson = copyBtn.closest(".raw-json");
+      const content = rawJson.querySelector(".raw-content").textContent;
+      navigator.clipboard.writeText(content).then(() => showToast());
+      return;
+    }
+
+    // Handle toggle button
     const toggle = e.target.closest(".raw-toggle");
     if (!toggle) return;
     const entry = toggle.closest(".log-entry");

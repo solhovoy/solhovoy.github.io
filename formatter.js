@@ -74,7 +74,10 @@ function formatHit(hit, index) {
     ` <span class="cls">c=${esc(cls)}</span>` +
     ` <span class="msg">${esc(message)}</span>` +
     `</div>` +
-    `<div class="raw-json" hidden>${esc(rawJson)}</div>` +
+    `<div class="raw-json" hidden>` +
+    `<button class="raw-copy" title="Copy raw JSON">⧉</button>` +
+    `<pre class="raw-content">${esc(rawJson)}</pre>` +
+    `</div>` +
     `</div>`;
 
   return { plain, html };
