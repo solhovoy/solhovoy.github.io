@@ -230,6 +230,7 @@ textarea::placeholder { color: var(--text-dim); }
 #output .host     { color: #868e96; }
 #output .cls      { color: #da77f2; font-weight: 600; }
 #output .msg      { color: #e9ecef; }
+#output .url      { color: #3d87c1; }
 #output .level    { font-weight: 700; }
 #output .lvl-info  { color: var(--info); }
 #output .lvl-warn  { color: var(--warn); }

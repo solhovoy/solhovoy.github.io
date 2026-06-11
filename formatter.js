@@ -92,9 +92,9 @@ function formatHit(hit, index) {
 
   // ── html (coloured) ───────────────────────────────────────────────────────
   const lvlClass = LEVEL_CLASS[level] ?? "";
-  const msgHtml = displayMessage ? ` <span class="msg">${esc(displayMessage)}</span>` : "";
-  const customHtml = customData ? ` <span class="msg">${esc(customData)}</span>` : "";
-  const extraHtml = extraFields ? ` <span class="msg">${esc(extraFields)}</span>` : "";
+  const msgHtml = displayMessage ? ` <span class="msg">${applyHighlighting(esc(displayMessage))}</span>` : "";
+  const customHtml = customData ? ` <span class="msg">${applyHighlighting(esc(customData))}</span>` : "";
+  const extraHtml = extraFields ? ` <span class="msg">${applyHighlighting(esc(extraFields))}</span>` : "";
   const html =
     `<div class="log-entry" data-index="${index}">` +
     `<div class="log-line">` +
@@ -230,6 +230,28 @@ function esc(str) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+}
+
+/**
+ * Highlighting patterns for formatted output.
+ * Each entry: { pattern: RegExp (must have capturing group), className: string }
+ */
+const HIGHLIGHT_PATTERNS = [
+  // URLs: http://, https://, ws://, wss://, etc.
+  { pattern: /([a-zA-Z][a-zA-Z0-9+.-]*:\/\/[^\s]+)/g, className: "url" },
+];
+
+/**
+ * Apply all highlighting patterns to already-escaped HTML text.
+ */
+function applyHighlighting(escapedText) {
+  let result = escapedText;
+  for (const { pattern, className } of HIGHLIGHT_PATTERNS) {
+    // Reset lastIndex for global regexes
+    pattern.lastIndex = 0;
+    result = result.replace(pattern, `<span class="${className}">$1</span>`);
+  }
+  return result;
 }
 
 // Elasticsearch metadata fields (not log data)
