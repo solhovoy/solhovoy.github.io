@@ -341,10 +341,10 @@ button {
 button:active { transform: scale(0.97); }
 
 #btn-format {
-  background: var(--btn-bg);
+  background: #1864ab;
   color: #fff;
 }
-#btn-format:hover { background: var(--btn-hover); }
+#btn-format:hover { background: #1971c2; }
 
 
 #btn-clear {
