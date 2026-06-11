@@ -246,7 +246,7 @@ textarea::placeholder { color: var(--text-dim); }
 .log-entry.expanded::before {
   content: "";
   position: absolute;
-  left: 14px;
+  left: 28px;
   top: 1.4em;
   bottom: 0px;
   width: 2px;
@@ -256,12 +256,12 @@ textarea::placeholder { color: var(--text-dim); }
 .log-line {
   display: block;
   word-break: break-word;
-  padding-left: 20px;
-  text-indent: -20px;
+  padding-left: 34px;
+  text-indent: -34px;
 }
 .line-num {
   display: inline-block;
-  /* min-width: 24px; */
+  min-width: 14px;
   text-align: right;
   color: var(--text-dim);
   font-size: 11px;
@@ -293,7 +293,7 @@ textarea::placeholder { color: var(--text-dim); }
   background: var(--bg-panel);
   border: 1px solid var(--border);
   border-radius: 4px;
-  margin: 6px 0 6px 20px;
+  margin: 6px 0 6px 34px;
   padding: 10px 12px;
   font-size: 11px;
   line-height: 1.5;
@@ -385,8 +385,8 @@ button:active { transform: scale(0.97); }
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%) translateY(20px);
-  background: #2b8a3e;
-  color: #fff;
+  background: #f0faf2;
+  color: #5c5c5c;
   padding: 8px 20px;
   border-radius: 6px;
   font-size: 13px;
