@@ -239,19 +239,34 @@ textarea::placeholder { color: var(--text-dim); }
 
 /* ── Log entry with raw JSON toggle ── */
 .log-entry {
-  margin-bottom: 8px;
-  border-left: 2px solid transparent;
+  position: relative;
+  margin-bottom: 5px;
   padding-left: 4px;
-  transition: border-color 0.15s;
 }
-.log-entry.expanded {
-  border-left-color: var(--accent);
+.log-entry.expanded::before {
+  content: "";
+  position: absolute;
+  left: 14px;
+  top: 1.4em;
+  bottom: 0px;
+  width: 2px;
+  background: var(--accent);
+  border-radius: 1px;
 }
 .log-line {
   display: block;
   word-break: break-word;
-  padding-left: 18px;
-  text-indent: -18px;
+  padding-left: 20px;
+  text-indent: -20px;
+}
+.line-num {
+  display: inline-block;
+  /* min-width: 24px; */
+  text-align: right;
+  color: var(--text-dim);
+  font-size: 11px;
+  margin-right: 2px;
+  user-select: none;
 }
 .log-line .msg {
   /* message can wrap naturally */
@@ -266,7 +281,7 @@ textarea::placeholder { color: var(--text-dim); }
   line-height: 1.7;
   transition: color 0.15s, transform 0.15s;
   display: inline-block;
-  vertical-align: top;
+  /* vertical-align: top; */
 }
 .raw-toggle:hover { color: var(--accent); }
 .log-entry.expanded .raw-toggle {

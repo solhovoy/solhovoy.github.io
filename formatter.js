@@ -98,6 +98,7 @@ function formatHit(hit, index) {
   const html =
     `<div class="log-entry" data-index="${index}">` +
     `<div class="log-line">` +
+    `<span class="line-num">${index + 1}</span>` +
     `<button class="raw-toggle" title="Show raw JSON">▶</button>` +
     `<span class="ts">${esc(ts)}</span>` +
     ` <span class="meta">t=${esc(thread)} a=${esc(actor)} r=${esc(r)} p=${esc(p)}</span>` +
