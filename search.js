@@ -56,16 +56,6 @@ function evalNode(node, hit) {
   return leftResult;
 }
 
-// Fields searched for free-text (implicit field) queries — what the user sees on screen
-const FREE_TEXT_FIELDS = [
-  "event_action_original",
-  "event_action_before_kv_parsing",
-  "event.action",
-  "a", "c", "t", "r", "p", "s",
-  "host.hostname",
-  "log.level",
-];
-
 /**
  * Build a matcher function from a term.
  * - If the term contains "*", treat it as a wildcard pattern (regex).
@@ -93,12 +83,16 @@ function matchLeaf(node, hit) {
 
   const matches = buildMatcher(term);
 
-  // Free-text: only search visible/meaningful fields
+  // Free-text: search all field values
   if (!field || field === "<implicit>") {
-    return FREE_TEXT_FIELDS.some(key => {
-      const raw = fields[key];
+    return Object.values(fields).some(raw => {
       if (raw === undefined) return false;
-      return matches(unwrap(raw) ?? "");
+      const val = unwrap(raw);
+      // Handle nested objects (like json_ fields)
+      if (val && typeof val === "object") {
+        return JSON.stringify(val).toLowerCase().includes(term);
+      }
+      return matches(val ?? "");
     });
   }
 

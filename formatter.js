@@ -210,14 +210,29 @@ function esc(str) {
     .replace(/>/g, "&gt;");
 }
 
+// Elasticsearch metadata fields (not log data)
+const ES_META_FIELDS = ["_id", "_index", "_score", "_size", "_version", "fields", "_source", "sort", "highlight"];
+
 function isSingleKibanaHit(data) {
-  return data && typeof data === "object" && !Array.isArray(data) &&
-    "_id" in data && ("fields" in data || "_source" in data);
+  if (!data || typeof data !== "object" || Array.isArray(data)) return false;
+  if (!("_id" in data)) return false;
+  // Has explicit fields or _source
+  if ("fields" in data || "_source" in data) return true;
+  // Fields at root level (has @timestamp as array)
+  if ("@timestamp" in data && Array.isArray(data["@timestamp"])) return true;
+  return false;
 }
 
 function isKibanaHits(data) {
-  return Array.isArray(data) && data.length > 0 &&
-    typeof data[0] === "object" && ("fields" in data[0] || "_source" in data[0]) && "_id" in data[0];
+  if (!Array.isArray(data) || data.length === 0) return false;
+  const first = data[0];
+  if (!first || typeof first !== "object") return false;
+  if (!("_id" in first)) return false;
+  // Has explicit fields or _source
+  if ("fields" in first || "_source" in first) return true;
+  // Fields at root level
+  if ("@timestamp" in first && Array.isArray(first["@timestamp"])) return true;
+  return false;
 }
 
 /**
@@ -231,7 +246,7 @@ function normalizeInput(data) {
 
   if (!Array.isArray(data)) return data;
 
-  // Ensure each hit has fields (fallback to _source)
+  // Ensure each hit has fields (fallback to _source or root-level fields)
   return data.map(hit => {
     if (hit.fields) return hit;
     if (hit._source) {
@@ -239,6 +254,19 @@ function normalizeInput(data) {
       const fields = {};
       flattenSource(hit._source, "", fields);
       return { ...hit, fields };
+    }
+    // Check for root-level fields (fields directly on hit object, not in fields/_source)
+    if ("@timestamp" in hit && Array.isArray(hit["@timestamp"])) {
+      const fields = {};
+      const meta = {};
+      for (const [key, value] of Object.entries(hit)) {
+        if (ES_META_FIELDS.includes(key)) {
+          meta[key] = value;
+        } else {
+          fields[key] = value;
+        }
+      }
+      return { ...meta, fields };
     }
     return hit;
   });
