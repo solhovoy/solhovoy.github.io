@@ -85,13 +85,17 @@
   const searchMeta   = document.getElementById("search-meta");
 
   let plainText  = "";
-  let sortOrder  = "asc";
   let parsedData = [];   // raw hits kept for filtering
+
+  // ── Sort order (persisted in localStorage) ───────────────────────────────
+  let sortOrder = localStorage.getItem("elkSortOrder") || "asc";
+  btnSort.textContent = sortOrder === "asc" ? "↑ ASC" : "↓ DESC";
 
   // ── Sort toggle ──────────────────────────────────────────────────────────
   btnSort.addEventListener("click", () => {
     sortOrder = sortOrder === "asc" ? "desc" : "asc";
     btnSort.textContent = sortOrder === "asc" ? "↑ ASC" : "↓ DESC";
+    localStorage.setItem("elkSortOrder", sortOrder);
     if (parsedData.length) applyFilter();
   });
 
