@@ -48,11 +48,15 @@ function formatHit(hit, index) {
   const ts       = formatTimestamp(unwrap(fields["@timestamp"]    ?? ["?"]));
   const level    = String(unwrap(fields["log.level"]              ?? ["??"])).toUpperCase();
   const actor    = unwrap(fields["a"]                             ?? ["?"]);
-  const cls      = unwrap(fields["c"]                             ?? ["?"]);
   const thread   = unwrap(fields["t"]                             ?? ["?"]);
   const hostname = unwrap(fields["host.hostname"]                 ?? ["?"]);
   const r        = unwrap(fields["r"]                             ?? ["?"]);
   const p        = unwrap(fields["p"]                             ?? ["?"]);
+  
+  // Class or service field (prefer c, fallback to s)
+  const clsField = fields["c"] ? "c" : (fields["s"] ? "s" : "c");
+  const clsValue = unwrap(fields["c"] ?? fields["s"] ?? ["?"]);
+  
   const rawMessage = unwrap(
     fields["event_action_original"]        ??
     fields["event_action_before_kv_parsing"] ??
@@ -63,10 +67,10 @@ function formatHit(hit, index) {
   const message = String(rawMessage).replace(/^firstText=\s*/, "");
 
   // Extract custom json_ fields for this class
-  const customData = extractCustomFields(fields, cls);
+  const customData = extractCustomFields(fields, clsValue);
 
   // Extract remaining fields not already displayed (pass message to avoid duplicates)
-  const extraFields = extractExtraFields(fields, cls, message);
+  const extraFields = extractExtraFields(fields, clsValue, message);
 
   // Extract and sanitize stack trace if present
   let stackTrace = unwrap(fields["stack_trace"] ?? [null]);
@@ -83,7 +87,7 @@ function formatHit(hit, index) {
 
   // ── plain text ────────────────────────────────────────────────────────────
   let plain =
-    `${ts} t=${thread} a=${actor} r=${r} p=${p} ${host}  ${lvlPadded} c=${cls}`;
+    `${ts} t=${thread} a=${actor} r=${r} p=${p} ${host}  ${lvlPadded} ${clsField}=${clsValue}`;
   if (displayMessage) {
     plain += ` ${displayMessage}`;
   }
@@ -118,7 +122,7 @@ function formatHit(hit, index) {
     ` <span class="meta">t=${esc(thread)} a=${esc(actor)} r=${esc(r)} p=${esc(p)}</span>` +
     ` <span class="host">${esc(host)}</span>` +
     `  <span class="level ${lvlClass}">${esc(lvlPadded)}</span>` +
-    ` <span class="cls">c=${esc(cls)}</span>` +
+    ` <span class="cls">${clsField}=${esc(clsValue)}</span>` +
     msgHtml +
     customHtml +
     extraHtml +
@@ -208,8 +212,8 @@ function extractExtraFields(fields, className, message = "") {
  * Check if a field key=value pattern already exists in the message.
  */
 function isFieldInMessage(key, message) {
-  // Check for key= pattern (with word boundary to avoid partial matches)
-  const pattern = new RegExp(`(?:^|\\s)${escapeRegex(key)}=`, "i");
+  // Check for key= pattern (after start, whitespace, or comma to handle kv-parsed fields)
+  const pattern = new RegExp(`(?:^|[\\s,])${escapeRegex(key)}=`, "i");
   return pattern.test(message);
 }
 
