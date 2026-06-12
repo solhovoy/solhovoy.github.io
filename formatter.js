@@ -10,7 +10,10 @@ const LEVEL_CLASS = {
 };
 
 function unwrap(value) {
-  if (Array.isArray(value) && value.length === 1) return value[0];
+  if (Array.isArray(value) && value.length === 1) {
+    // Return "?" for null/undefined values inside arrays
+    return value[0] ?? "?";
+  }
   return value ?? "?";
 }
 
@@ -73,10 +76,12 @@ function formatHit(hit, index) {
   const extraFields = extractExtraFields(fields, clsValue, message);
 
   // Extract and sanitize stack trace if present
-  let stackTrace = unwrap(fields["stack_trace"] ?? [null]);
-  if (stackTrace) {
+  let stackTrace = fields["stack_trace"] ? unwrap(fields["stack_trace"]) : null;
+  if (stackTrace && stackTrace !== "?") {
     // Remove internal hex reference IDs like <#98c76bb7> and any trailing spaces
     stackTrace = stackTrace.replace(/<#[0-9a-fA-F]{6,8}>\s*/g, "");
+  } else {
+    stackTrace = null;
   }
 
   // Don't show "?" message if we have custom or extra fields
@@ -155,15 +160,17 @@ function extractCustomFields(fields, className) {
         // Flatten the object into key=value pairs
         const flattened = flattenObject(val);
         for (const [k, v] of Object.entries(flattened)) {
+          if (v === null || v === "" || v === "?") continue;
           customPairs.push(`${k}=${formatValue(v)}`);
         }
-      } else {
+      } else if (val !== "?" && val !== null && val !== "") {
         customPairs.push(`${className}=${formatValue(val)}`);
       }
     } else if (key.startsWith(prefix + ".")) {
       // Case: json_ClassName.fieldName
       const fieldName = key.substring(prefix.length + 1);
       const val = unwrap(value);
+      if (val === "?" || val === null || val === "") continue;
       customPairs.push(`${fieldName}=${formatValue(val)}`);
     }
   }
@@ -202,6 +209,9 @@ function extractExtraFields(fields, className, message = "") {
     if (message && isFieldInMessage(key, message)) continue;
 
     const val = unwrap(value);
+    // Skip null/empty values (common in ES|QL flat format)
+    if (val === "?" || val === null || val === "") continue;
+
     extraPairs.push(`${key}=${formatValue(val)}`);
   }
 
@@ -288,13 +298,40 @@ function isSingleKibanaHit(data) {
   return false;
 }
 
+/**
+ * Detect ES|QL flat format: single record with @timestamp as string (not array).
+ */
+function isSingleEsqlRecord(data) {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return false;
+  // ES|QL has @timestamp as plain string, not array, and no _id
+  if (!("@timestamp" in data)) return false;
+  if ("_id" in data) return false;
+  return typeof data["@timestamp"] === "string";
+}
+
+/**
+ * Detect ES|QL flat format: array of records with @timestamp as string (not array).
+ */
+function isEsqlResults(data) {
+  if (!Array.isArray(data) || data.length === 0) return false;
+  const first = data[0];
+  if (!first || typeof first !== "object") return false;
+  // ES|QL has @timestamp as plain string, not array, and no _id
+  if (!("@timestamp" in first)) return false;
+  if ("_id" in first) return false;
+  return typeof first["@timestamp"] === "string";
+}
+
 function isKibanaHits(data) {
   if (!Array.isArray(data) || data.length === 0) return false;
   const first = data[0];
   if (!first || typeof first !== "object") return false;
+  // Already normalized (has fields)
+  if ("fields" in first) return true;
+  // Standard Kibana format with _id
   if (!("_id" in first)) return false;
   // Has explicit fields or _source
-  if ("fields" in first || "_source" in first) return true;
+  if ("_source" in first) return true;
   // Fields at root level
   if ("@timestamp" in first && Array.isArray(first["@timestamp"])) return true;
   return false;
@@ -302,14 +339,31 @@ function isKibanaHits(data) {
 
 /**
  * Normalize input: wrap single hit into array, ensure fields exist from _source if needed.
+ * Supports: Kibana hits, ES|QL flat records.
  */
 function normalizeInput(data) {
-  // Handle single hit
+  // Handle single Kibana hit
   if (isSingleKibanaHit(data)) {
+    data = [data];
+  }
+  // Handle single ES|QL record
+  if (isSingleEsqlRecord(data)) {
     data = [data];
   }
 
   if (!Array.isArray(data)) return data;
+
+  // Handle ES|QL format: convert flat records to fields format
+  if (isEsqlResults(data)) {
+    return data.map(record => {
+      const fields = {};
+      for (const [key, value] of Object.entries(record)) {
+        // Wrap values in arrays to match Kibana format
+        fields[key] = value === null ? [null] : [value];
+      }
+      return { fields };
+    });
+  }
 
   // Ensure each hit has fields (fallback to _source or root-level fields)
   return data.map(hit => {
