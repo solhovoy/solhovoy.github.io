@@ -106,8 +106,8 @@ function formatHit(hit, index) {
     plain += `\n${stackTrace}`;
   }
 
-  // ── raw JSON (pretty-printed) ─────────────────────────────────────────────
-  const rawJson = JSON.stringify(hit, null, 2);
+  // ── raw JSON (pretty-printed, use original if available) ─────────────────
+  const rawJson = JSON.stringify(hit._original || hit, null, 2);
 
   // ── html (coloured) ───────────────────────────────────────────────────────
   const lvlClass = LEVEL_CLASS[level] ?? "";
@@ -361,7 +361,7 @@ function normalizeInput(data) {
         // Wrap values in arrays to match Kibana format
         fields[key] = value === null ? [null] : [value];
       }
-      return { fields };
+      return { fields, _original: record };
     });
   }
 
