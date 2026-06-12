@@ -242,6 +242,7 @@ function flattenObject(obj, prefix = "") {
  */
 function formatValue(val) {
   if (val === null || val === undefined) return "null";
+  if (typeof val === "object") return JSON.stringify(val);
   return String(val);
 }
 
