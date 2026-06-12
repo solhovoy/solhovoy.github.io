@@ -37,7 +37,7 @@ const CORE_FIELDS = [
 ];
 
 // Additional fields to exclude from "extra fields" output (can be customized)
-const EXCLUDED_FIELDS = ["isVectorDebug"];
+const EXCLUDED_FIELDS = ["isVectorDebug", "stack_trace"];
 
 /**
  * Returns { plain: string, html: string } for a single hit.
@@ -68,6 +68,13 @@ function formatHit(hit, index) {
   // Extract remaining fields not already displayed (pass message to avoid duplicates)
   const extraFields = extractExtraFields(fields, cls, message);
 
+  // Extract and sanitize stack trace if present
+  let stackTrace = unwrap(fields["stack_trace"] ?? [null]);
+  if (stackTrace) {
+    // Remove internal hex reference IDs like <#98c76bb7> and any trailing spaces
+    stackTrace = stackTrace.replace(/<#[0-9a-fA-F]{6,8}>\s*/g, "");
+  }
+
   // Don't show "?" message if we have custom or extra fields
   const displayMessage = (message === "?" && (customData || extraFields)) ? "" : message;
 
@@ -86,6 +93,9 @@ function formatHit(hit, index) {
   if (extraFields) {
     plain += ` ${extraFields}`;
   }
+  if (stackTrace) {
+    plain += `\n${stackTrace}`;
+  }
 
   // ── raw JSON (pretty-printed) ─────────────────────────────────────────────
   const rawJson = JSON.stringify(hit, null, 2);
@@ -95,6 +105,10 @@ function formatHit(hit, index) {
   const msgHtml = displayMessage ? ` <span class="msg">${applyHighlighting(esc(displayMessage))}</span>` : "";
   const customHtml = customData ? ` <span class="msg">${applyHighlighting(esc(customData))}</span>` : "";
   const extraHtml = extraFields ? ` <span class="msg">${applyHighlighting(esc(extraFields))}</span>` : "";
+  // Stack trace HTML (inline with preserved formatting)
+  const stackHtml = stackTrace ? 
+    `<pre class="stack-trace">${esc(stackTrace)}</pre>` : "";
+
   const html =
     `<div class="log-entry" data-index="${index}">` +
     `<div class="log-line">` +
@@ -109,6 +123,7 @@ function formatHit(hit, index) {
     customHtml +
     extraHtml +
     `</div>` +
+    stackHtml +
     `<div class="raw-json" hidden>` +
     `<button class="raw-copy" title="Copy raw JSON">⧉</button>` +
     `<pre class="raw-content">${esc(rawJson)}</pre>` +

@@ -228,7 +228,7 @@ textarea::placeholder { color: var(--text-dim); }
 #output .ts       { color: #74c0fc; }
 #output .meta     { color: #868e96; }
 #output .host     { color: #868e96; }
-#output .cls      { color: #da77f2; font-weight: 600; }
+#output .cls      { color: #cc6de4; font-weight: 500; }
 #output .msg      { color: #e9ecef; }
 #output .url      { color: #3d87c1; }
 #output .level    { font-weight: 700; }
@@ -267,9 +267,6 @@ textarea::placeholder { color: var(--text-dim); }
   font-size: 11px;
   margin-right: 2px;
   user-select: none;
-}
-.log-line .msg {
-  /* message can wrap naturally */
 }
 .raw-toggle {
   background: none;
@@ -330,6 +327,22 @@ textarea::placeholder { color: var(--text-dim); }
   color: var(--text);
   border-color: var(--text-dim);
   background: var(--bg-panel);
+}
+
+/* ── Stack trace ── */
+.stack-trace {
+  display: block;
+  /* background: var(--bg-panel); */
+  /* border-left: 3px solid var(--error); */
+  /* border-radius: 2px; */
+  /* margin: 0px 0 0 22px; */
+  padding: 0px 34px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--error);
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--mono);
 }
 
 /* ── Action bar ── */
