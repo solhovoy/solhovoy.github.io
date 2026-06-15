@@ -289,6 +289,26 @@ function applyHighlighting(escapedText) {
 // Elasticsearch metadata fields (not log data)
 const ES_META_FIELDS = ["_id", "_index", "_score", "_size", "_version", "fields", "_source", "sort", "highlight"];
 
+/**
+ * Detect Kibana search response wrapper format (rawResponse.hits.hits structure).
+ * This is the format returned by Kibana's search API with metadata like isPartial, isRunning, etc.
+ */
+function isKibanaSearchResponse(data) {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return false;
+  if (!("rawResponse" in data)) return false;
+  const raw = data.rawResponse;
+  if (!raw || typeof raw !== "object") return false;
+  if (!raw.hits || !Array.isArray(raw.hits.hits)) return false;
+  return true;
+}
+
+/**
+ * Extract hits from Kibana search response wrapper.
+ */
+function extractFromSearchResponse(data) {
+  return data.rawResponse.hits.hits;
+}
+
 function isSingleKibanaHit(data) {
   if (!data || typeof data !== "object" || Array.isArray(data)) return false;
   if (!("_id" in data)) return false;
@@ -340,9 +360,14 @@ function isKibanaHits(data) {
 
 /**
  * Normalize input: wrap single hit into array, ensure fields exist from _source if needed.
- * Supports: Kibana hits, ES|QL flat records.
+ * Supports: Kibana hits, ES|QL flat records, Kibana search response wrapper.
  */
 function normalizeInput(data) {
+  // Handle Kibana search response wrapper (rawResponse.hits.hits)
+  if (isKibanaSearchResponse(data)) {
+    data = extractFromSearchResponse(data);
+  }
+
   // Handle single Kibana hit
   if (isSingleKibanaHit(data)) {
     data = [data];
