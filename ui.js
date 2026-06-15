@@ -118,14 +118,79 @@ function applyFilter() {
     return;
   }
   const result = filterHits(parsedData, q);
-  if (result && result.error) {
+  if (result.error) {
     searchInput.classList.add("search-error");
     searchMeta.textContent = result.error;
     return;
   }
   searchInput.classList.remove("search-error");
-  searchMeta.textContent = `${result.length} / ${parsedData.length}`;
-  renderHits(result);
+  searchMeta.textContent = `${result.hits.length} / ${parsedData.length}`;
+  renderHits(result.hits);
+  highlightSearchTerms(result.patterns);
+}
+
+/**
+ * Highlight search terms in rendered output.
+ * Uses the exact same regex patterns as search (from buildMatchPattern).
+ */
+function highlightSearchTerms(patterns) {
+  if (!patterns || !patterns.length) return;
+
+  // Combine patterns from search.js (already built with correct word boundaries)
+  const regex = new RegExp(`(${patterns.join("|")})`, "gi");
+
+  // Walk text nodes in output and wrap matches
+  const walker = document.createTreeWalker(
+    outputEl,
+    NodeFilter.SHOW_TEXT,
+    {
+      acceptNode: (node) => {
+        // Skip nodes inside raw-json sections
+        if (node.parentElement?.closest(".raw-json")) return NodeFilter.FILTER_REJECT;
+        // Skip if no match
+        if (!regex.test(node.textContent)) return NodeFilter.FILTER_REJECT;
+        regex.lastIndex = 0;
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    }
+  );
+
+  const nodesToProcess = [];
+  while (walker.nextNode()) {
+    nodesToProcess.push(walker.currentNode);
+  }
+
+  for (const textNode of nodesToProcess) {
+    const text = textNode.textContent;
+    regex.lastIndex = 0;
+    
+    // Use matchAll to find matches
+    const matches = [...text.matchAll(regex)];
+    if (!matches.length) continue;
+
+    const frag = document.createDocumentFragment();
+    let lastIndex = 0;
+
+    for (const match of matches) {
+      // Add text before match
+      if (match.index > lastIndex) {
+        frag.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+      }
+      // Add highlighted match
+      const mark = document.createElement("span");
+      mark.className = "search-match";
+      mark.textContent = match[0];
+      frag.appendChild(mark);
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Add remaining text
+    if (lastIndex < text.length) {
+      frag.appendChild(document.createTextNode(text.slice(lastIndex)));
+    }
+
+    textNode.parentNode.replaceChild(frag, textNode);
+  }
 }
 
 // ── Copy ────────────────────────────────────────────────────────────────

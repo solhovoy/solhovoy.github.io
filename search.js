@@ -11,11 +11,12 @@
 
 /**
  * Filter an array of hits by a Lucene query string.
- * Returns the filtered array (or all hits if query is empty/invalid).
+ * Returns { hits: filteredArray, patterns: regexPatterns } or { error: string }.
+ * patterns can be joined with | to create a highlight regex.
  */
 function filterHits(hits, queryStr) {
   const q = (queryStr || "").trim();
-  if (!q) return hits;
+  if (!q) return { hits, patterns: [] };
 
   let ast;
   try {
@@ -24,7 +25,81 @@ function filterHits(hits, queryStr) {
     return { error: `Query parse error: ${e.message}` };
   }
 
-  return hits.filter(hit => evalNode(ast, hit));
+  // Extract regex patterns for highlighting (same patterns used in search)
+  const patterns = [];
+  collectPatterns(ast, patterns);
+
+  return {
+    hits: hits.filter(hit => evalNode(ast, hit)),
+    patterns
+  };
+}
+
+/**
+ * Collect regex patterns from AST for highlighting.
+ * Uses the same buildMatchPattern() as search.
+ * For field-specific searches, includes field prefix in pattern.
+ */
+function collectPatterns(node, patterns) {
+  if (!node) return;
+
+  // Leaf node — has a "term" key
+  if ("term" in node && node.term) {
+    const term = String(node.term);
+    const field = node.field;
+    
+    if (field && field !== "<implicit>") {
+      // Field-specific search: create pattern that matches "field=value"
+      const fieldPattern = buildFieldMatchPattern(field, term);
+      if (fieldPattern) patterns.push(fieldPattern);
+    } else {
+      // Free-text search: match term anywhere
+      const pattern = buildMatchPattern(term);
+      if (pattern) patterns.push(pattern);
+    }
+  }
+
+  // Recurse into left/right
+  if (node.left) collectPatterns(node.left, patterns);
+  if (node.right) collectPatterns(node.right, patterns);
+}
+
+/**
+ * Build a regex pattern for field-specific highlighting.
+ * Matches "field=value" in the formatted output.
+ */
+function buildFieldMatchPattern(field, term) {
+  const t = term.toLowerCase();
+  if (!t) return null;
+  
+  const escapedField = field.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
+  
+  if (!t.includes("*")) {
+    // Exact match: field=value (with word boundary after value)
+    const escapedTerm = t.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
+    return `${escapedField}=${escapedTerm}(?!${WORD_CHARS})`;
+  }
+  
+  const startsWithStar = t.startsWith("*");
+  const endsWithStar = t.endsWith("*");
+  
+  // Remove leading/trailing wildcards and escape the core
+  let core = t.replace(/^\*+|\*+$/g, "");
+  const escaped = core.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*");
+  
+  if (startsWithStar && endsWithStar) {
+    // *tune* - field=...tune...
+    return `${escapedField}=[^\\s]*${escaped}[^\\s]*`;
+  } else if (startsWithStar) {
+    // *tune - field=...tune (ends with)
+    return `${escapedField}=[^\\s]*${escaped}(?!${WORD_CHARS})`;
+  } else if (endsWithStar) {
+    // tune* - field=tune... (starts with)
+    return `${escapedField}=${escaped}[^\\s]*`;
+  } else {
+    // Internal wildcards
+    return `${escapedField}=${escaped}`;
+  }
 }
 
 // ── AST walker ────────────────────────────────────────────────────────────────
@@ -57,21 +132,30 @@ function evalNode(node, hit) {
 }
 
 /**
- * Build a matcher function from a term.
+ * Build a regex pattern string from a term.
+ * This is the SINGLE SOURCE OF TRUTH for matching logic.
+ * Used by both search (buildMatcher) and highlighting.
+ *
  * Wildcard patterns:
  *   *tune  - word ends with "tune"
  *   tune*  - word starts with "tune"  
  *   *tune* - contains "tune" anywhere
  * No wildcards: exact whole-word match.
+ *
+ * Word boundaries include common log delimiters: - / : & % .
+ * So "abc" won't match "aaa-abc" — use "*abc" for that.
  */
-function buildMatcher(term) {
+// Characters that are considered part of a "word" for boundary matching
+const WORD_CHARS = "[a-zA-Z0-9_\\-/:&%.@]";
+
+function buildMatchPattern(term) {
   const t = term.toLowerCase();
+  if (!t) return null;
   
   if (!t.includes("*")) {
     // No wildcards - exact whole-word match
     const escaped = t.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
-    const re = new RegExp(`(?<![\\w])${escaped}(?![\\w])`, "i");
-    return val => re.test(String(val));
+    return `(?<!${WORD_CHARS})${escaped}(?!${WORD_CHARS})`;
   }
   
   const startsWithStar = t.startsWith("*");
@@ -81,21 +165,28 @@ function buildMatcher(term) {
   let core = t.replace(/^\*+|\*+$/g, "");
   const escaped = core.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*");
   
-  let pattern;
   if (startsWithStar && endsWithStar) {
     // *tune* - contains anywhere
-    pattern = escaped;
+    return escaped;
   } else if (startsWithStar) {
     // *tune - ends with (word boundary after)
-    pattern = escaped + "(?![\\w])";
+    return escaped + `(?!${WORD_CHARS})`;
   } else if (endsWithStar) {
     // tune* - starts with (word boundary before)
-    pattern = "(?<![\\w])" + escaped;
+    return `(?<!${WORD_CHARS})` + escaped;
   } else {
     // Internal wildcards only
-    pattern = escaped;
+    return escaped;
   }
-  
+}
+
+/**
+ * Build a matcher function from a term.
+ * Uses buildMatchPattern() for the regex.
+ */
+function buildMatcher(term) {
+  const pattern = buildMatchPattern(term);
+  if (!pattern) return () => false;
   const re = new RegExp(pattern, "i");
   return val => re.test(String(val));
 }

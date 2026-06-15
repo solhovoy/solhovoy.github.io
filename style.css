@@ -233,6 +233,12 @@ textarea::placeholder { color: var(--text-dim); }
 #output .cls      { color: #cc6de4; font-weight: 500; }
 #output .msg      { color: #e9ecef; }
 #output .url      { color: #3d87c1; }
+#output .search-match {
+  color: black;
+  background: rgba(255, 255, 0);
+  border-radius: 2px;
+  padding: 0 1px;
+}
 #output .level    { font-weight: 700; }
 #output .lvl-info  { color: var(--info); }
 #output .lvl-warn  { color: var(--warn); }
