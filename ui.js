@@ -196,6 +196,17 @@ outputEl.addEventListener("click", (e) => {
     return;
   }
 
+  // Handle collapse button inside raw-json
+  const collapseBtn = e.target.closest(".raw-collapse");
+  if (collapseBtn) {
+    const entry = collapseBtn.closest(".log-entry");
+    if (entry) {
+      entry.classList.remove("expanded");
+      entry.querySelector(".raw-json").hidden = true;
+    }
+    return;
+  }
+
   // Handle raw JSON toggle button
   const toggle = e.target.closest(".raw-toggle");
   if (!toggle) return;

@@ -111,7 +111,6 @@ main {
 .search-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
   margin-bottom: 8px;
 }
 .search-input-wrap {
@@ -153,6 +152,9 @@ main {
   font-size: 11px;
   color: var(--text-dim);
   white-space: nowrap;
+}
+#search-meta:not(:empty) {
+  margin-left: 8px;
 }
 
 /* ── Collapse button ── */
@@ -324,6 +326,27 @@ textarea::placeholder { color: var(--text-dim); }
   z-index: 1;
 }
 .raw-copy:hover {
+  color: var(--text);
+  border-color: var(--text-dim);
+  background: var(--bg-panel);
+}
+.raw-collapse {
+  position: sticky;
+  top: 0;
+  float: right;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 6px;
+  line-height: 1;
+  margin-left: 4px;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  z-index: 1;
+}
+.raw-collapse:hover {
   color: var(--text);
   border-color: var(--text-dim);
   background: var(--bg-panel);

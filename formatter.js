@@ -134,6 +134,7 @@ function formatHit(hit, index) {
     `</div>` +
     stackHtml +
     `<div class="raw-json" hidden>` +
+    `<button class="raw-collapse" title="Hide raw JSON">✕</button>` +
     `<button class="raw-copy" title="Copy raw JSON">⧉</button>` +
     `<pre class="raw-content">${esc(rawJson)}</pre>` +
     `</div>` +
