@@ -23,6 +23,29 @@ let parsedData = [];   // raw hits kept for filtering
 let sortOrder = localStorage.getItem("elkSortOrder") || "asc";
 btnSort.textContent = sortOrder === "asc" ? "↑ ASC" : "↓ DESC";
 
+// ── Theme (persisted in localStorage) ────────────────────────────────────
+const themeToggle = document.getElementById("theme-toggle");
+let theme = localStorage.getItem("elkTheme") || "dark";
+applyTheme(theme);
+
+function applyTheme(t) {
+  if (t === "light") {
+    document.documentElement.classList.add("light");
+    themeToggle.textContent = "🌙";
+    themeToggle.title = "Switch to dark mode";
+  } else {
+    document.documentElement.classList.remove("light");
+    themeToggle.textContent = "☀️";
+    themeToggle.title = "Switch to light mode";
+  }
+}
+
+themeToggle.addEventListener("click", () => {
+  theme = theme === "dark" ? "light" : "dark";
+  localStorage.setItem("elkTheme", theme);
+  applyTheme(theme);
+});
+
 // ── Sort toggle ──────────────────────────────────────────────────────────
 btnSort.addEventListener("click", () => {
   sortOrder = sortOrder === "asc" ? "desc" : "asc";

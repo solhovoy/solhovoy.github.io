@@ -18,6 +18,25 @@
   --mono:       "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
 }
 
+/* Light mode */
+:root.light {
+  --bg:         #f8f9fa;
+  --bg-panel:   #ffffff;
+  --bg-input:   #ffffff;
+  --border:     #dee2e6;
+  --text:       #212529;
+  --text-dim:   #868e96;
+  --accent:     #1971c2;
+  --btn-bg:     #228be6;
+  --btn-hover:  #1c7ed6;
+  --btn-copy:   #2f9e44;
+  --btn-copy-h: #2b8a3e;
+  --error:      #e03131;
+  --warn:       #e67700;
+  --info:       #2f9e44;
+  --debug:      #868e96;
+}
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
@@ -48,6 +67,7 @@ header h1 {
   color: #e9ecef;
   letter-spacing: 0.3px;
 }
+:root.light header h1 { color: #212529; }
 header .badge {
   font-size: 11px;
   background: #1c4a7a;
@@ -55,6 +75,23 @@ header .badge {
   padding: 2px 8px;
   border-radius: 20px;
   font-weight: 500;
+}
+
+/* ── Theme toggle ── */
+.theme-toggle {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  cursor: pointer;
+  line-height: 1.4;
+  transition: border-color 0.15s, background 0.15s;
+}
+.theme-toggle:hover {
+  border-color: var(--text-dim);
+  background: var(--bg-input);
 }
 
 /* ── Layout ── */
@@ -232,6 +269,7 @@ textarea::placeholder { color: var(--text-dim); }
 #output .host     { color: #868e96; }
 #output .cls      { color: #cc6de4; font-weight: 500; }
 #output .msg      { color: #e9ecef; }
+:root.light #output .msg { color: #212529; }
 #output .url      { color: #3d87c1; }
 #output .search-match {
   color: black;
@@ -307,6 +345,7 @@ textarea::placeholder { color: var(--text-dim); }
   max-height: 250px;
   overflow: auto;
 }
+:root.light .raw-json { background: var(--bg); }
 .raw-json[hidden] { display: none; }
 .raw-json .raw-content {
   margin: 0;
