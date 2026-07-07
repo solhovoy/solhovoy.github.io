@@ -286,6 +286,7 @@ textarea::placeholder { color: var(--text-dim); }
   line-height: 1.7;
   transition: color 0.15s, transform 0.15s;
   display: inline-block;
+  user-select: none;
   /* vertical-align: top; */
 }
 .raw-toggle:hover { color: var(--accent); }
