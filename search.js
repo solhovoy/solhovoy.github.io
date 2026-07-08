@@ -147,11 +147,13 @@ function evalNode(node, hit) {
  *   *tune* - contains "tune" anywhere
  * No wildcards: exact whole-word match.
  *
- * Word boundaries include common log delimiters: - / : & % .
+ * Word boundaries include common log delimiters: - / & % @
+ * Trailing punctuation like : , . is treated as word boundary.
  * So "abc" won't match "aaa-abc" — use "*abc" for that.
+ * However, "abc" will match "abc:" or "abc," since those are treated as word boundaries.
  */
 // Characters that are considered part of a "word" for boundary matching
-const WORD_CHARS = "[a-zA-Z0-9_\\-/:&%.@]";
+const WORD_CHARS = "[a-zA-Z0-9_\\-/&%@]";
 
 function buildMatchPattern(term) {
   const t = term.toLowerCase();
