@@ -18,9 +18,14 @@ function filterHits(hits, queryStr) {
   const q = (queryStr || "").trim();
   if (!q) return { hits, patterns: [] };
 
+  // The lucene-query-parser silently drops NOT in "AND NOT" constructs (grammar bug:
+  // it treats "AND" as the binary op and then discards "NOT" from "NOT term").
+  // Normalize "AND NOT" → "NOT" since they are semantically identical in Lucene.
+  const normalized = q.replace(/\bAND\s+NOT\b/gi, "NOT");
+
   let ast;
   try {
-    ast = lucenequeryparser.parse(q);
+    ast = lucenequeryparser.parse(normalized);
   } catch (e) {
     return { error: `Query parse error: ${e.message}` };
   }
