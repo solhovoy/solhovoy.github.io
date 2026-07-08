@@ -485,7 +485,7 @@ function formatLogs(rawJson, sortOrder = "asc") {
   }
 
   return {
-    plain: plains.join("\n\n"),
+    plain: plains.join("\n\r"),
     html:  htmls.join(""),
     count: data.length,
   };
