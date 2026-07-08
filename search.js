@@ -196,6 +196,12 @@ function buildMatcher(term) {
   return val => re.test(String(val));
 }
 
+// Fields that are not displayed in formatted output (should be excluded from free-text search)
+const HIDDEN_FIELDS = [
+  "source_type", "path", "stack", "container.id", "event.size",
+  "isVectorDebug", "length_diff"
+];
+
 function matchLeaf(node, hit) {
   const fields = hit.fields || {};
   const term   = String(node.term ?? "").toLowerCase();
@@ -205,14 +211,16 @@ function matchLeaf(node, hit) {
 
   const matches = buildMatcher(term);
 
-  // Free-text: search all field values
+  // Free-text: search visible field values only
   if (!field || field === "<implicit>") {
-    return Object.values(fields).some(raw => {
+    return Object.entries(fields).some(([key, raw]) => {
       if (raw === undefined) return false;
+      // Skip hidden fields that aren't displayed in formatted output
+      if (HIDDEN_FIELDS.includes(key)) return false;
       const val = unwrap(raw);
-      // Handle nested objects (like json_ fields)
+      // Handle nested objects (like json_ fields) — stringify and use same matcher
       if (val && typeof val === "object") {
-        return JSON.stringify(val).toLowerCase().includes(term);
+        return matches(JSON.stringify(val));
       }
       return matches(val ?? "");
     });

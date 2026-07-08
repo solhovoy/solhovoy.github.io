@@ -47,7 +47,18 @@
         <button id="search-clear" title="Clear filter" hidden>✕</button>
       </div>
       <span id="search-meta"></span>
+      <button id="filter-save-btn" class="filter-help-btn" title="Save current filter">+</button>
+      <button id="filter-saved-btn" class="filter-help-btn" title="Saved filters">☰</button>
       <button id="filter-help-btn" class="filter-help-btn" title="Filter syntax help">?</button>
+    </div>
+
+    <!-- ── Saved filters popup ── -->
+    <div id="filter-saved-popup" class="filter-help-popup" hidden>
+      <div class="filter-help-header">
+        <span>Saved Filters</span>
+        <button id="filter-saved-close" class="filter-help-close" title="Close">✕</button>
+      </div>
+      <div class="filter-saved-body" id="filter-saved-body"></div>
     </div>
 
     <!-- ── Filter help popup ── -->
@@ -124,7 +135,7 @@
   </div>
 </main>
 
-<div id="toast">Copied to clipboard!</div>
+<div id="toast"></div>
 
 <script src="lib/lucene-query-parser.min.js"></script>
 <script src="formatter.js"></script>

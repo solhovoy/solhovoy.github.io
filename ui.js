@@ -173,6 +173,8 @@ function highlightSearchTerms(patterns) {
       acceptNode: (node) => {
         // Skip nodes inside raw-json sections
         if (node.parentElement?.closest(".raw-json")) return NodeFilter.FILTER_REJECT;
+        // Skip line numbers
+        if (node.parentElement?.closest(".line-num")) return NodeFilter.FILTER_REJECT;
         // Skip if no match
         if (!regex.test(node.textContent)) return NodeFilter.FILTER_REJECT;
         regex.lastIndex = 0;
@@ -224,7 +226,7 @@ async function doCopy() {
   if (!plainText) return;
   try {
     await navigator.clipboard.writeText(plainText);
-    showToast();
+    showToast(MSG_COPIED);
   } catch {
     const ta = document.createElement("textarea");
     ta.value = plainText;
@@ -234,7 +236,7 @@ async function doCopy() {
     ta.select();
     document.execCommand("copy");
     document.body.removeChild(ta);
-    showToast();
+    showToast(MSG_COPIED);
   }
 }
 
@@ -273,6 +275,118 @@ function makeCollapsible(btnId, panelId, isInput) {
 }
 makeCollapsible("collapse-input", "panel-input", true);
 
+// ── Constants ────────────────────────────────────────────────────────
+const SAVED_FILTERS_KEY  = "elkSavedFilters";
+const MSG_COPIED         = "Copied to clipboard";
+const MSG_FILTER_SAVED   = "Filter saved";
+const MSG_FILTER_DUP     = "Sorry, filter already exists";
+const MSG_NOTHING_SAVE   = "Sorry, nothing to save";
+
+// ── Saved filters ─────────────────────────────────────────────────────
+
+function getSavedFilters() {
+  try { return JSON.parse(localStorage.getItem(SAVED_FILTERS_KEY)) || []; }
+  catch { return []; }
+}
+
+function setSavedFilters(filters) {
+  localStorage.setItem(SAVED_FILTERS_KEY, JSON.stringify(filters));
+}
+
+const filterSaveBtn   = document.getElementById("filter-save-btn");
+const filterSavedBtn  = document.getElementById("filter-saved-btn");
+const filterSavedPopup = document.getElementById("filter-saved-popup");
+const filterSavedClose = document.getElementById("filter-saved-close");
+const filterSavedBody  = document.getElementById("filter-saved-body");
+
+filterSaveBtn.addEventListener("click", () => {
+  const q = searchInput.value.trim();
+  if (!q) { showToast(MSG_NOTHING_SAVE); return; }
+  // Only save if there's no parse error
+  const check = filterHits([], q);
+  if (check.error) return;
+  const filters = getSavedFilters();
+  if (!filters.includes(q)) {
+    filters.unshift(q);
+    setSavedFilters(filters);
+    showToast(MSG_FILTER_SAVED);
+  } else {
+    showToast(MSG_FILTER_DUP);
+  }
+});
+
+function renderSavedFilters() {
+  const filters = getSavedFilters();
+  filterSavedBody.innerHTML = "";
+  if (!filters.length) {
+    const p = document.createElement("p");
+    p.className = "filter-saved-empty";
+    p.textContent = "No saved filters yet.";
+    filterSavedBody.appendChild(p);
+    return;
+  }
+  const ul = document.createElement("ul");
+  ul.className = "filter-saved-list";
+  for (const [i, f] of filters.entries()) {
+    const li  = document.createElement("li");
+    li.className = "filter-saved-item";
+
+    const num = document.createElement("span");
+    num.className = "filter-saved-num";
+    num.textContent = i + 1;
+
+    const code = document.createElement("code");
+    code.textContent = f;
+    code.addEventListener("click", () => {
+      searchInput.value = f;
+      searchClear.hidden = false;
+      filterSavedPopup.hidden = true;
+      applyFilter();
+    });
+
+    const del = document.createElement("button");
+    del.className = "filter-saved-delete";
+    del.title = "Delete";
+    del.textContent = "✕";
+    del.addEventListener("click", (e) => {
+      e.stopPropagation();
+      setSavedFilters(getSavedFilters().filter(x => x !== f));
+      renderSavedFilters();
+    });
+
+    li.appendChild(num);
+    li.appendChild(code);
+    li.appendChild(del);
+    ul.appendChild(li);
+  }
+  filterSavedBody.appendChild(ul);
+}
+
+filterSavedBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  const isHidden = filterSavedPopup.hidden;
+  // Close help popup if open
+  filterHelpPopup.hidden = true;
+  filterSavedPopup.hidden = !isHidden;
+  if (isHidden) {
+    renderSavedFilters();
+    const rect = filterSavedBtn.getBoundingClientRect();
+    const popupWidth = 620;
+    let left = rect.right - popupWidth;
+    if (left < 8) left = 8;
+    const availableHeight = window.innerHeight - rect.bottom - 12;
+    filterSavedPopup.style.top       = (rect.bottom + 4) + "px";
+    filterSavedPopup.style.left      = left + "px";
+    filterSavedPopup.style.maxHeight = Math.max(200, availableHeight) + "px";
+  }
+});
+filterSavedClose.addEventListener("click", () => { filterSavedPopup.hidden = true; });
+document.addEventListener("click", (e) => {
+  if (!filterSavedPopup.hidden && !filterSavedPopup.contains(e.target) && e.target !== filterSavedBtn) {
+    filterSavedPopup.hidden = true;
+  }
+});
+
 // ── Filter help popup ─────────────────────────────────────────────────
 const filterHelpBtn   = document.getElementById("filter-help-btn");
 const filterHelpPopup = document.getElementById("filter-help-popup");
@@ -281,6 +395,8 @@ const filterHelpClose = document.getElementById("filter-help-close");
 filterHelpBtn.addEventListener("click", (e) => {
   e.stopPropagation();
   const isHidden = filterHelpPopup.hidden;
+  // Close saved popup if open
+  filterSavedPopup.hidden = true;
   filterHelpPopup.hidden = !isHidden;
   if (isHidden) {
     const rect = filterHelpBtn.getBoundingClientRect();
@@ -307,7 +423,6 @@ filterHelpPopup.querySelectorAll(".filter-examples li code").forEach(el => {
     searchClear.hidden = false;
     filterHelpPopup.hidden = true;
     applyFilter();
-    searchInput.focus();
   });
 });
 
@@ -321,7 +436,7 @@ outputEl.addEventListener("click", (e) => {
   if (copyBtn) {
     const rawJson = copyBtn.closest(".raw-json");
     const content = rawJson.querySelector(".raw-content").textContent;
-    navigator.clipboard.writeText(content).then(() => showToast());
+    navigator.clipboard.writeText(content).then(() => showToast(MSG_COPIED));
     return;
   }
 
@@ -347,9 +462,12 @@ outputEl.addEventListener("click", (e) => {
 });
 
 let toastTimer;
-function showToast() {
+function showToast(msg) {
   const toast = document.getElementById("toast");
+  toast.textContent = msg;
   toast.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove("show"), 2000);
+  toastTimer = setTimeout(() => {
+    toast.classList.remove("show");
+  }, 2000);
 }
