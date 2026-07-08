@@ -123,7 +123,7 @@ function evalNode(node, hit) {
   const leftResult = evalNode(node.left, hit);
   const op = (node.operator || "<implicit>").toUpperCase();
 
-  if (op === "AND" || op === "<implicit>") {
+  if (op === "AND" || op === "<IMPLICIT>") {
     return leftResult && evalNode(node.right, hit);
   }
   if (op === "OR") {

@@ -46,7 +46,66 @@
           spellcheck="false" autocomplete="off" />
         <button id="search-clear" title="Clear filter" hidden>✕</button>
       </div>
+      <button id="filter-help-btn" class="filter-help-btn" title="Filter syntax help">?</button>
       <span id="search-meta"></span>
+    </div>
+
+    <!-- ── Filter help popup ── -->
+    <div id="filter-help-popup" class="filter-help-popup" hidden>
+      <div class="filter-help-header">
+        <span>Filter Syntax</span>
+        <button id="filter-help-close" class="filter-help-close" title="Close">✕</button>
+      </div>
+      <div class="filter-help-body">
+        <section>
+          <h4>Boolean operators</h4>
+          <dl>
+            <dt><code>AND</code></dt><dd><span>Both must match</span><em>c:Guide AND timeout</em></dd>
+            <dt><code>OR</code></dt><dd><span>Either must match</span><em>error OR warn</em></dd>
+            <dt><code>NOT</code></dt><dd><span>Exclude matches</span><em>c:Guide NOT timeout</em></dd>
+            <dt><code>AND NOT</code></dt><dd><span>Same as NOT</span><em>c:Guide AND NOT timeout</em></dd>
+            <dt><em>space</em></dt><dd><span>Implicit AND</span><em>c:Guide timeout</em></dd>
+          </dl>
+        </section>
+        <section>
+          <h4>Field matching</h4>
+          <dl>
+            <dt><code>field:"value"</code></dt><dd><span>Exact field</span><em>c:"Guide"</em></dd>
+            <dt><code>field:value</code></dt><dd><span>Unquoted also works</span><em>c:Guide</em></dd>
+          </dl>
+        </section>
+        <section>
+          <h4>Wildcards</h4>
+          <dl>
+            <dt><code>tune*</code></dt><dd>Starts with</dd>
+            <dt><code>*tune</code></dt><dd>Ends with</dd>
+            <dt><code>*tune*</code></dt><dd>Contains anywhere</dd>
+          </dl>
+        </section>
+        <section>
+          <h4>Grouping</h4>
+          <dl>
+            <dt><code>( … )</code></dt><dd><em>c:Guide AND (startup OR shutdown)</em></dd>
+          </dl>
+        </section>
+        <section>
+          <h4>Free-text</h4>
+          <dl>
+            <dt><code>player</code></dt><dd>Whole-word match across all fields</dd>
+            <dt><code>"error overlay"</code></dt><dd>Phrase match across all fields</dd>
+          </dl>
+        </section>
+        <section>
+          <h4>Examples</h4>
+          <ul class="filter-examples">
+            <li><code>r:"abc" AND c:"Guide"</code></li>
+            <li><code>c:"HdcpStatusListener" NOT delay</code></li>
+            <li><code>c:"Guide" AND ("startup" OR "shutdown")</code></li>
+            <li><code>c:"Tuner" AND NOT *error*</code></li>
+            <li><code>status:*fail*</code></li>
+          </ul>
+        </section>
+      </div>
     </div>
     <div id="output-wrap">
       <div id="output"></div>

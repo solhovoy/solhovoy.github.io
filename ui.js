@@ -137,16 +137,19 @@ function applyFilter() {
   if (!q) {
     searchMeta.textContent = "";
     searchInput.classList.remove("search-error");
+    setStatus("", "");
     renderHits(parsedData);
     return;
   }
   const result = filterHits(parsedData, q);
   if (result.error) {
     searchInput.classList.add("search-error");
-    searchMeta.textContent = result.error;
+    searchMeta.textContent = "";
+    setStatus(`Filter error: ${result.error}`, "err");
     return;
   }
   searchInput.classList.remove("search-error");
+  setStatus("", "");
   searchMeta.textContent = `${result.hits.length} / ${parsedData.length}`;
   renderHits(result.hits);
   highlightSearchTerms(result.patterns);
@@ -269,6 +272,44 @@ function makeCollapsible(btnId, panelId, isInput) {
   });
 }
 makeCollapsible("collapse-input", "panel-input", true);
+
+// ── Filter help popup ─────────────────────────────────────────────────
+const filterHelpBtn   = document.getElementById("filter-help-btn");
+const filterHelpPopup = document.getElementById("filter-help-popup");
+const filterHelpClose = document.getElementById("filter-help-close");
+
+filterHelpBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  const isHidden = filterHelpPopup.hidden;
+  filterHelpPopup.hidden = !isHidden;
+  if (isHidden) {
+    const rect = filterHelpBtn.getBoundingClientRect();
+    const popupWidth = 420;
+    let left = rect.right - popupWidth;
+    if (left < 8) left = 8;
+    const availableHeight = window.innerHeight - rect.bottom - 12;
+    filterHelpPopup.style.top       = (rect.bottom + 4) + "px";
+    filterHelpPopup.style.left      = left + "px";
+    filterHelpPopup.style.maxHeight = Math.max(200, availableHeight) + "px";
+  }
+});
+filterHelpClose.addEventListener("click", () => { filterHelpPopup.hidden = true; });
+document.addEventListener("click", (e) => {
+  if (!filterHelpPopup.hidden && !filterHelpPopup.contains(e.target) && e.target !== filterHelpBtn) {
+    filterHelpPopup.hidden = true;
+  }
+});
+
+// Click an example to paste it into the search input
+filterHelpPopup.querySelectorAll(".filter-examples li code").forEach(el => {
+  el.addEventListener("click", () => {
+    searchInput.value = el.textContent;
+    searchClear.hidden = false;
+    filterHelpPopup.hidden = true;
+    applyFilter();
+    searchInput.focus();
+  });
+});
 
 // ── Copy (header button) ─────────────────────────────────────────────────
 copyOutputBtn.addEventListener("click", () => doCopy());
