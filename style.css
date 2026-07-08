@@ -535,7 +535,7 @@ button:active { transform: scale(0.97); }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px 8px;
+  padding: 10px 12px 8px;
   border-bottom: 1px solid var(--border);
   font-size: 12px;
   font-weight: 700;
@@ -547,17 +547,21 @@ button:active { transform: scale(0.97); }
   background: var(--bg-panel);
 }
 .filter-help-close {
-  background: none;
-  border: none;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 4px;
   color: var(--text-dim);
   cursor: pointer;
   font-size: 12px;
   padding: 2px 6px;
-  border-radius: 4px;
   line-height: 1;
-  transition: color 0.15s;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
-.filter-help-close:hover { color: var(--text); }
+.filter-help-close:hover {
+  color: var(--text);
+  border-color: var(--text-dim);
+  background: var(--bg-panel);
+}
 .filter-help-body {
   padding: 12px 14px;
   display: flex;
