@@ -138,6 +138,7 @@ function formatHit(hit, index) {
     `<button class="raw-copy" title="Copy raw JSON">⧉</button>` +
     `<pre class="raw-content">${esc(rawJson)}</pre>` +
     `</div>` +
+    `<span class="break"><br></span>` +
     `</div>`;
 
   return { plain, html };

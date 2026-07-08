@@ -289,6 +289,13 @@ textarea::placeholder { color: var(--text-dim); }
   margin-bottom: 5px;
   padding-left: 4px;
 }
+span.break {
+  display: block;
+  line-height: 0;
+  font-size: 0;
+  margin: 0;
+  padding: 0;
+}
 .log-entry.expanded::before {
   content: "";
   position: absolute;
