@@ -21,7 +21,7 @@ let parsedData = [];   // raw hits kept for filtering
 
 // ── Sort order (persisted in localStorage) ───────────────────────────────
 let sortOrder = localStorage.getItem("elkSortOrder") || "asc";
-btnSort.textContent = sortOrder === "asc" ? "↑ ASC" : "↓ DESC";
+btnSort.textContent = sortOrder === "asc" ? "⬆ ASC" : "⬇ DESC";
 
 // ── Theme (persisted in localStorage) ────────────────────────────────────
 const themeToggle = document.getElementById("theme-toggle");
@@ -49,7 +49,7 @@ themeToggle.addEventListener("click", () => {
 // ── Sort toggle ──────────────────────────────────────────────────────────
 btnSort.addEventListener("click", () => {
   sortOrder = sortOrder === "asc" ? "desc" : "asc";
-  btnSort.textContent = sortOrder === "asc" ? "↑ ASC" : "↓ DESC";
+  btnSort.textContent = sortOrder === "asc" ? "⬆ ASC" : "⬇ DESC";
   localStorage.setItem("elkSortOrder", sortOrder);
   if (parsedData.length) applyFilter();
 });

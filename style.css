@@ -233,6 +233,7 @@ main {
 }
 
 /* ── Collapse button ── */
+#btn-sort { min-width: 65px; display: inline-flex; justify-content: center; }
 .btn-collapse {
   background: transparent;
   border: 1px solid var(--border);
@@ -308,6 +309,8 @@ textarea::placeholder { color: var(--text-dim); }
 #output .cls      { color: #cc6de4; font-weight: 500; }
 #output .msg      { color: #e9ecef; }
 :root.light #output .msg { color: #212529; }
+:root.light #output .ts { color: var(--accent); }
+:root.light #output .cls { color: #9c0dc0; font-weight: 500; }
 #output .url      { color: #3d87c1; }
 #output .search-match {
   color: black;
@@ -666,6 +669,9 @@ button:active { transform: scale(0.97); }
   cursor: pointer;
   transition: border-color 0.15s;
 }
+:root.light .filter-examples li code {
+  background: var(--bg);
+}
 .filter-examples li code:hover {
   border-color: var(--accent);
   color: var(--accent);
@@ -715,6 +721,9 @@ button:active { transform: scale(0.97); }
   word-break: normal;
   overflow-wrap: anywhere;
   transition: border-color 0.15s, color 0.15s;
+}
+:root.light .filter-saved-item code {
+  background: var(--bg);
 }
 .filter-saved-item code:hover {
   border-color: var(--accent);
