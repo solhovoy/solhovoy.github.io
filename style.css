@@ -116,7 +116,7 @@ main {
   border-bottom: 1px solid var(--border);
 }
 .panel:first-child textarea {
-  height: calc(5 * 1.6 * 12px + 24px); /* ~5 visible lines */
+  height: calc(5 * 1.6 * 12px + 14px); /* ~5 visible lines */
   flex: none;
 }
 
@@ -162,18 +162,56 @@ main {
   border: 1px solid var(--border);
   border-radius: 6px;
   color: var(--text);
+  /* color: var(--accent); */
   font-family: var(--mono);
   font-size: 12px;
   padding: 6px 28px 6px 10px;
   outline: none;
   transition: border-color 0.15s;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.search-input-wrap input:focus  { border-color: var(--accent); }
+.search-input-wrap input:focus  {
+  border-color: var(--accent);
+  text-overflow: clip;
+}
 .search-input-wrap input.search-error { border-color: var(--error); }
+#search-expand.search-error { border-color: var(--error); }
 .search-input-wrap input::placeholder { color: var(--text-dim); }
+@keyframes filter-flash {
+  0%   { background: var(--bg-input); }
+  30%  { background: color-mix(in srgb, var(--accent) 28%, var(--bg-input)); }
+  100% { background: var(--bg-input); }
+}
+.search-input-flash { animation: filter-flash 0.55s ease-out; }
+#search-expand {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background: var(--bg-input);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 4px 28px 6px 10px;
+  outline: none;
+  resize: none;
+  overflow-y: auto;
+  max-height: 200px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  box-sizing: border-box;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+}
 #search-clear {
   position: absolute;
   right: 6px;
+  z-index: 21;
   background: none;
   border: none;
   color: var(--text-dim);
@@ -634,7 +672,7 @@ button:active { transform: scale(0.97); }
 
 /* ── Saved filters popup body ── */
 .filter-saved-body {
-  padding: 8px 8px 20px;
+  padding: 8px 12px 20px;
 }
 .filter-saved-empty {
   padding: 8px 4px;

@@ -100,7 +100,10 @@ function renderHits(hits) {
 btnFormat.addEventListener("click", doFormat);
 
 // Auto-format on paste
-inputEl.addEventListener("paste", () => setTimeout(doFormat, 0));
+inputEl.addEventListener("paste", () => setTimeout(() => { 
+  doFormat(); 
+  inputEl.blur(); 
+}, 0));
 
 // Format on Ctrl/Cmd+Enter
 inputEl.addEventListener("keydown", e => {
@@ -117,26 +120,81 @@ inputEl.addEventListener("input", () => {
   inputMeta.textContent = chars ? `${chars.toLocaleString()} chars` : "";
 });
 
+// ── Filter expand overlay ────────────────────────────────────────────────
+const searchExpand = document.getElementById("search-expand");
+
+function flashSearchInput() {
+  searchInput.classList.remove("search-input-flash");
+  void searchInput.offsetWidth; // reflow to restart animation
+  searchInput.classList.add("search-input-flash");
+}
+
+function autoResizeExpand() {
+  searchExpand.style.height = "auto";
+  searchExpand.style.height = searchExpand.scrollHeight + "px";
+}
+
+searchInput.addEventListener("focus", () => {
+  searchExpand.value = searchInput.value;
+  searchExpand.hidden = false;
+  autoResizeExpand();
+  searchExpand.focus();
+  searchExpand.setSelectionRange(searchExpand.value.length, searchExpand.value.length);
+});
+
+searchExpand.addEventListener("input", () => {
+  searchInput.value = searchExpand.value;
+  searchInput.title = searchExpand.value;
+  searchClear.hidden = !searchExpand.value;
+  autoResizeExpand();
+  applyFilter();
+});
+
+searchExpand.addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    // searchExpand.blur();
+  }
+});
+
+searchExpand.addEventListener("blur", () => {
+  searchInput.value = searchExpand.value;
+  searchInput.title = searchExpand.value;
+  searchExpand.hidden = true;
+});
+
 // ── Search / filter ──────────────────────────────────────────────────────
 searchInput.addEventListener("input", () => {
+  searchInput.title = searchInput.value;
   searchClear.hidden = !searchInput.value;
   applyFilter();
 });
 
 searchClear.addEventListener("click", () => {
-  searchInput.value = "";
+  setSearchValue("");
   searchClear.hidden = true;
   searchMeta.textContent = "";
   searchInput.classList.remove("search-error");
+  searchExpand.classList.remove("search-error");
   renderHits(parsedData);
   searchInput.focus();
 });
+
+function setSearchValue(v) {
+  searchInput.value = v;
+  searchInput.title = v;
+  if (!searchExpand.hidden) {
+    searchExpand.value = v;
+    autoResizeExpand();
+  }
+}
 
 function applyFilter() {
   const q = searchInput.value.trim();
   if (!q) {
     searchMeta.textContent = "";
     searchInput.classList.remove("search-error");
+    searchExpand.classList.remove("search-error");
     setStatus("", "");
     renderHits(parsedData);
     return;
@@ -144,11 +202,13 @@ function applyFilter() {
   const result = filterHits(parsedData, q);
   if (result.error) {
     searchInput.classList.add("search-error");
+    searchExpand.classList.add("search-error");
     searchMeta.textContent = "";
     setStatus(`Filter error: ${result.error}`, "err");
     return;
   }
   searchInput.classList.remove("search-error");
+  searchExpand.classList.remove("search-error");
   setStatus("", "");
   searchMeta.textContent = `${result.hits.length} / ${parsedData.length}`;
   renderHits(result.hits);
@@ -247,10 +307,11 @@ btnClear.addEventListener("click", () => {
   plainText = "";
   parsedData = [];
   copyOutputBtn.disabled = true;
-  searchInput.value = "";
+  setSearchValue("");
   searchClear.hidden = true;
   searchMeta.textContent = "";
   searchInput.classList.remove("search-error");
+  searchExpand.classList.remove("search-error");
   inputMeta.textContent = "";
   outputMeta.textContent = "";
   setStatus("", "");
@@ -338,9 +399,10 @@ function renderSavedFilters() {
     const code = document.createElement("code");
     code.textContent = f;
     code.addEventListener("click", () => {
-      searchInput.value = f;
+      setSearchValue(f);
       searchClear.hidden = false;
       filterSavedPopup.hidden = true;
+      flashSearchInput();
       applyFilter();
     });
 
@@ -419,9 +481,10 @@ document.addEventListener("click", (e) => {
 // Click an example to paste it into the search input
 filterHelpPopup.querySelectorAll(".filter-examples li code").forEach(el => {
   el.addEventListener("click", () => {
-    searchInput.value = el.textContent;
+    setSearchValue(el.textContent);
     searchClear.hidden = false;
     filterHelpPopup.hidden = true;
+    flashSearchInput();
     applyFilter();
   });
 });

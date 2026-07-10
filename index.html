@@ -20,7 +20,7 @@
       <span class="panel-label">Raw JSON Input</span>
       <div class="panel-header-right">
         <span class="panel-meta" id="input-meta"></span>
-        <button class="btn-collapse" id="collapse-input" title="Collapse input">▲</button>
+        <button class="btn-collapse" id="collapse-input" title="Collapse">▲</button>
       </div>
     </div>
     <textarea id="input"
@@ -44,6 +44,7 @@
         <input type="text" id="search-input"
           placeholder='Filter: r:"abc" AND c:"Guide" AND ("startup" OR "tune")'
           spellcheck="false" autocomplete="off" />
+        <textarea id="search-expand" rows="1" hidden spellcheck="false" autocomplete="off"></textarea>
         <button id="search-clear" title="Clear filter" hidden>✕</button>
       </div>
       <span id="search-meta"></span>
