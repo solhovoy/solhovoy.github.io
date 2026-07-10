@@ -358,6 +358,7 @@ span.break {
   font-size: 11px;
   margin-right: 2px;
   user-select: none;
+  -webkit-user-select: none; /* safari */
 }
 .raw-toggle {
   background: none;
@@ -370,7 +371,7 @@ span.break {
   transition: color 0.15s, transform 0.15s;
   display: inline-block;
   user-select: none;
-  /* vertical-align: top; */
+  -webkit-user-select: none; /* safari */
 }
 .raw-toggle:hover { color: var(--accent); }
 .log-entry.expanded .raw-toggle {
@@ -697,7 +698,6 @@ button:active { transform: scale(0.97); }
   text-align: right;
   font-size: 11px;
   color: var(--text-dim);
-  user-select: none;
 }
 .filter-saved-item code {
   flex: 1;
