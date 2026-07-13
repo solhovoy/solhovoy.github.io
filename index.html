@@ -57,9 +57,15 @@
     <div id="filter-saved-popup" class="filter-help-popup" hidden>
       <div class="filter-help-header">
         <span>Saved Filters</span>
-        <button id="filter-saved-close" class="filter-help-close" title="Close">✕</button>
+        <div class="filter-saved-header-actions">
+          <button id="filter-export-btn" class="filter-help-close" title="Export filters as JSON">⬇ Export</button>
+          <button id="filter-saved-close" class="filter-help-close" title="Close">✕</button>
+        </div>
       </div>
       <div class="filter-saved-body" id="filter-saved-body"></div>
+      <div class="filter-saved-drop-overlay" id="filter-saved-drop-overlay" hidden>
+        <span>Drop a JSON file to import.</span>
+      </div>
     </div>
 
     <!-- ── Filter help popup ── -->

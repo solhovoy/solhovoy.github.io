@@ -337,11 +337,17 @@ function makeCollapsible(btnId, panelId, isInput) {
 makeCollapsible("collapse-input", "panel-input", true);
 
 // ── Constants ────────────────────────────────────────────────────────
-const SAVED_FILTERS_KEY  = "elkSavedFilters";
-const MSG_COPIED         = "Copied to clipboard";
-const MSG_FILTER_SAVED   = "Filter saved";
-const MSG_FILTER_DUP     = "Sorry, filter already exists";
-const MSG_NOTHING_SAVE   = "Sorry, nothing to save";
+const SAVED_FILTERS_KEY       = "elkSavedFilters";
+const MSG_COPIED              = "Copied to clipboard";
+const MSG_FILTER_SAVED        = "Filter saved";
+const MSG_FILTER_DUP          = "Sorry, filter already exists";
+const MSG_NOTHING_SAVE        = "Sorry, nothing to save";
+const MSG_NOTHING_EXPORT      = "Nothing to export";
+const MSG_DROP_NOT_JSON       = "Please drop a .json file";
+const MSG_IMPORT_INVALID_JSON = "Invalid JSON file";
+const MSG_IMPORT_BAD_FORMAT   = "Expected an array of filter strings";
+const MSG_IMPORT_NO_NEW       = "No new filters to import";
+const MSG_IMPORT_OK           = "Imported {0} filter(s)";
 
 // ── Saved filters ─────────────────────────────────────────────────────
 
@@ -382,7 +388,7 @@ function renderSavedFilters() {
   if (!filters.length) {
     const p = document.createElement("p");
     p.className = "filter-saved-empty";
-    p.textContent = "No saved filters yet.";
+    p.textContent = "No saved filters yet. Drop a JSON file to import.";
     filterSavedBody.appendChild(p);
     return;
   }
@@ -443,6 +449,70 @@ filterSavedBtn.addEventListener("click", (e) => {
   }
 });
 filterSavedClose.addEventListener("click", () => { filterSavedPopup.hidden = true; });
+
+// ── Export filters ────────────────────────────────────────────────────────
+const filterExportBtn = document.getElementById("filter-export-btn");
+filterExportBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  const filters = getSavedFilters();
+  if (!filters.length) { showToast(MSG_NOTHING_EXPORT); return; }
+  const blob = new Blob([JSON.stringify(filters, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "elk-formatter-filters.json";
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+// ── Import filters via drag & drop ────────────────────────────────────────
+const filterSavedDropOverlay = document.getElementById("filter-saved-drop-overlay");
+let dragCounter = 0;
+
+filterSavedPopup.addEventListener("dragenter", (e) => {
+  e.preventDefault();
+  dragCounter++;
+  filterSavedDropOverlay.hidden = false;
+});
+
+filterSavedPopup.addEventListener("dragleave", () => {
+  dragCounter--;
+  if (dragCounter <= 0) {
+    dragCounter = 0;
+    filterSavedDropOverlay.hidden = true;
+  }
+});
+
+filterSavedPopup.addEventListener("dragover", (e) => {
+  e.preventDefault();
+});
+
+filterSavedPopup.addEventListener("drop", (e) => {
+  e.preventDefault();
+  dragCounter = 0;
+  filterSavedDropOverlay.hidden = true;
+
+  const file = e.dataTransfer?.files?.[0];
+  if (!file || !file.name.endsWith(".json")) { showToast(MSG_DROP_NOT_JSON); return; }
+
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    let imported;
+    try { imported = JSON.parse(ev.target.result); } catch {
+      showToast(MSG_IMPORT_INVALID_JSON); return;
+    }
+    if (!Array.isArray(imported) || !imported.every(x => typeof x === "string")) {
+      showToast(MSG_IMPORT_BAD_FORMAT); return;
+    }
+    const existing = getSavedFilters();
+    const added = imported.filter(f => f.trim() && !existing.includes(f));
+    if (!added.length) { showToast(MSG_IMPORT_NO_NEW); return; }
+    setSavedFilters([...added, ...existing]);
+    renderSavedFilters();
+    showToast(MSG_IMPORT_OK.replace("{0}", added.length));
+  };
+  reader.readAsText(file);
+});
 document.addEventListener("click", (e) => {
   if (!filterSavedPopup.hidden && !filterSavedPopup.contains(e.target) && e.target !== filterSavedBtn) {
     filterSavedPopup.hidden = true;
