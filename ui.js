@@ -8,20 +8,30 @@ const inputMeta  = document.getElementById("input-meta");
 const outputMeta = document.getElementById("output-meta");
 const statusEl   = document.getElementById("status");
 const btnFormat      = document.getElementById("btn-format");
-const btnSort        = document.getElementById("btn-sort");
+const stickySortBtn  = document.getElementById("sticky-sort");
+const stickySortCol  = document.getElementById("bar-col-sort");
 const btnClear       = document.getElementById("btn-clear");
-const copyOutputBtn  = document.getElementById("copy-output");
+const copyOutputBtn    = document.getElementById("copy-output");
+const copySelectedBtn  = document.getElementById("copy-selected");
+const outputSelectBar  = document.getElementById("output-select-bar");
+const selectAllCheck   = document.getElementById("select-all-check");
 
 const searchInput  = document.getElementById("search-input");
 const searchClear  = document.getElementById("search-clear");
 const searchMeta   = document.getElementById("search-meta");
 
 let plainText  = "";
+let plainLines = [];   // per-entry plain text for selective copy
 let parsedData = [];   // raw hits kept for filtering
 
 // ── Sort order (persisted in localStorage) ───────────────────────────────
 let sortOrder = localStorage.getItem("elkSortOrder") || "asc";
-btnSort.textContent = sortOrder === "asc" ? "⬆ ASC" : "⬇ DESC";
+
+function applySortLabel() {
+
+  stickySortBtn.textContent = sortOrder === "asc" ? "⬆ Sort Old-New" : "⬇ Sort New-Old";
+}
+applySortLabel();
 
 // ── Theme (persisted in localStorage) ────────────────────────────────────
 const themeToggle = document.getElementById("theme-toggle");
@@ -47,12 +57,13 @@ themeToggle.addEventListener("click", () => {
 });
 
 // ── Sort toggle ──────────────────────────────────────────────────────────
-btnSort.addEventListener("click", () => {
+function doSortToggle() {
   sortOrder = sortOrder === "asc" ? "desc" : "asc";
-  btnSort.textContent = sortOrder === "asc" ? "⬆ ASC" : "⬇ DESC";
+  applySortLabel();
   localStorage.setItem("elkSortOrder", sortOrder);
   if (parsedData.length) applyFilter();
-});
+}
+stickySortCol.addEventListener("click", doSortToggle);
 
 // ── Format ──────────────────────────────────────────────────────────────
 function doFormat() {
@@ -73,13 +84,26 @@ function doFormat() {
   }
 }
 
+function setLinenumWidth(count) {
+  const digits = count > 0 ? String(count).length : 1;
+  // ~7px per digit at font-size 11px, minimum 14px (2 digits)
+  const px = Math.max(14, digits * 7);
+  document.documentElement.style.setProperty("--lnum-w", px + "px");
+}
+
 function renderHits(hits) {
   const result = formatLogs(JSON.stringify(hits), sortOrder);
 
   if (result.error) {
     outputEl.innerHTML = "";
     plainText = "";
+    plainLines = [];
     copyOutputBtn.disabled = true;
+    outputSelectBar.hidden = true;
+    selectAllCheck.checked = false;
+    selectAllCheck.indeterminate = false;
+    setLinenumWidth(0);
+    updateCopySelected();
     setStatus(result.error, "err");
     outputMeta.textContent = "";
     return;
@@ -87,7 +111,13 @@ function renderHits(hits) {
 
   outputEl.innerHTML = result.html;
   plainText = result.plain;
+  plainLines = result.plains || [];
+  setLinenumWidth(result.count);
   copyOutputBtn.disabled = false;
+  outputSelectBar.hidden = outputEl.querySelectorAll(".row-check").length === 0;
+  selectAllCheck.checked = false;
+  selectAllCheck.indeterminate = false;
+  updateCopySelected();
 
   if (result.warning) {
     setStatus(result.warning, "warn");
@@ -281,6 +311,64 @@ function highlightSearchTerms(patterns) {
   }
 }
 
+// ── Checkbox selection ─────────────────────────────────────────────────
+function updateCopySelected() {
+  const count = outputEl.querySelectorAll(".row-check:checked").length;
+  copySelectedBtn.hidden = count === 0;
+  copySelectedBtn.disabled = count === 0;
+  copySelectedBtn.textContent = `⧉ Copy Selected (${count})`;
+}
+
+function syncSelectAll() {
+  const all     = outputEl.querySelectorAll(".row-check");
+  const checked = outputEl.querySelectorAll(".row-check:checked");
+  if (all.length === 0 || checked.length === 0) {
+    selectAllCheck.checked = false;
+    selectAllCheck.indeterminate = false;
+  } else if (checked.length === all.length) {
+    selectAllCheck.checked = true;
+    selectAllCheck.indeterminate = false;
+  } else {
+    selectAllCheck.checked = false;
+    selectAllCheck.indeterminate = true;
+  }
+}
+
+outputEl.addEventListener("change", (e) => {
+  const cb = e.target.closest(".row-check");
+  if (!cb) return;
+  updateCopySelected();
+  syncSelectAll();
+});
+
+selectAllCheck.addEventListener("change", () => {
+  outputEl.querySelectorAll(".row-check").forEach(cb => { cb.checked = selectAllCheck.checked; });
+  updateCopySelected();
+});
+
+copySelectedBtn.addEventListener("click", async () => {
+  const checked = outputEl.querySelectorAll(".row-check:checked");
+  if (!checked.length) return;
+  const text = [...checked]
+    .map(cb => plainLines[parseInt(cb.closest(".log-entry").dataset.index, 10)])
+    .filter(Boolean)
+    .join("\n\r");
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast(MSG_COPIED);
+  } catch {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    showToast(MSG_COPIED);
+  }
+});
+
 // ── Copy ────────────────────────────────────────────────────────────────
 async function doCopy() {
   if (!plainText) return;
@@ -305,8 +393,14 @@ btnClear.addEventListener("click", () => {
   inputEl.value = "";
   outputEl.innerHTML = "";
   plainText = "";
+  plainLines = [];
   parsedData = [];
   copyOutputBtn.disabled = true;
+  outputSelectBar.hidden = true;
+  selectAllCheck.checked = false;
+  selectAllCheck.indeterminate = false;
+  setLinenumWidth(0);
+  updateCopySelected();
   setSearchValue("");
   searchClear.hidden = true;
   searchMeta.textContent = "";

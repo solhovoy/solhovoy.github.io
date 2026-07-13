@@ -121,6 +121,7 @@ function formatHit(hit, index) {
   const html =
     `<div class="log-entry" data-index="${index}">` +
     `<div class="log-line">` +
+    `<input type="checkbox" class="row-check" />` +
     `<span class="line-num">${index + 1}</span>` +
     `<button class="raw-toggle" title="Show raw JSON">▶</button>` +
     `<span class="ts">${esc(ts)}</span>` +
@@ -485,9 +486,10 @@ function formatLogs(rawJson, sortOrder = "asc") {
   }
 
   return {
-    plain: plains.join("\n\r"),
-    html:  htmls.join(""),
-    count: data.length,
+    plain:  plains.join("\n\r"),
+    plains: plains,
+    html:   htmls.join(""),
+    count:  data.length,
   };
 }
 

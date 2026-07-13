@@ -35,8 +35,7 @@
       <span class="panel-label">Formatted Output</span>
       <div class="panel-header-right">
         <span class="panel-meta" id="output-meta"></span>
-        <button class="btn-collapse" id="btn-sort" title="Toggle sort order">⬆ ASC</button>
-        <button class="btn-collapse" id="copy-output" title="Copy to clipboard" disabled>⧉ Copy</button>
+        <button class="btn-collapse" id="copy-output" title="Copy to clipboard" disabled>⧉ Copy All</button>
       </div>
     </div>
     <div class="search-bar">
@@ -126,6 +125,17 @@
       </div>
     </div>
     <div id="output-wrap">
+      <div id="output-select-bar" hidden>
+        <label class="bar-col">
+          <input type="checkbox" id="select-all-check" title="Select / Deselect All" />
+        </label>
+        <div class="bar-col" id="bar-col-sort">
+          <span id="sticky-sort"></span>
+        </div>
+        <div class="bar-col bar-col-rest">
+          <button id="copy-selected" class="btn-collapse" title="Copy selected lines to clipboard" disabled>⧉ Copy Selected</button>
+        </div>
+      </div>
       <div id="output"></div>
     </div>
   </div>
