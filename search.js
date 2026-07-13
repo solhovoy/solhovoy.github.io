@@ -213,12 +213,15 @@ function matchLeaf(node, hit) {
 
   const matches = buildMatcher(term);
 
-  // Free-text: search visible field values only
+  // Free-text: search visible field names and values
   if (!field || field === "<implicit>") {
     return Object.entries(fields).some(([key, raw]) => {
       if (raw === undefined) return false;
       // Skip hidden fields that aren't displayed in formatted output
       if (HIDDEN_FIELDS.includes(key)) return false;
+      // Also match against the field name as displayed (strip kv_obj. prefix)
+      const displayKey = key.replace(/^kv_obj\./, "");
+      if (matches(displayKey)) return true;
       const val = unwrap(raw);
       // Handle nested objects (like json_ fields) — stringify and use same matcher
       if (val && typeof val === "object") {
