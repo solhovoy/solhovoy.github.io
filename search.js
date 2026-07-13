@@ -90,7 +90,7 @@ function buildFieldMatchPattern(field, term) {
   
   // Remove leading/trailing wildcards and escape the core
   let core = t.replace(/^\*+|\*+$/g, "");
-  const escaped = core.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*");
+  const escaped = core.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^\\s]*");
   
   if (startsWithStar && endsWithStar) {
     // *tune* - field=...tune...
@@ -102,8 +102,8 @@ function buildFieldMatchPattern(field, term) {
     // tune* - field=tune... (starts with)
     return `${escapedField}=${escaped}[^\\s]*`;
   } else {
-    // Internal wildcards
-    return `${escapedField}=${escaped}`;
+    // Internal wildcards, word boundary after value
+    return `${escapedField}=${escaped}(?!${WORD_CHARS})`;
   }
 }
 
@@ -170,7 +170,7 @@ function buildMatchPattern(term) {
   
   // Remove leading/trailing wildcards and escape the core
   let core = t.replace(/^\*+|\*+$/g, "");
-  const escaped = core.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*");
+  const escaped = core.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^\\s]*");
   
   if (startsWithStar && endsWithStar) {
     // *tune* - contains anywhere
@@ -182,8 +182,8 @@ function buildMatchPattern(term) {
     // tune* - starts with (word boundary before)
     return `(?<!${WORD_CHARS})` + escaped;
   } else {
-    // Internal wildcards only
-    return escaped;
+    // Internal wildcards, word boundaries on both sides
+    return `(?<!${WORD_CHARS})` + escaped + `(?!${WORD_CHARS})`;
   }
 }
 
