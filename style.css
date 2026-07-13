@@ -352,6 +352,14 @@ span.break {
   word-break: break-word;
   padding-left: 34px;
   text-indent: -34px;
+  border-radius: 3px;
+  transition: background 0.1s;
+}
+.log-line:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+:root.light .log-line:hover {
+  background: rgba(0, 0, 0, 0.05);
 }
 .line-num {
   display: inline-block;
