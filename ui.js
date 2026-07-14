@@ -491,7 +491,7 @@ function renderSavedFilters() {
   if (!filters.length) {
     const p = document.createElement("p");
     p.className = "filter-saved-empty";
-    p.textContent = "No saved filters yet. Drop a JSON file to import.";
+    p.textContent = "No saved filters yet. Drop a JSON file here to import.";
     filterSavedBody.appendChild(p);
     return;
   }

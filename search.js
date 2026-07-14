@@ -21,7 +21,18 @@ function filterHits(hits, queryStr) {
   // The lucene-query-parser silently drops NOT in "AND NOT" constructs (grammar bug:
   // it treats "AND" as the binary op and then discards "NOT" from "NOT term").
   // Normalize "AND NOT" → "NOT" since they are semantically identical in Lucene.
-  const normalized = q.replace(/\bAND\s+NOT\b/gi, "NOT");
+  // Also, the parser drops a leading unary NOT ("NOT term") — prepend "*" to make
+  // it binary ("* NOT term") which the parser handles correctly.
+  // Finally, the parser also drops every subsequent NOT after the first binary NOT
+  // ("A NOT B NOT C" → A NOT B AND C). Collapse multiple NOTs into a single NOT
+  // with OR-grouped negatives: "A NOT B NOT C" → "A NOT (B OR C)".
+  let normalized = q
+    .replace(/\bAND\s+NOT\b/gi, "NOT")
+    .replace(/^\s*NOT\b/i, "* NOT");
+  const notParts = normalized.split(/\s+NOT\s+/i);
+  if (notParts.length > 2) {
+    normalized = notParts[0] + " NOT (" + notParts.slice(1).join(" OR ") + ")";
+  }
 
   let ast;
   try {
@@ -64,9 +75,10 @@ function collectPatterns(node, patterns) {
     }
   }
 
-  // Recurse into left/right
+  // Recurse into left/right — skip NOT branch (don't highlight excluded terms)
+  const op = (node.operator || "").toUpperCase();
   if (node.left) collectPatterns(node.left, patterns);
-  if (node.right) collectPatterns(node.right, patterns);
+  if (node.right && op !== "NOT") collectPatterns(node.right, patterns);
 }
 
 /**
@@ -192,6 +204,8 @@ function buildMatchPattern(term) {
  * Uses buildMatchPattern() for the regex.
  */
 function buildMatcher(term) {
+  // Pure wildcard(s) — match everything
+  if (term && String(term).replace(/\*/g, "") === "") return () => true;
   const pattern = buildMatchPattern(term);
   if (!pattern) return () => false;
   const re = new RegExp(pattern, "i");
