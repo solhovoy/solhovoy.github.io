@@ -882,24 +882,24 @@ button:active { transform: scale(0.97); }
   border-color: var(--error);
 }
 
-/* ── Custom scrollbars (Chromium/WebKit) ── */
-::-webkit-scrollbar {
+/* ── Custom scrollbars (Chromium/WebKit, only when scrollbars take space — Windows/Linux) ── */
+.has-scrollbars ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
-::-webkit-scrollbar-track {
+.has-scrollbars ::-webkit-scrollbar-track {
   background: var(--bg-input);
   border-radius: 4px;
 }
-::-webkit-scrollbar-thumb {
+.has-scrollbars ::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 4px;
   border: 2px solid var(--bg-input);
 }
-::-webkit-scrollbar-thumb:hover {
+.has-scrollbars ::-webkit-scrollbar-thumb:hover {
   background: var(--text-dim);
 }
-::-webkit-scrollbar-corner {
+.has-scrollbars ::-webkit-scrollbar-corner {
   background: var(--bg-input);
 }
 

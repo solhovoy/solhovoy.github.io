@@ -2,6 +2,15 @@
  * ELK Log Formatter — UI Controller
  */
 
+// Detect non-overlay scrollbars (Windows/Linux) and style them
+{
+  const d = document.createElement('div');
+  d.style.cssText = 'width:100px;height:100px;overflow:scroll;position:absolute;visibility:hidden';
+  document.body.appendChild(d);
+  if (d.offsetWidth - d.clientWidth > 0) document.documentElement.classList.add('has-scrollbars');
+  document.body.removeChild(d);
+}
+
 const inputEl    = document.getElementById("input");
 const outputEl   = document.getElementById("output");
 const inputMeta  = document.getElementById("input-meta");
