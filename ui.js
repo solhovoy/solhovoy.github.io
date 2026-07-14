@@ -101,6 +101,13 @@ function setLinenumWidth(count) {
 }
 
 function renderHits(hits) {
+  // Capture checked entries by plain text before re-render
+  const prevChecked = new Set(
+    [...outputEl.querySelectorAll(".row-check:checked")]
+      .map(cb => plainLines[+cb.closest(".log-entry").dataset.index])
+      .filter(Boolean)
+  );
+
   const result = formatLogs(JSON.stringify(hits), sortOrder);
 
   if (result.error) {
@@ -122,10 +129,18 @@ function renderHits(hits) {
   plainText = result.plain;
   plainLines = result.plains || [];
   setLinenumWidth(result.count);
+
+  // Restore checked state for entries still present after re-render
+  if (prevChecked.size > 0) {
+    outputEl.querySelectorAll(".row-check").forEach(cb => {
+      const idx = +cb.closest(".log-entry").dataset.index;
+      if (prevChecked.has(plainLines[idx])) cb.checked = true;
+    });
+  }
+
   copyOutputBtn.disabled = false;
   outputSelectBar.hidden = outputEl.querySelectorAll(".row-check").length === 0;
-  selectAllCheck.checked = false;
-  selectAllCheck.indeterminate = false;
+  syncSelectAll();
   updateCopySelected();
 
   if (result.warning) {
