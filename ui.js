@@ -25,9 +25,9 @@ const copySelectedBtn  = document.getElementById("copy-selected");
 const outputSelectBar  = document.getElementById("output-select-bar");
 const selectAllCheck   = document.getElementById("select-all-check");
 
-const searchInput  = document.getElementById("search-input");
-const searchClear  = document.getElementById("search-clear");
-const searchMeta   = document.getElementById("search-meta");
+const searchInput     = document.getElementById("search-input");
+const searchClear     = document.getElementById("search-clear");
+const filterApplyBtn  = document.getElementById("filter-apply-btn");
 
 let plainText  = "";
 let plainLines = [];   // per-entry plain text for selective copy
@@ -70,7 +70,7 @@ function doSortToggle() {
   sortOrder = sortOrder === "asc" ? "desc" : "asc";
   applySortLabel();
   localStorage.setItem("elkSortOrder", sortOrder);
-  if (parsedData.length) applyFilter();
+  if (parsedData.length) applyFilter({ flash: false });
 }
 stickySortCol.addEventListener("click", doSortToggle);
 
@@ -178,9 +178,11 @@ inputEl.addEventListener("input", () => {
 const searchExpand = document.getElementById("search-expand");
 
 function flashSearchInput() {
-  searchInput.classList.remove("search-input-flash");
-  void searchInput.offsetWidth; // reflow to restart animation
-  searchInput.classList.add("search-input-flash");
+  for (const el of [searchInput, searchExpand]) {
+    el.classList.remove("search-input-flash");
+    void el.offsetWidth; // reflow to restart animation
+    el.classList.add("search-input-flash");
+  }
 }
 
 function autoResizeExpand() {
@@ -190,6 +192,7 @@ function autoResizeExpand() {
 
 searchInput.addEventListener("focus", () => {
   searchExpand.value = searchInput.value;
+  searchExpand.classList.remove("search-input-flash");
   searchExpand.hidden = false;
   autoResizeExpand();
   searchExpand.focus();
@@ -201,13 +204,15 @@ searchExpand.addEventListener("input", () => {
   searchInput.title = searchExpand.value;
   searchClear.hidden = !searchExpand.value;
   autoResizeExpand();
-  applyFilter();
 });
 
 searchExpand.addEventListener("keydown", e => {
   if (e.key === "Enter") {
     e.preventDefault();
-    // searchExpand.blur();
+    applyFilter();
+  } else if (e.key === "Escape") {
+    e.preventDefault();
+    searchExpand.blur();
   }
 });
 
@@ -221,13 +226,25 @@ searchExpand.addEventListener("blur", () => {
 searchInput.addEventListener("input", () => {
   searchInput.title = searchInput.value;
   searchClear.hidden = !searchInput.value;
+});
+
+searchInput.addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    applyFilter();
+  } else if (e.key === "Escape") {
+    e.preventDefault();
+    searchInput.blur();
+  }
+});
+
+filterApplyBtn.addEventListener("click", () => {
   applyFilter();
 });
 
 searchClear.addEventListener("click", () => {
   setSearchValue("");
   searchClear.hidden = true;
-  searchMeta.textContent = "";
   searchInput.classList.remove("search-error");
   searchExpand.classList.remove("search-error");
   renderHits(parsedData);
@@ -243,29 +260,35 @@ function setSearchValue(v) {
   }
 }
 
-function applyFilter() {
+function applyFilter({ flash = true } = {}) {
   const q = searchInput.value.trim();
   if (!q) {
-    searchMeta.textContent = "";
     searchInput.classList.remove("search-error");
     searchExpand.classList.remove("search-error");
     setStatus("", "");
     renderHits(parsedData);
     return;
   }
+  if (flash) flashSearchInput();
   const result = filterHits(parsedData, q);
   if (result.error) {
     searchInput.classList.add("search-error");
     searchExpand.classList.add("search-error");
-    searchMeta.textContent = "";
     setStatus(`Filter error: ${result.error}`, "err");
     return;
   }
   searchInput.classList.remove("search-error");
   searchExpand.classList.remove("search-error");
   setStatus("", "");
-  searchMeta.textContent = `${result.hits.length} / ${parsedData.length}`;
+  if (result.hits.length === 0) {
+    outputEl.innerHTML = `<div class="no-filter-results">No entries match the filter</div>`;
+    copyOutputBtn.disabled = true;
+    outputSelectBar.hidden = true;
+    outputMeta.textContent = `0 of ${parsedData.length} entries`;
+    return;
+  }
   renderHits(result.hits);
+  outputMeta.textContent = `${result.hits.length} of ${parsedData.length} entries`;
   highlightSearchTerms(result.patterns);
 }
 
@@ -427,7 +450,6 @@ btnClear.addEventListener("click", () => {
   updateCopySelected();
   setSearchValue("");
   searchClear.hidden = true;
-  searchMeta.textContent = "";
   searchInput.classList.remove("search-error");
   searchExpand.classList.remove("search-error");
   inputMeta.textContent = "";
@@ -526,7 +548,6 @@ function renderSavedFilters() {
       setSearchValue(f);
       searchClear.hidden = false;
       filterSavedPopup.hidden = true;
-      flashSearchInput();
       applyFilter();
     });
 
@@ -672,7 +693,6 @@ filterHelpPopup.querySelectorAll(".filter-examples li code").forEach(el => {
     setSearchValue(el.textContent);
     searchClear.hidden = false;
     filterHelpPopup.hidden = true;
-    flashSearchInput();
     applyFilter();
   });
 });

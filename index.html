@@ -20,7 +20,7 @@
       <span class="panel-label">Raw JSON Input</span>
       <div class="panel-header-right">
         <span class="panel-meta" id="input-meta"></span>
-        <button class="btn-collapse" id="collapse-input" title="Collapse">▲</button>
+        <button class="btn-generic" id="collapse-input" title="Collapse">▲</button>
       </div>
     </div>
     <textarea id="input"
@@ -35,7 +35,7 @@
       <span class="panel-label">Formatted Output</span>
       <div class="panel-header-right">
         <span class="panel-meta" id="output-meta"></span>
-        <button class="btn-collapse" id="copy-output" title="Copy to clipboard" disabled>⧉ Copy All</button>
+        <button class="btn-generic" id="copy-output" title="Copy to clipboard" disabled>⧉ Copy All</button>
       </div>
     </div>
     <div class="search-bar">
@@ -46,7 +46,7 @@
         <textarea id="search-expand" rows="1" hidden spellcheck="false" autocomplete="off"></textarea>
         <button id="search-clear" title="Clear filter" hidden>✕</button>
       </div>
-      <span id="search-meta"></span>
+      <button id="filter-apply-btn" class="btn-generic" style="margin-left:6px" title="Apply filter (Enter)">Apply</button>
       <button id="filter-save-btn" class="filter-help-btn" title="Save current filter">+</button>
       <button id="filter-saved-btn" class="filter-help-btn" title="Saved filters">☰</button>
       <button id="filter-help-btn" class="filter-help-btn" title="Filter syntax help">?</button>
@@ -133,7 +133,7 @@
           <span id="sticky-sort"></span>
         </div>
         <div class="bar-col bar-col-rest">
-          <button id="copy-selected" class="btn-collapse" title="Copy selected lines to clipboard" disabled>⧉ Copy Selected</button>
+          <button id="copy-selected" class="btn-generic" title="Copy selected lines to clipboard" disabled>⧉ Copy Selected</button>
         </div>
       </div>
       <div id="output"></div>

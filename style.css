@@ -225,17 +225,9 @@ main {
   transition: color 0.15s;
 }
 #search-clear:hover { color: var(--text); }
-#search-meta {
-  font-size: 11px;
-  color: var(--text-dim);
-  white-space: nowrap;
-}
-#search-meta:not(:empty) {
-  margin-left: 8px;
-}
 
 /* ── Collapse button ── */
-.btn-collapse {
+.btn-generic {
   background: transparent;
   border: 1px solid var(--border);
   color: var(--text-dim);
@@ -246,7 +238,7 @@ main {
   line-height: 1.4;
   transition: color 0.15s, border-color 0.15s;
 }
-.btn-collapse:hover { color: var(--text); border-color: var(--text-dim); }
+.btn-generic:hover { color: var(--text); border-color: var(--text-dim); }
 
 /* Collapsed input panel — hide textarea, shrink to header only */
 #panel-input.collapsed {
@@ -296,11 +288,24 @@ textarea::placeholder { color: var(--text-dim); }
   padding: 12px;
   color: var(--text);
   min-height: 100%;
+  position: relative;
 }
 #output .fallback-json {
   white-space: pre-wrap;
   word-break: break-all;
   margin: 0;
+}
+.no-filter-results {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  font-size: 13px;
+  font-family: var(--mono);
+  pointer-events: none;
+  user-select: none;
 }
 
 /* log level colours */
@@ -650,7 +655,6 @@ button:active { transform: scale(0.97); }
   .panel { min-height: 0; }
 }
 
-/* ── Filter help button ── */
 .filter-help-btn {
   background: transparent;
   border: 1px solid var(--border);
