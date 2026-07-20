@@ -402,7 +402,7 @@ copySelectedBtn.addEventListener("click", async () => {
     .join("\n\r");
   try {
     await navigator.clipboard.writeText(text);
-    showToast(MSG_COPIED);
+    showToast(TOAST_TITLE_COPIED, { description: MSG_COPIED });
   } catch {
     const ta = document.createElement("textarea");
     ta.value = text;
@@ -412,7 +412,7 @@ copySelectedBtn.addEventListener("click", async () => {
     ta.select();
     document.execCommand("copy");
     document.body.removeChild(ta);
-    showToast(MSG_COPIED);
+    showToast(TOAST_TITLE_COPIED, { description: MSG_COPIED });
   }
 });
 
@@ -421,7 +421,7 @@ async function doCopy() {
   if (!plainText) return;
   try {
     await navigator.clipboard.writeText(plainText);
-    showToast(MSG_COPIED);
+    showToast(TOAST_TITLE_COPIED, { description: MSG_COPIED });
   } catch {
     const ta = document.createElement("textarea");
     ta.value = plainText;
@@ -431,7 +431,7 @@ async function doCopy() {
     ta.select();
     document.execCommand("copy");
     document.body.removeChild(ta);
-    showToast(MSG_COPIED);
+    showToast(TOAST_TITLE_COPIED, { description: MSG_COPIED });
   }
 }
 
@@ -480,14 +480,29 @@ makeCollapsible("collapse-input", "panel-input", true);
 const SAVED_FILTERS_KEY       = "elkSavedFilters";
 const MSG_COPIED              = "Copied to clipboard";
 const MSG_FILTER_SAVED        = "Filter saved";
-const MSG_FILTER_DUP          = "Sorry, filter already exists";
-const MSG_NOTHING_SAVE        = "Sorry, nothing to save";
+const MSG_FILTER_DUP          = "Filter already exists";
+const MSG_NOTHING_SAVE        = "Nothing to save";
 const MSG_NOTHING_EXPORT      = "Nothing to export";
 const MSG_DROP_NOT_JSON       = "Please drop a .json file";
 const MSG_IMPORT_INVALID_JSON = "Invalid JSON file";
 const MSG_IMPORT_BAD_FORMAT   = "Expected an array of filter strings";
 const MSG_IMPORT_NO_NEW       = "No new filters to import";
 const MSG_IMPORT_OK           = "Imported {0} filter(s)";
+
+const TOAST_CATEGORY_SUCCESS = "success";
+const TOAST_CATEGORY_WARNING = "warning";
+const TOAST_CATEGORY_ERROR   = "error";
+const TOAST_CATEGORY_INFO    = "info";
+
+const TOAST_TITLE_COPIED         = "Copied";
+const TOAST_TITLE_SAVED          = "Saved";
+const TOAST_TITLE_DUP            = "Cannot save";
+const TOAST_TITLE_NOTHING_SAVE   = "Cannot save";
+const TOAST_TITLE_NOTHING_EXPORT = "Cannot export";
+const TOAST_TITLE_WRONG_FILE     = "Wrong file type";
+const TOAST_TITLE_IMPORT_FAILED  = "Import failed";
+const TOAST_TITLE_NOTHING_NEW    = "Nothing new";
+const TOAST_TITLE_IMPORTED       = "Imported";
 
 // ── Saved filters ─────────────────────────────────────────────────────
 
@@ -508,7 +523,7 @@ const filterSavedBody  = document.getElementById("filter-saved-body");
 
 filterSaveBtn.addEventListener("click", () => {
   const q = searchInput.value.trim();
-  if (!q) { showToast(MSG_NOTHING_SAVE); return; }
+  if (!q) { showToast(TOAST_TITLE_NOTHING_SAVE, { description: MSG_NOTHING_SAVE, category: TOAST_CATEGORY_WARNING }); return; }
   // Only save if there's no parse error
   const check = filterHits([], q);
   if (check.error) return;
@@ -516,9 +531,9 @@ filterSaveBtn.addEventListener("click", () => {
   if (!filters.includes(q)) {
     filters.unshift(q);
     setSavedFilters(filters);
-    showToast(MSG_FILTER_SAVED);
+    showToast(TOAST_TITLE_SAVED, { description: MSG_FILTER_SAVED });
   } else {
-    showToast(MSG_FILTER_DUP);
+    showToast(TOAST_TITLE_DUP, { description: MSG_FILTER_DUP, category: TOAST_CATEGORY_WARNING });
   }
 });
 
@@ -594,7 +609,7 @@ const filterExportBtn = document.getElementById("filter-export-btn");
 filterExportBtn.addEventListener("click", (e) => {
   e.stopPropagation();
   const filters = getSavedFilters();
-  if (!filters.length) { showToast(MSG_NOTHING_EXPORT); return; }
+  if (!filters.length) { showToast(TOAST_TITLE_NOTHING_EXPORT, { description: MSG_NOTHING_EXPORT, category: TOAST_CATEGORY_WARNING }); return; }
   const blob = new Blob([JSON.stringify(filters, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -632,23 +647,23 @@ filterSavedPopup.addEventListener("drop", (e) => {
   filterSavedDropOverlay.hidden = true;
 
   const file = e.dataTransfer?.files?.[0];
-  if (!file || !file.name.endsWith(".json")) { showToast(MSG_DROP_NOT_JSON); return; }
+  if (!file || !file.name.endsWith(".json")) { showToast(TOAST_TITLE_WRONG_FILE, { description: MSG_DROP_NOT_JSON, category: TOAST_CATEGORY_WARNING }); return; }
 
   const reader = new FileReader();
   reader.onload = (ev) => {
     let imported;
     try { imported = JSON.parse(ev.target.result); } catch {
-      showToast(MSG_IMPORT_INVALID_JSON); return;
+      showToast(TOAST_TITLE_IMPORT_FAILED, { description: MSG_IMPORT_INVALID_JSON, category: TOAST_CATEGORY_ERROR }); return;
     }
     if (!Array.isArray(imported) || !imported.every(x => typeof x === "string")) {
-      showToast(MSG_IMPORT_BAD_FORMAT); return;
+      showToast(TOAST_TITLE_IMPORT_FAILED, { description: MSG_IMPORT_BAD_FORMAT, category: TOAST_CATEGORY_ERROR }); return;
     }
     const existing = getSavedFilters();
     const added = imported.filter(f => f.trim() && !existing.includes(f));
-    if (!added.length) { showToast(MSG_IMPORT_NO_NEW); return; }
+    if (!added.length) { showToast(TOAST_TITLE_NOTHING_NEW, { description: MSG_IMPORT_NO_NEW, category: TOAST_CATEGORY_INFO }); return; }
     setSavedFilters([...added, ...existing]);
     renderSavedFilters();
-    showToast(MSG_IMPORT_OK.replace("{0}", added.length));
+    showToast(TOAST_TITLE_IMPORTED, { description: MSG_IMPORT_OK.replace("{0}", added.length) });
   };
   reader.readAsText(file);
 });
@@ -707,7 +722,7 @@ outputEl.addEventListener("click", (e) => {
   if (copyBtn) {
     const rawJson = copyBtn.closest(".raw-json");
     const content = rawJson.querySelector(".raw-content").textContent;
-    navigator.clipboard.writeText(content).then(() => showToast(MSG_COPIED));
+    navigator.clipboard.writeText(content).then(() => showToast(TOAST_TITLE_COPIED, { description: MSG_COPIED }));
     return;
   }
 
@@ -732,13 +747,12 @@ outputEl.addEventListener("click", (e) => {
   rawJson.hidden = !isExpanded;
 });
 
-let toastTimer;
-function showToast(msg) {
-  const toast = document.getElementById("toast");
-  toast.textContent = msg;
-  toast.classList.add("show");
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => {
-    toast.classList.remove("show");
-  }, 2000);
+function showToast(title, { description = '', category = TOAST_CATEGORY_SUCCESS } = {}) {
+  document.getElementById('toaster').toast({
+    category,
+    title,
+    ...(description && { description }),
+    duration: 3000,
+    cancel: { label: 'Dismiss' }
+  });
 }
