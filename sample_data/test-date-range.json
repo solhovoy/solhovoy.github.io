@@ -1,0 +1,38 @@
+[
+  {
+    "@timestamp": "2026-01-03T23:45:10.120Z",
+    "log.level": "INFO",
+    "c": "DateRangeFixture",
+    "event.action": "before range"
+  },
+  {
+    "@timestamp": "2026-01-04T00:00:00.033Z",
+    "log.level": "DEBUG",
+    "c": "DateRangeFixture",
+    "event.action": "range start boundary"
+  },
+  {
+    "@timestamp": "2026-01-04T09:15:30.250Z",
+    "log.level": "INFO",
+    "c": "DateRangeFixture",
+    "event.action": "morning checkpoint"
+  },
+  {
+    "@timestamp": "2026-01-04T12:30:00.500Z",
+    "log.level": "WARN",
+    "c": "DateRangeFixture",
+    "event.action": "midday checkpoint"
+  },
+  {
+    "@timestamp": "2026-01-04T21:00:00.823Z",
+    "log.level": "ERROR",
+    "c": "DateRangeFixture",
+    "event.action": "evening checkpoint"
+  },
+  {
+    "@timestamp": "2026-01-05T00:15:45.987Z",
+    "log.level": "INFO",
+    "c": "DateRangeFixture",
+    "event.action": "after range"
+  }
+]
