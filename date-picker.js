@@ -6,7 +6,7 @@ const DateRangeFilter = (() => {
   const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
   const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-  function init({ getTimestamp, onClear = () => {}, onInvalidRange = () => {} }) {
+  function init({ getTimestamp, onApply = () => {}, onClear = () => {}, onInvalidRange = () => {} }) {
     const trigger = document.getElementById("date-range-picker");
     const startTrigger = document.getElementById("date-range-start");
     const endTrigger = document.getElementById("date-range-end");
@@ -319,9 +319,11 @@ const DateRangeFilter = (() => {
       if (!timestamps.length) return;
       const range = createRange(Math.min(...timestamps), Math.max(...timestamps), true);
       availableRange = cloneRange(range);
-      appliedRange = range;
-      pendingRange = cloneRange(range);
-      draftRange = cloneRange(range);
+      if (!appliedRange || appliedRange.isAutomatic) {
+        appliedRange = range;
+        pendingRange = cloneRange(range);
+        draftRange = cloneRange(range);
+      }
       setTriggerLabel();
     }
 
@@ -346,6 +348,20 @@ const DateRangeFilter = (() => {
       appliedRange.isAutomatic = false;
       setTriggerLabel();
       close();
+      onApply(cloneRange(appliedRange));
+      return true;
+    }
+
+    function applyRange(range) {
+      const start = new Date(range?.start);
+      const end = new Date(range?.end);
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) return false;
+      appliedRange = createRange(start, end, false);
+      pendingRange = cloneRange(appliedRange);
+      draftRange = cloneRange(appliedRange);
+      setTriggerLabel();
+      close();
+      onApply(cloneRange(appliedRange));
       return true;
     }
 
@@ -384,6 +400,8 @@ const DateRangeFilter = (() => {
 
     return {
       applyDraft,
+      applyRange,
+      close: () => close({ discard: true }),
       clear,
       filterHits,
       hasRange: () => appliedRange !== null,

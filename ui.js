@@ -32,8 +32,41 @@ const filterApplyBtn  = document.getElementById("filter-apply-btn");
 let plainText  = "";
 let plainLines = [];   // per-entry plain text for selective copy
 let parsedData = [];   // raw hits kept for filtering
+const RECENT_DATE_RANGES_KEY = "elkRecentDateRanges";
+const MAX_RECENT_DATE_RANGES = 7;
+
+function getRecentDateRanges() {
+  try {
+    const ranges = JSON.parse(localStorage.getItem(RECENT_DATE_RANGES_KEY)) || [];
+    if (!Array.isArray(ranges)) return [];
+    return ranges.flatMap(range => {
+      if (typeof range?.start !== "string" || typeof range?.end !== "string") return [];
+      const start = new Date(range.start);
+      const end = new Date(range.end);
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) return [];
+      return [{ start: start.toISOString(), end: end.toISOString() }];
+    }).slice(0, MAX_RECENT_DATE_RANGES);
+  } catch {
+    return [];
+  }
+}
+
+function setRecentDateRanges(ranges) {
+  localStorage.setItem(RECENT_DATE_RANGES_KEY, JSON.stringify(ranges));
+}
+
+function saveRecentDateRange(range) {
+  const start = new Date(range?.start);
+  const end = new Date(range?.end);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) return;
+  const recentRange = { start: start.toISOString(), end: end.toISOString() };
+  const ranges = getRecentDateRanges().filter(range => range.start !== recentRange.start || range.end !== recentRange.end);
+  setRecentDateRanges([recentRange, ...ranges].slice(0, MAX_RECENT_DATE_RANGES));
+}
+
 const dateRangeFilter = DateRangeFilter.init({
   getTimestamp: hit => unwrap((hit.fields || {})["@timestamp"] ?? [null]),
+  onApply: saveRecentDateRange,
   onClear: () => applyFilter({ flash: false }),
   onInvalidRange: () => showToast(TOAST_TITLE_DATE_RANGE_IGNORED, {
     description: MSG_DATE_RANGE_IGNORED,
@@ -548,6 +581,100 @@ function positionFilterPopup(popup, trigger, width) {
   popup.style.setProperty("--filter-popup-arrow-x", `${arrowPosition}px`);
 }
 
+function positionDateRangeHistoryPopup() {
+  const width = 550;
+  const rect = dateRangeHistoryBtn.getBoundingClientRect();
+  const popupOffset = 8;
+  const left = Math.max(8, Math.min(rect.left + rect.width / 2 - width / 2, window.innerWidth - width - 8));
+  const availableHeight = window.innerHeight - rect.bottom - popupOffset - 4;
+  dateRangeHistoryPopup.style.top = (rect.bottom + popupOffset) + "px";
+  dateRangeHistoryPopup.style.left = left + "px";
+  dateRangeHistoryPopup.style.maxHeight = Math.max(200, availableHeight) + "px";
+  dateRangeHistoryPopup.style.setProperty("--filter-popup-arrow-x", `${rect.left + rect.width / 2 - left}px`);
+}
+
+// ── Recently used date ranges ───────────────────────────────────────────
+const dateRangeHistoryBtn = document.getElementById("date-range-history-btn");
+const dateRangeHistoryPopup = document.getElementById("date-range-history-popup");
+const dateRangeHistoryClose = document.getElementById("date-range-history-close");
+const dateRangeHistoryBody = document.getElementById("date-range-history-body");
+
+function formatRecentDateRange(date) {
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const value = new Date(date);
+  const time = value.toISOString().slice(11, 19);
+  const milliseconds = String(value.getUTCMilliseconds()).padStart(3, "0");
+  return `${months[value.getUTCMonth()]} ${value.getUTCDate()}, ${value.getUTCFullYear()} @ ${time}.${milliseconds}`;
+}
+
+function renderRecentDateRanges() {
+  const ranges = getRecentDateRanges();
+  dateRangeHistoryBody.innerHTML = "";
+  if (!ranges.length) {
+    const empty = document.createElement("p");
+    empty.className = "filter-saved-empty";
+    empty.textContent = "No recently used date ranges.";
+    dateRangeHistoryBody.appendChild(empty);
+    return;
+  }
+  const list = document.createElement("ul");
+  list.className = "filter-saved-list recent-date-range-list";
+  for (const [index, range] of ranges.entries()) {
+    const item = document.createElement("li");
+    item.className = "filter-saved-item";
+
+    const number = document.createElement("span");
+    number.className = "filter-saved-num";
+    number.textContent = index + 1;
+
+    const button = document.createElement("button");
+    button.className = "recent-date-range-item";
+    button.type = "button";
+    button.textContent = `${formatRecentDateRange(range.start)} to ${formatRecentDateRange(range.end)}`;
+    button.addEventListener("click", () => {
+      if (!dateRangeFilter.applyRange(range)) return;
+      dateRangeHistoryPopup.hidden = true;
+      applyFilter();
+    });
+
+    const deleteButton = document.createElement("button");
+    deleteButton.className = "filter-saved-delete";
+    deleteButton.type = "button";
+    deleteButton.title = "Delete";
+    deleteButton.textContent = "✕";
+    deleteButton.addEventListener("click", event => {
+      event.stopPropagation();
+      setRecentDateRanges(ranges.filter(candidate => candidate.start !== range.start || candidate.end !== range.end));
+      renderRecentDateRanges();
+    });
+
+    item.appendChild(number);
+    item.appendChild(button);
+    item.appendChild(deleteButton);
+    list.appendChild(item);
+  }
+  dateRangeHistoryBody.appendChild(list);
+}
+
+dateRangeHistoryBtn.addEventListener("click", event => {
+  event.stopPropagation();
+  const isHidden = dateRangeHistoryPopup.hidden;
+  dateRangeFilter.close();
+  filterSavedPopup.hidden = true;
+  filterHelpPopup.hidden = true;
+  dateRangeHistoryPopup.hidden = !isHidden;
+  if (isHidden) {
+    renderRecentDateRanges();
+    positionDateRangeHistoryPopup();
+  }
+});
+dateRangeHistoryClose.addEventListener("click", () => { dateRangeHistoryPopup.hidden = true; });
+document.addEventListener("click", event => {
+  if (!dateRangeHistoryPopup.hidden && !dateRangeHistoryPopup.contains(event.target) && event.target !== dateRangeHistoryBtn) {
+    dateRangeHistoryPopup.hidden = true;
+  }
+});
+
 filterSaveBtn.addEventListener("click", () => {
   const q = searchInput.value.trim();
   if (!q) { showToast(TOAST_TITLE_NOTHING_SAVE, { description: MSG_NOTHING_SAVE, category: TOAST_CATEGORY_WARNING }); return; }
@@ -616,6 +743,7 @@ filterSavedBtn.addEventListener("click", (e) => {
   const isHidden = filterSavedPopup.hidden;
   // Close help popup if open
   filterHelpPopup.hidden = true;
+  dateRangeHistoryPopup.hidden = true;
   filterSavedPopup.hidden = !isHidden;
   if (isHidden) {
     renderSavedFilters();
@@ -703,6 +831,7 @@ filterHelpBtn.addEventListener("click", (e) => {
   const isHidden = filterHelpPopup.hidden;
   // Close saved popup if open
   filterSavedPopup.hidden = true;
+  dateRangeHistoryPopup.hidden = true;
   filterHelpPopup.hidden = !isHidden;
   if (isHidden) {
     positionFilterPopup(filterHelpPopup, filterHelpBtn, 420);
