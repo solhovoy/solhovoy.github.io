@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ELK Log Formatter</title>
+  <link rel="stylesheet" href="date-picker.css" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -46,7 +47,20 @@
         <textarea id="search-expand" rows="1" hidden spellcheck="false" autocomplete="off"></textarea>
         <button id="search-clear" title="Clear filter" hidden>✕</button>
       </div>
-      <button id="filter-apply-btn" class="btn-generic" style="margin-left:6px" title="Apply filter (Enter)">Apply</button>
+      <div class="date-range-wrap" id="date-range-picker">
+        <span class="date-range-icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" class="euiIcon css-1y379jx-euiIcon-m" role="img" aria-hidden="true"><path fill-rule="evenodd" d="M14 4v-.994C14 2.45 13.55 2 12.994 2H11v1h-1V2H6v1H5V2H3.006C2.45 2 2 2.45 2 3.006v9.988C2 13.55 2.45 14 3.006 14h9.988C13.55 14 14 13.55 14 12.994V5H2V4h12zm-3-3h1.994C14.102 1 15 1.897 15 3.006v9.988A2.005 2.005 0 0 1 12.994 15H3.006A2.005 2.005 0 0 1 1 12.994V3.006C1 1.898 1.897 1 3.006 1H5V0h1v1h4V0h1v1zM4 7h2v1H4V7zm3 0h2v1H7V7zm3 0h2v1h-2V7zM4 9h2v1H4V9zm3 0h2v1H7V9zm3 0h2v1h-2V9zm-6 2h2v1H4v-1zm3 0h2v1H7v-1zm3 0h2v1h-2v-1z"></path></svg>
+        </span>
+        <button id="date-range-start" class="date-range-endpoint" title="Edit range start" aria-label="Edit range start">
+          <span id="date-range-start-label">Any time</span>
+        </button>
+        <span class="date-range-arrow" aria-hidden="true">→</span>
+        <button id="date-range-end" class="date-range-endpoint" title="Edit range end" aria-label="Edit range end">
+          <span id="date-range-end-label">Any time</span>
+        </button>
+        <button id="date-range-clear" class="date-range-clear" title="Clear time range" hidden>✕</button>
+      </div>
+      <button id="filter-apply-btn" class="btn-generic" title="Apply filter (Enter)">Apply</button>
       <button id="filter-save-btn" class="filter-help-btn" title="Save current filter">+</button>
       <button id="filter-saved-btn" class="filter-help-btn" title="Saved filters">☰</button>
       <button id="filter-help-btn" class="filter-help-btn" title="Filter syntax help">?</button>
@@ -159,6 +173,7 @@
 <script src="lib/lucene-query-parser.min.js"></script>
 <script src="formatter.js"></script>
 <script src="search.js"></script>
+<script src="date-picker.js"></script>
 <script src="ui.js"></script>
 </body>
 </html>

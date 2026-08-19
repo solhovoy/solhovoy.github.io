@@ -6,6 +6,7 @@ A browser-based tool for formatting and filtering raw JSON log hits exported fro
 
 - **Paste & format** — accepts Kibana hits (`[{"_id":"...","fields":{...}}, ...]`) or ES|QL results (`[{"@timestamp":"...", ...}, ...]`) and renders them as readable log lines
 - **Lucene query filter** — filter rendered logs using Kibana-style Lucene syntax with AND / OR / NOT, field-specific searches (`r:"abc" AND c:"Guide"`), and grouping
+- **Date and time range** — an Elastic-inspired, standalone absolute range picker automatically initializes from exact `@timestamp` bounds, including milliseconds; changes apply with the main **Apply** button
 - **Saved filters** — save frequently used filters, export/import them as JSON; persisted in `localStorage`
 - **Sort toggle** — switch between ascending and descending timestamp order; persisted in `localStorage`
 - **Highlight** — matched search terms are highlighted in the output
@@ -18,7 +19,7 @@ Open `index.html` directly in a browser — no build step or server required.
 
 1. Paste JSON log data into the **Raw JSON Input** textarea
 2. Click **Format** (or the output updates automatically)
-3. Optionally type a Lucene query in the **Filter** bar to narrow results
+3. Optionally type a Lucene query and/or choose an `@timestamp` date and time range to narrow results
 
 ## Filter Syntax
 
@@ -40,5 +41,7 @@ Open `index.html` directly in a browser — no build step or server required.
 | `formatter.js` | Parses and formats raw Kibana/ES|QL JSON into log lines |
 | `search.js` | Lucene query evaluator for filtering hits |
 | `ui.js` | DOM wiring, theme, sort, saved filters, copy |
+| `date-picker.js` | Active vanilla JS absolute date-range picker |
+| `date-picker.css` | Styles for the active date-range picker |
 | `style.css` | Styles (dark/light theme) |
 | `lib/lucene-query-parser.min.js` | Bundled Lucene query parser |

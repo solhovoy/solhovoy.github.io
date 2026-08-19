@@ -32,6 +32,14 @@ const filterApplyBtn  = document.getElementById("filter-apply-btn");
 let plainText  = "";
 let plainLines = [];   // per-entry plain text for selective copy
 let parsedData = [];   // raw hits kept for filtering
+const dateRangeFilter = DateRangeFilter.init({
+  getTimestamp: hit => unwrap((hit.fields || {})["@timestamp"] ?? [null]),
+  onClear: () => applyFilter({ flash: false }),
+  onInvalidRange: () => showToast(TOAST_TITLE_DATE_RANGE_IGNORED, {
+    description: MSG_DATE_RANGE_IGNORED,
+    category: TOAST_CATEGORY_WARNING
+  }),
+});
 
 // ── Sort order (persisted in localStorage) ───────────────────────────────
 let sortOrder = localStorage.getItem("elkSortOrder") || "asc";
@@ -86,7 +94,8 @@ function doFormat() {
 
   // Normalize: handle single hit, convert _source to fields if needed
   parsedData = normalizeInput(data);
-  if (searchInput.value.trim()) {
+  dateRangeFilter.populateFromHits(parsedData);
+  if (searchInput.value.trim() || dateRangeFilter.hasRange()) {
     applyFilter();
   } else {
     renderHits(data);
@@ -239,6 +248,7 @@ searchInput.addEventListener("keydown", e => {
 });
 
 filterApplyBtn.addEventListener("click", () => {
+  if (!dateRangeFilter.applyDraft()) return;
   applyFilter();
 });
 
@@ -247,7 +257,7 @@ searchClear.addEventListener("click", () => {
   searchClear.hidden = true;
   searchInput.classList.remove("search-error");
   searchExpand.classList.remove("search-error");
-  renderHits(parsedData);
+  applyFilter();
   searchInput.focus();
 });
 
@@ -262,14 +272,14 @@ function setSearchValue(v) {
 
 function applyFilter({ flash = true } = {}) {
   const q = searchInput.value.trim();
-  if (!q) {
+  if (!q && !dateRangeFilter.hasRange()) {
     searchInput.classList.remove("search-error");
     searchExpand.classList.remove("search-error");
     setStatus("", "");
     renderHits(parsedData);
     return;
   }
-  if (flash) flashSearchInput();
+  if (flash && q) flashSearchInput();
   const result = filterHits(parsedData, q);
   if (result.error) {
     searchInput.classList.add("search-error");
@@ -280,15 +290,16 @@ function applyFilter({ flash = true } = {}) {
   searchInput.classList.remove("search-error");
   searchExpand.classList.remove("search-error");
   setStatus("", "");
-  if (result.hits.length === 0) {
-    outputEl.innerHTML = `<div class="no-filter-results">No entries match the filter</div>`;
+  const hits = dateRangeFilter.filterHits(result.hits);
+  if (hits.length === 0) {
+    outputEl.innerHTML = `<div class="no-filter-results">No entries match the filter / date range</div>`;
     copyOutputBtn.disabled = true;
     outputSelectBar.hidden = true;
     outputMeta.textContent = `0 of ${parsedData.length} entries`;
     return;
   }
-  renderHits(result.hits);
-  outputMeta.textContent = `${result.hits.length} of ${parsedData.length} entries`;
+  renderHits(hits);
+  outputMeta.textContent = `${hits.length} of ${parsedData.length} entries`;
   highlightSearchTerms(result.patterns);
 }
 
@@ -450,6 +461,7 @@ btnClear.addEventListener("click", () => {
   updateCopySelected();
   setSearchValue("");
   searchClear.hidden = true;
+  dateRangeFilter.clear({ resetAvailableRange: true });
   searchInput.classList.remove("search-error");
   searchExpand.classList.remove("search-error");
   inputMeta.textContent = "";
@@ -488,6 +500,7 @@ const MSG_IMPORT_INVALID_JSON = "Invalid JSON file";
 const MSG_IMPORT_BAD_FORMAT   = "Expected an array of filter strings";
 const MSG_IMPORT_NO_NEW       = "No new filters to import";
 const MSG_IMPORT_OK           = "Imported {0} filter(s)";
+const MSG_DATE_RANGE_IGNORED  = "Invalid date range selected";
 
 const TOAST_CATEGORY_SUCCESS = "success";
 const TOAST_CATEGORY_WARNING = "warning";
@@ -503,6 +516,7 @@ const TOAST_TITLE_WRONG_FILE     = "Wrong file type";
 const TOAST_TITLE_IMPORT_FAILED  = "Import failed";
 const TOAST_TITLE_NOTHING_NEW    = "Nothing new";
 const TOAST_TITLE_IMPORTED       = "Imported";
+const TOAST_TITLE_DATE_RANGE_IGNORED = "Date range ignored";
 
 // ── Saved filters ─────────────────────────────────────────────────────
 
@@ -520,6 +534,19 @@ const filterSavedBtn  = document.getElementById("filter-saved-btn");
 const filterSavedPopup = document.getElementById("filter-saved-popup");
 const filterSavedClose = document.getElementById("filter-saved-close");
 const filterSavedBody  = document.getElementById("filter-saved-body");
+
+function positionFilterPopup(popup, trigger, width) {
+  const rect = trigger.getBoundingClientRect();
+  const popupOffset = 8; // space between trigger and popup
+  const left = Math.max(8, Math.min(rect.right - width + 8, window.innerWidth - width - 2));
+  const availableHeight = window.innerHeight - rect.bottom - popupOffset - 4;
+  popup.style.top = (rect.bottom + popupOffset) + "px";
+  popup.style.left = left + "px";
+  popup.style.maxHeight = Math.max(200, availableHeight) + "px";
+
+  const arrowPosition = Math.max(14, Math.min(rect.left + rect.width / 2 - left, width - 14));
+  popup.style.setProperty("--filter-popup-arrow-x", `${arrowPosition}px`);
+}
 
 filterSaveBtn.addEventListener("click", () => {
   const q = searchInput.value.trim();
@@ -592,14 +619,7 @@ filterSavedBtn.addEventListener("click", (e) => {
   filterSavedPopup.hidden = !isHidden;
   if (isHidden) {
     renderSavedFilters();
-    const rect = filterSavedBtn.getBoundingClientRect();
-    const popupWidth = 620;
-    let left = rect.right - popupWidth;
-    if (left < 8) left = 8;
-    const availableHeight = window.innerHeight - rect.bottom - 12;
-    filterSavedPopup.style.top       = (rect.bottom + 4) + "px";
-    filterSavedPopup.style.left      = left + "px";
-    filterSavedPopup.style.maxHeight = Math.max(200, availableHeight) + "px";
+    positionFilterPopup(filterSavedPopup, filterSavedBtn, 620);
   }
 });
 filterSavedClose.addEventListener("click", () => { filterSavedPopup.hidden = true; });
@@ -685,14 +705,7 @@ filterHelpBtn.addEventListener("click", (e) => {
   filterSavedPopup.hidden = true;
   filterHelpPopup.hidden = !isHidden;
   if (isHidden) {
-    const rect = filterHelpBtn.getBoundingClientRect();
-    const popupWidth = 420;
-    let left = rect.right - popupWidth;
-    if (left < 8) left = 8;
-    const availableHeight = window.innerHeight - rect.bottom - 12;
-    filterHelpPopup.style.top       = (rect.bottom + 4) + "px";
-    filterHelpPopup.style.left      = left + "px";
-    filterHelpPopup.style.maxHeight = Math.max(200, availableHeight) + "px";
+    positionFilterPopup(filterHelpPopup, filterHelpBtn, 420);
   }
 });
 filterHelpClose.addEventListener("click", () => { filterHelpPopup.hidden = true; });
