@@ -834,6 +834,9 @@ button:active { transform: scale(0.97); }
   transform: translateX(-50%) rotate(45deg);
 }
 .filter-help-popup[hidden] { display: none; }
+#filter-saved-btn {
+  padding-bottom: 2px;
+}
 #filter-saved-popup { 
   width: 620px;
   padding: 8px;
