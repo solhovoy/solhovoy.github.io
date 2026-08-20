@@ -59,7 +59,7 @@ body {
 
 /* ── Header ── */
 header {
-  padding: 10px 24px;
+  padding: 10px 20px;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -85,18 +85,27 @@ header .badge {
 .theme-toggle {
   margin-left: auto;
   background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 2px 6px;
+  /* border: 1px solid var(--border); */
+  /* border-radius: 4px; */
+  padding: 2px 8px;
   font-size: 12px;
   cursor: pointer;
   line-height: 1.4;
   transition: border-color 0.15s, background 0.15s;
 }
-.theme-toggle:hover {
+/* .theme-toggle:hover {
   border-color: var(--text-dim);
   background: var(--bg-input);
+} */
+.theme-toggle-icon {
+  display: block;
+  width: 14px;
+  height: 14px;
+  background: var(--text-dim);
+  mask: var(--theme-icon) center / contain no-repeat;
+  -webkit-mask: var(--theme-icon) center / contain no-repeat;
 }
+.theme-toggle-icon:hover { background: var(--text); }
 
 /* ── Layout ── */
 main {
@@ -193,6 +202,7 @@ main {
   100% { background: var(--bg-input); }
 }
 .search-input-flash { animation: filter-flash 0.55s ease-out; }
+.output-filter-flash { animation: filter-flash 0.55s ease-out; }
 #search-expand {
   position: absolute;
   top: 0;
@@ -641,7 +651,7 @@ button:active { transform: scale(0.97); }
   color: var(--text-dim);
   border: 1px solid var(--border);
 }
-#btn-clear:hover { color: var(--text); border-color: var(--text-dim); }
+#btn-clear:hover { color: var(--error); border-color: var(--error); }
 
 .status {
   margin-left: auto;

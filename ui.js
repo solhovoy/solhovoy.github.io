@@ -34,6 +34,7 @@ let plainLines = [];   // per-entry plain text for selective copy
 let parsedData = [];   // raw hits kept for filtering
 const RECENT_DATE_RANGES_KEY = "elkRecentDateRanges";
 const MAX_RECENT_DATE_RANGES = 7;
+const SEARCH_INPUT_FLASH_ENABLED = false;
 
 function getRecentDateRanges() {
   try {
@@ -85,17 +86,18 @@ applySortLabel();
 
 // ── Theme (persisted in localStorage) ────────────────────────────────────
 const themeToggle = document.getElementById("theme-toggle");
+const themeIcon = themeToggle.querySelector(".theme-toggle-icon");
 let theme = localStorage.getItem("elkTheme") || "dark";
 applyTheme(theme);
 
 function applyTheme(t) {
   if (t === "light") {
     document.documentElement.classList.add("light");
-    themeToggle.textContent = "🌙";
+    themeIcon.style.setProperty("--theme-icon", 'url("assets/icon_theme_dark.svg")');
     themeToggle.title = "Switch to dark mode";
   } else {
     document.documentElement.classList.remove("light");
-    themeToggle.textContent = "☀️";
+    themeIcon.style.setProperty("--theme-icon", 'url("assets/icon_theme_light.svg")');
     themeToggle.title = "Switch to light mode";
   }
 }
@@ -273,6 +275,12 @@ function flashSearchInput() {
   }
 }
 
+function flashOutput() {
+  outputEl.classList.remove("output-filter-flash");
+  void outputEl.offsetWidth;
+  outputEl.classList.add("output-filter-flash");
+}
+
 function autoResizeExpand() {
   searchExpand.style.height = "auto";
   searchExpand.style.height = searchExpand.scrollHeight + "px";
@@ -356,9 +364,10 @@ function applyFilter({ flash = true } = {}) {
     searchExpand.classList.remove("search-error");
     setStatus("", "");
     renderHits(parsedData);
+    if (flash) flashOutput();
     return;
   }
-  if (flash && q) flashSearchInput();
+  if (SEARCH_INPUT_FLASH_ENABLED && flash && q) flashSearchInput();
   const result = filterHits(parsedData, q);
   if (result.error) {
     searchInput.classList.add("search-error");
@@ -375,11 +384,13 @@ function applyFilter({ flash = true } = {}) {
     copyOutputBtn.disabled = true;
     outputSelectBar.hidden = true;
     outputMeta.textContent = `0 of ${parsedData.length} entries`;
+    if (flash) flashOutput();
     return;
   }
   renderHits(hits);
   outputMeta.textContent = `${hits.length} of ${parsedData.length} entries`;
   highlightSearchTerms(result.patterns);
+  if (flash) flashOutput();
 }
 
 /**
