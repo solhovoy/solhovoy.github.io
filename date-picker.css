@@ -27,7 +27,7 @@
   color: var(--text-dim);
   font: 11px var(--mono);
   line-height: 28px;
-  text-align: left;
+  text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -78,7 +78,7 @@
 .date-range-icon:hover,
 .date-range-icon:focus-visible { color: var(--text); outline: none; }
 .date-range-icon svg { display: block; fill: currentColor; }
-.date-range-arrow { flex: 0 0 auto; color: var(--text-dim); font-size: 18px; line-height: 1; }
+.date-range-arrow { flex: 0 0 auto; color: var(--text-dim); font-size: 16px; line-height: 1; }
 .date-range-clear {
   position: absolute;
   right: 5px;
