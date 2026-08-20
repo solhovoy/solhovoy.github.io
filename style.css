@@ -123,6 +123,9 @@ main {
   height: calc(5 * 1.6 * 12px + 14px); /* ~5 visible lines */
   flex: none;
 }
+#panel-input {
+  position: relative;
+}
 
 .panel-header {
   display: flex;
@@ -978,7 +981,8 @@ button:active { transform: scale(0.97); }
   align-items: center;
   gap: 6px;
 }
-.filter-saved-drop-overlay {
+.filter-saved-drop-overlay,
+.raw-json-drop-overlay {
   position: absolute;
   inset: 0;
   background: color-mix(in srgb, var(--accent) 12%, var(--bg-panel) 88%);
@@ -993,7 +997,8 @@ button:active { transform: scale(0.97); }
   pointer-events: none;
   z-index: 2;
 }
-.filter-saved-drop-overlay[hidden] { display: none; }
+.filter-saved-drop-overlay[hidden],
+.raw-json-drop-overlay[hidden] { display: none; }
 .filter-saved-empty {
   padding: 8px 4px;
   color: var(--text-dim);

@@ -395,6 +395,7 @@ function normalizeInput(data) {
 
   // Ensure each hit has fields (fallback to _source or root-level fields)
   return data.map(hit => {
+    if (!hit || typeof hit !== "object" || Array.isArray(hit)) return hit;
     if (hit.fields) return hit;
     if (hit._source) {
       // Convert _source to fields-like format (wrap values in arrays)

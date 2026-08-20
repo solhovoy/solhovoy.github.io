@@ -216,6 +216,52 @@ inputEl.addEventListener("input", () => {
   inputMeta.textContent = chars ? `${chars.toLocaleString()} chars` : "";
 });
 
+// ── Raw JSON import via drag & drop ────────────────────────────────────
+const inputPanel = document.getElementById("panel-input");
+const rawJsonDropOverlay = document.getElementById("raw-json-drop-overlay");
+let rawJsonDragCounter = 0;
+
+inputPanel.addEventListener("dragenter", (e) => {
+  e.preventDefault();
+  rawJsonDragCounter++;
+  rawJsonDropOverlay.hidden = false;
+});
+
+inputPanel.addEventListener("dragleave", () => {
+  rawJsonDragCounter--;
+  if (rawJsonDragCounter <= 0) {
+    rawJsonDragCounter = 0;
+    rawJsonDropOverlay.hidden = true;
+  }
+});
+
+inputPanel.addEventListener("dragover", (e) => {
+  e.preventDefault();
+});
+
+inputPanel.addEventListener("drop", (e) => {
+  e.preventDefault();
+  rawJsonDragCounter = 0;
+  rawJsonDropOverlay.hidden = true;
+
+  const file = e.dataTransfer?.files?.[0];
+  if (!file || !file.name.toLowerCase().endsWith(".json")) {
+    showToast(TOAST_TITLE_WRONG_FILE, { description: MSG_DROP_NOT_JSON, category: TOAST_CATEGORY_WARNING });
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    inputEl.value = ev.target.result;
+    inputEl.dispatchEvent(new Event("input"));
+    doFormat();
+  };
+  reader.onerror = () => {
+    showToast(TOAST_TITLE_IMPORT_FAILED, { description: MSG_IMPORT_READ_FAILED, category: TOAST_CATEGORY_ERROR });
+  };
+  reader.readAsText(file);
+});
+
 // ── Filter expand overlay ────────────────────────────────────────────────
 const searchExpand = document.getElementById("search-expand");
 
@@ -529,6 +575,7 @@ const MSG_FILTER_DUP          = "Filter already exists";
 const MSG_NOTHING_SAVE        = "Nothing to save";
 const MSG_NOTHING_EXPORT      = "Nothing to export";
 const MSG_DROP_NOT_JSON       = "Please drop a .json file";
+const MSG_IMPORT_READ_FAILED  = "Could not read JSON file";
 const MSG_IMPORT_INVALID_JSON = "Invalid JSON file";
 const MSG_IMPORT_BAD_FORMAT   = "Expected an array of filter strings";
 const MSG_IMPORT_NO_NEW       = "No new filters to import";
