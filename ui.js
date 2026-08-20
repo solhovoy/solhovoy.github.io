@@ -93,11 +93,11 @@ applyTheme(theme);
 function applyTheme(t) {
   if (t === "light") {
     document.documentElement.classList.add("light");
-    themeIcon.style.setProperty("--theme-icon", 'url("assets/icon_theme_dark.svg")');
+    themeIcon.style.setProperty("--theme-icon", 'url("/assets/icon_theme_dark.svg")');
     themeToggle.title = "Switch to dark mode";
   } else {
     document.documentElement.classList.remove("light");
-    themeIcon.style.setProperty("--theme-icon", 'url("assets/icon_theme_light.svg")');
+    themeIcon.style.setProperty("--theme-icon", 'url("/assets/icon_theme_light.svg")');
     themeToggle.title = "Switch to light mode";
   }
 }
@@ -306,8 +306,6 @@ searchExpand.addEventListener("keydown", e => {
   if (e.key === "Enter") {
     e.preventDefault();
     applyFilter();
-  } else if (e.key === "Escape") {
-    e.preventDefault();
     searchExpand.blur();
   }
 });
@@ -328,8 +326,6 @@ searchInput.addEventListener("keydown", e => {
   if (e.key === "Enter") {
     e.preventDefault();
     applyFilter();
-  } else if (e.key === "Escape") {
-    e.preventDefault();
     searchInput.blur();
   }
 });
@@ -642,7 +638,7 @@ function positionFilterPopup(popup, trigger, width) {
 function positionDateRangeHistoryPopup() {
   const width = 550;
   const rect = dateRangeHistoryBtn.getBoundingClientRect();
-  const popupOffset = 8;
+  const popupOffset = 9;
   const left = Math.max(8, Math.min(rect.left + rect.width / 2 - width / 2, window.innerWidth - width - 8));
   const availableHeight = window.innerHeight - rect.bottom - popupOffset - 4;
   dateRangeHistoryPopup.style.top = (rect.bottom + popupOffset) + "px";
@@ -900,6 +896,22 @@ document.addEventListener("click", (e) => {
   if (!filterHelpPopup.hidden && !filterHelpPopup.contains(e.target) && e.target !== filterHelpBtn) {
     filterHelpPopup.hidden = true;
   }
+});
+
+const escapablePopups = [
+  { isOpen: () => !searchExpand.hidden, close: () => searchExpand.blur() },
+  { isOpen: () => !dateRangeHistoryPopup.hidden, close: () => { dateRangeHistoryPopup.hidden = true; dateRangeHistoryBtn.blur(); } },
+  { isOpen: () => !filterSavedPopup.hidden, close: () => { filterSavedPopup.hidden = true; filterSavedBtn.blur(); } },
+  { isOpen: () => !filterHelpPopup.hidden, close: () => { filterHelpPopup.hidden = true; filterHelpBtn.blur(); } },
+  { isOpen: () => dateRangeFilter.isOpen(), close: () => dateRangeFilter.close() }
+];
+
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  const openPopups = escapablePopups.filter(popup => popup.isOpen());
+  if (!openPopups.length) return;
+  e.preventDefault();
+  openPopups.forEach(popup => popup.close());
 });
 
 // Click an example to paste it into the search input

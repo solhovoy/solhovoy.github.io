@@ -405,6 +405,7 @@ const DateRangeFilter = (() => {
       clear,
       filterHits,
       hasRange: () => appliedRange !== null,
+      isOpen: () => !popover.hidden,
       populateFromHits
     };
   }
