@@ -13,8 +13,6 @@
   transition: min-width 0.18s ease;
 }
 .date-range-wrap.is-empty { min-width: 205px; }
-.date-range-wrap.is-empty #date-range-start,
-.date-range-wrap.is-empty #date-range-end { padding-right: 6px; }
 .date-range-endpoint {
   display: block;
   flex: 1;
@@ -45,7 +43,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-#date-range-end { padding-right: 22px; }
 .date-range-wrap.is-active .date-range-endpoint { color: var(--text); }
 .date-range-wrap.is-invalid-range { border-color: var(--error); }
 .date-range-wrap.is-invalid-range .date-range-endpoint { color: var(--error); }
@@ -80,16 +77,18 @@
 .date-range-icon svg { display: block; fill: currentColor; }
 .date-range-arrow { flex: 0 0 auto; color: var(--text-dim); font-size: 16px; line-height: 1; }
 .date-range-clear {
-  position: absolute;
-  right: 5px;
-  z-index: 1;
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  /* flex: 0 0 18px; */
+  justify-content: center;
   background: none;
   border: none;
   color: var(--text-dim);
   cursor: pointer;
   font-size: 12px;
   line-height: 1;
-  padding: 2px 4px;
+  padding: 0px 8px;
   transition: color 0.15s;
 }
 .date-range-clear:hover { color: var(--text); }
