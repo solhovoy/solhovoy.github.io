@@ -1026,9 +1026,25 @@ button:active { transform: scale(0.97); }
 }
 .filter-saved-item {
   display: flex;
+  position: relative;
   align-items: center;
   gap: 6px;
 }
+.filter-saved-item.dragging {
+  opacity: 0.45;
+}
+.filter-saved-item.drop-before::before,
+.filter-saved-item.drop-after::after {
+  content: "";
+  position: absolute;
+  left: 24px;
+  right: 0;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 1px;
+}
+.filter-saved-item.drop-before::before { top: -3px; }
+.filter-saved-item.drop-after::after { bottom: -3px; }
 .filter-saved-num {
   flex-shrink: 0;
   min-width: 18px;

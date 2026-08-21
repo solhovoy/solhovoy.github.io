@@ -621,6 +621,8 @@ const filterSavedBtn  = document.getElementById("filter-saved-btn");
 const filterSavedPopup = document.getElementById("filter-saved-popup");
 const filterSavedClose = document.getElementById("filter-saved-close");
 const filterSavedBody  = document.getElementById("filter-saved-body");
+let draggedSavedFilterItem = null;
+let draggedSavedFilterIndex = null;
 
 function positionFilterPopup(popup, trigger, width) {
   const rect = trigger.getBoundingClientRect();
@@ -760,6 +762,64 @@ function renderSavedFilters() {
   for (const [i, f] of filters.entries()) {
     const li  = document.createElement("li");
     li.className = "filter-saved-item";
+    li.draggable = true;
+
+    li.addEventListener("dragstart", event => {
+      draggedSavedFilterItem = li;
+      draggedSavedFilterIndex = i;
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", f);
+      li.classList.add("dragging");
+    });
+
+    li.addEventListener("dragenter", event => {
+      if (!draggedSavedFilterItem) return;
+      event.preventDefault();
+      event.stopPropagation();
+    });
+
+    li.addEventListener("dragover", event => {
+      if (!draggedSavedFilterItem || draggedSavedFilterItem === li) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const insertAfter = event.clientY > li.getBoundingClientRect().top + li.offsetHeight / 2;
+      filterSavedBody.querySelectorAll(".drop-before, .drop-after").forEach(item => {
+        item.classList.remove("drop-before", "drop-after");
+      });
+      li.classList.add(insertAfter ? "drop-after" : "drop-before");
+      event.dataTransfer.dropEffect = "move";
+    });
+
+    li.addEventListener("dragleave", event => {
+      if (!draggedSavedFilterItem || li.contains(event.relatedTarget)) return;
+      li.classList.remove("drop-before", "drop-after");
+    });
+
+    li.addEventListener("drop", event => {
+      if (!draggedSavedFilterItem || draggedSavedFilterItem === li) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const insertAfter = li.classList.contains("drop-after");
+      const sourceIndex = draggedSavedFilterIndex;
+      const destinationIndex = i + (insertAfter ? 1 : 0);
+      const insertionIndex = sourceIndex < destinationIndex ? destinationIndex - 1 : destinationIndex;
+
+      if (sourceIndex !== insertionIndex) {
+        const reordered = getSavedFilters();
+        const [filter] = reordered.splice(sourceIndex, 1);
+        reordered.splice(insertionIndex, 0, filter);
+        setSavedFilters(reordered);
+        renderSavedFilters();
+      }
+    });
+
+    li.addEventListener("dragend", () => {
+      filterSavedBody.querySelectorAll(".dragging, .drop-before, .drop-after").forEach(item => {
+        item.classList.remove("dragging", "drop-before", "drop-after");
+      });
+      draggedSavedFilterItem = null;
+      draggedSavedFilterIndex = null;
+    });
 
     const num = document.createElement("span");
     num.className = "filter-saved-num";
@@ -826,12 +886,14 @@ const filterSavedDropOverlay = document.getElementById("filter-saved-drop-overla
 let dragCounter = 0;
 
 filterSavedPopup.addEventListener("dragenter", (e) => {
+  if (draggedSavedFilterItem) return;
   e.preventDefault();
   dragCounter++;
   filterSavedDropOverlay.hidden = false;
 });
 
 filterSavedPopup.addEventListener("dragleave", () => {
+  if (draggedSavedFilterItem) return;
   dragCounter--;
   if (dragCounter <= 0) {
     dragCounter = 0;
@@ -840,10 +902,12 @@ filterSavedPopup.addEventListener("dragleave", () => {
 });
 
 filterSavedPopup.addEventListener("dragover", (e) => {
+  if (draggedSavedFilterItem) return;
   e.preventDefault();
 });
 
 filterSavedPopup.addEventListener("drop", (e) => {
+  if (draggedSavedFilterItem) return;
   e.preventDefault();
   dragCounter = 0;
   filterSavedDropOverlay.hidden = true;
