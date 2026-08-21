@@ -222,7 +222,7 @@ main {
   overflow-y: auto;
   max-height: 200px;
   white-space: pre-wrap;
-  word-break: break-all;
+  word-break: normal;
   box-sizing: border-box;
   box-shadow: 0 4px 16px rgba(0,0,0,0.35);
 }
