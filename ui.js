@@ -33,7 +33,7 @@ let plainText  = "";
 let plainLines = [];   // per-entry plain text for selective copy
 let parsedData = [];   // raw hits kept for filtering
 const RECENT_DATE_RANGES_KEY = "elkRecentDateRanges";
-const MAX_RECENT_DATE_RANGES = 7;
+const MAX_RECENT_DATE_RANGES = 10;
 const SEARCH_INPUT_FLASH_ENABLED = false;
 
 function getRecentDateRanges() {

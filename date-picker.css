@@ -164,7 +164,7 @@
   font-weight: 400;
   justify-content: center;
 }
-.date-picker-icon:hover { background: color-mix(in srgb, var(--accent) 12%, var(--bg-input)); color: var(--accent); }
+.date-picker-icon:hover { background: color-mix(in srgb, var(--accent) 12%, var(--bg-input)); }
 .date-picker-month,
 .date-picker-year,
 .date-picker-exact-input {

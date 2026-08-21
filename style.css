@@ -841,7 +841,7 @@ button:active { transform: scale(0.97); }
   width: 620px;
   padding: 8px;
 }
-#date-range-history-popup { width: 550px; }
+#date-range-history-popup { width: 525px; }
 .filter-help-header {
   display: flex;
   align-items: center;
@@ -966,6 +966,14 @@ button:active { transform: scale(0.97); }
   overflow-y: auto;
   padding: 8px 0px 20px;
   position: relative;
+}
+.filter-saved-hint {
+  flex-shrink: 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 11px;
+  text-align: center;
 }
 .recent-date-range-body {
   flex: 1 1 auto;
