@@ -1,0 +1,46 @@
+.btn-generic {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 2px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  line-height: 1.4;
+  transition: color 0.15s, border-color 0.15s;
+}
+.btn-generic:hover { color: var(--text); border-color: var(--text-dim); }
+
+#filter-apply-btn {
+  margin-left: 6px;
+  border-color: var(--primary-action);
+  background: var(--primary-action);
+  color: #fff;
+}
+#filter-apply-btn:hover {
+  border-color: var(--primary-action-hover);
+  background: var(--primary-action-hover);
+  color: #fff;
+}
+
+.filter-help-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  padding: 0;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+  transition: color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.filter-help-btn:hover { color: var(--text); border-color: var(--text-dim); }

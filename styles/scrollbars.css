@@ -1,0 +1,18 @@
+/* ── Custom scrollbars ── */
+* {
+  scrollbar-color: var(--text-dim) var(--bg-input);
+  scrollbar-width: thin;
+}
+::-webkit-scrollbar { width: 8px; height: 8px; }
+.has-scrollbars ::-webkit-scrollbar-track,
+::-webkit-scrollbar-track { background: var(--bg-input); }
+.has-scrollbars ::-webkit-scrollbar-thumb,
+::-webkit-scrollbar-thumb {
+  background: var(--text-dim);
+  border-radius: 8px;
+  border: 2px solid var(--bg-input);
+}
+.has-scrollbars ::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:hover { background: var(--text); }
+.has-scrollbars ::-webkit-scrollbar-corner,
+::-webkit-scrollbar-corner { background: var(--bg-input); }

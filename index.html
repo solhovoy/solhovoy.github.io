@@ -4,8 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ELK Log Formatter</title>
-  <link rel="stylesheet" href="date-picker.css" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="/styles/main.css" />
 </head>
 <body>
 
@@ -77,7 +76,7 @@
         <button id="date-range-history-close" class="filter-help-close" type="button" title="Close">✕</button>
       </div>
       <div id="date-range-history-body" class="recent-date-range-body"></div>
-      <div class="filter-saved-hint">Most recent always first. Max 10 ranges.</div>
+      <div id="date-range-history-hint" class="filter-saved-hint">Most recent always first. Max 10 ranges.</div>
     </div>
 
     <div id="filter-saved-popup" class="filter-help-popup" hidden>
@@ -89,7 +88,7 @@
         </div>
       </div>
       <div class="filter-saved-body" id="filter-saved-body"></div>
-      <div class="filter-saved-hint">Drag to reorder. Drop a JSON to import.</div>
+      <div id="filter-saved-hint" class="filter-saved-hint">Drag to reorder. Drop a JSON to import.</div>
       <div class="filter-saved-drop-overlay" id="filter-saved-drop-overlay" hidden>
         <span>Drop a JSON file here to import.</span>
       </div>
@@ -184,10 +183,21 @@
 
 <script src="https://cdn.jsdelivr.net/npm/basecoat-css@1.0.2/dist/js/basecoat.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/basecoat-css@1.0.2/dist/js/toast.min.js" defer></script>
-<script src="lib/lucene-query-parser.min.js"></script>
-<script src="formatter.js"></script>
-<script src="search.js"></script>
-<script src="date-picker.js"></script>
-<script src="ui.js"></script>
+<script src="/scripts/lib/lucene-query-parser.min.js"></script>
+<script src="/scripts/formatter.js"></script>
+<script src="/scripts/search.js"></script>
+<script src="/scripts/date-picker.js"></script>
+<script src="/scripts/constants.js"></script>
+<script src="/scripts/storage.js"></script>
+<script src="/scripts/utils.js"></script>
+<script src="/scripts/input-controller.js"></script>
+<script src="/scripts/search-ui-controller.js"></script>
+<script src="/scripts/output-controller.js"></script>
+<script src="/scripts/preferences-controller.js"></script>
+<script src="/scripts/popup-manager.js"></script>
+<script src="/scripts/popup-filter-help.js"></script>
+<script src="/scripts/popup-date-range-history.js"></script>
+<script src="/scripts/popup-saved-filters.js"></script>
+<script src="/scripts/ui.js"></script>
 </body>
 </html>
