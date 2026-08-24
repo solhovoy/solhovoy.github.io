@@ -14,7 +14,7 @@
  * Returns { hits: filteredArray, patterns: regexPatterns } or { error: string }.
  * patterns can be joined with | to create a highlight regex.
  */
-function filterHits(hits, queryStr) {
+function filterHits(hits, queryStr, outputSettings = {}) {
   const q = (queryStr || "").trim();
   if (!q) return { hits, patterns: [] };
 
@@ -46,7 +46,7 @@ function filterHits(hits, queryStr) {
   collectPatterns(ast, patterns);
 
   return {
-    hits: hits.filter(hit => evalNode(ast, hit)),
+    hits: hits.filter(hit => evalNode(ast, hit, outputSettings)),
     patterns
   };
 }
@@ -123,26 +123,26 @@ function buildFieldMatchPattern(field, term) {
 // lucene-query-parser always produces { left, operator?, right? } at every level.
 // Leaf nodes: { field, term, quoted?, regex? }
 
-function evalNode(node, hit) {
+function evalNode(node, hit, outputSettings) {
   if (!node) return true;
 
   // Leaf node — has a "field" key but no "left"
   if ("field" in node && !("left" in node)) {
-    return matchLeaf(node, hit);
+    return matchLeaf(node, hit, outputSettings);
   }
 
   // Boolean / group node
-  const leftResult = evalNode(node.left, hit);
+  const leftResult = evalNode(node.left, hit, outputSettings);
   const op = (node.operator || "<implicit>").toUpperCase();
 
   if (op === "AND" || op === "<IMPLICIT>") {
-    return leftResult && evalNode(node.right, hit);
+    return leftResult && evalNode(node.right, hit, outputSettings);
   }
   if (op === "OR") {
-    return leftResult || evalNode(node.right, hit);
+    return leftResult || evalNode(node.right, hit, outputSettings);
   }
   if (op === "NOT") {
-    return leftResult && !evalNode(node.right, hit);
+    return leftResult && !evalNode(node.right, hit, outputSettings);
   }
 
   return leftResult;
@@ -218,7 +218,26 @@ const HIDDEN_FIELDS = [
   "isVectorDebug", "length_diff"
 ];
 
-function matchLeaf(node, hit) {
+function isHiddenOutputField(field, outputSettings) {
+  const shownFields = {
+    t: true,
+    a: true,
+    r: true,
+    p: true,
+    h: true,
+    ...outputSettings.shownFields
+  };
+  const outputFieldKeys = {
+    t: ["t", "kv_obj.t"],
+    a: ["a", "kv_obj.a"],
+    r: ["r", "kv_obj.r"],
+    p: ["p", "kv_obj.p"],
+    h: ["h", "host.hostname", "kv_obj.h"]
+  };
+  return Object.entries(outputFieldKeys).some(([key, sourceFields]) => !shownFields[key] && sourceFields.includes(field));
+}
+
+function matchLeaf(node, hit, outputSettings) {
   const fields = hit.fields || {};
   const term   = String(node.term ?? "").toLowerCase();
   const field  = node.field;
@@ -232,7 +251,7 @@ function matchLeaf(node, hit) {
     return Object.entries(fields).some(([key, raw]) => {
       if (raw === undefined) return false;
       // Skip hidden fields that aren't displayed in formatted output
-      if (HIDDEN_FIELDS.includes(key)) return false;
+      if (HIDDEN_FIELDS.includes(key) || isHiddenOutputField(key, outputSettings)) return false;
       // Also match against the field name as displayed (strip kv_obj. prefix)
       const displayKey = key.replace(/^kv_obj\./, "");
       if (matches(displayKey)) return true;
@@ -244,6 +263,8 @@ function matchLeaf(node, hit) {
       return matches(val ?? "");
     });
   }
+
+  if (isHiddenOutputField(field, outputSettings)) return false;
 
   // Field-specific — try exact key and kv_obj.* prefix
   const candidates = [fields[field], fields["kv_obj." + field]]

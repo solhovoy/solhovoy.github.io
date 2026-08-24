@@ -22,25 +22,23 @@ header .badge {
   font-weight: 500;
 }
 
-/* ── Theme toggle ── */
-.theme-toggle {
+/* ── Settings ── */
+.settings-toggle {
   margin-left: auto;
   background: transparent;
-  padding: 2px 8px;
-  font-size: 12px;
+  padding: 2px;
+  padding-right: 8px;
   cursor: pointer;
-  line-height: 1.4;
-  transition: border-color 0.15s, background 0.15s;
 }
-.theme-toggle-icon {
+.settings-icon {
   display: block;
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   background: var(--text-dim);
-  mask: var(--theme-icon) center / contain no-repeat;
-  -webkit-mask: var(--theme-icon) center / contain no-repeat;
+  mask: url("/assets/icon_gear.svg") center / contain no-repeat;
+  -webkit-mask: url("/assets/icon_gear.svg") center / contain no-repeat;
 }
-.theme-toggle-icon:hover { background: var(--text); }
+.settings-toggle:hover .settings-icon { background: var(--text); }
 
 /* ── Layout ── */
 main {

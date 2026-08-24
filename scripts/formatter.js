@@ -45,7 +45,7 @@ const EXCLUDED_FIELDS = ["isVectorDebug", "stack_trace"];
 /**
  * Returns { plain: string, html: string } for a single hit.
  */
-function formatHit(hit, index) {
+function formatHit(hit, index, outputSettings = {}) {
   const fields = hit.fields || {};
 
   const ts       = formatTimestamp(unwrap(fields["@timestamp"]    ?? ["?"]));
@@ -87,12 +87,25 @@ function formatHit(hit, index) {
   // Don't show "?" message if we have custom or extra fields
   const displayMessage = (message === "?" && (customData || extraFields)) ? "" : message;
 
-  const host = `h=${hostname}`;
-  const lvlPadded = level.padEnd(5);
+  const shownFields = {
+    t: true,
+    a: true,
+    r: true,
+    p: true,
+    h: true,
+    ...outputSettings.shownFields
+  };
+  const outputFields = [
+    { key: "t", value: `t=${thread}`, className: "meta meta-t" },
+    { key: "a", value: `a=${actor}`, className: "meta meta-a" },
+    { key: "r", value: `r=${r}`, className: "meta meta-r" },
+    { key: "p", value: `p=${p}`, className: "meta meta-p" },
+    { key: "h", value: `h=${hostname}`, className: "host" }
+  ].filter(field => shownFields[field.key]);
 
   // ── plain text ────────────────────────────────────────────────────────────
-  let plain =
-    `${ts} t=${thread} a=${actor} r=${r} p=${p} ${host}  ${lvlPadded} ${clsField}=${clsValue}`;
+  const plainFields = outputFields.map(field => field.value).join(" ");
+  let plain = `${ts}${plainFields ? ` ${plainFields} ` : " "}${level} ${clsField}=${clsValue}`;
   if (displayMessage) {
     plain += ` ${displayMessage}`;
   }
@@ -114,6 +127,7 @@ function formatHit(hit, index) {
   const msgHtml = displayMessage ? ` <span class="msg">${applyHighlighting(esc(displayMessage))}</span>` : "";
   const customHtml = customData ? ` <span class="msg">${applyHighlighting(esc(customData))}</span>` : "";
   const extraHtml = extraFields ? ` <span class="msg">${applyHighlighting(esc(extraFields))}</span>` : "";
+  const fieldsHtml = outputFields.map(field => ` <span class="${field.className}">${esc(field.value)}</span>`).join("");
   // Stack trace HTML (inline with preserved formatting)
   const stackHtml = stackTrace ? 
     `<pre class="stack-trace">${esc(stackTrace)}</pre>` : "";
@@ -125,9 +139,8 @@ function formatHit(hit, index) {
     `<span class="line-num">${index + 1}</span>` +
     `<button class="raw-toggle" title="Show raw JSON">▶</button>` +
     `<span class="ts">${esc(ts)}</span>` +
-    ` <span class="meta">t=${esc(thread)} a=${esc(actor)} r=${esc(r)} p=${esc(p)}</span>` +
-    ` <span class="host">${esc(host)}</span>` +
-    `  <span class="level ${lvlClass}">${esc(lvlPadded)}</span>` +
+    fieldsHtml +
+    ` <span class="level ${lvlClass}">${esc(level)}</span>` +
     ` <span class="cls">${clsField}=${esc(clsValue)}</span>` +
     msgHtml +
     customHtml +
@@ -439,7 +452,7 @@ function flattenSource(obj, prefix, result) {
  * @param {string} rawJson
  * @param {"asc"|"desc"} sortOrder
  */
-function formatLogs(rawJson, sortOrder = "asc") {
+function formatLogs(rawJson, sortOrder = "asc", outputSettings = {}) {
   let data;
   try {
     data = JSON.parse(rawJson);
@@ -481,7 +494,7 @@ function formatLogs(rawJson, sortOrder = "asc") {
   const htmls  = [];
 
   for (let i = 0; i < sorted.length; i++) {
-    const { plain, html } = formatHit(sorted[i], i);
+    const { plain, html } = formatHit(sorted[i], i, outputSettings);
     plains.push(plain);
     htmls.push(html);
   }

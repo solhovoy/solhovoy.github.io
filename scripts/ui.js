@@ -65,7 +65,11 @@ function renderHits(hits) {
   // Capture checked entries by plain text before re-render
   const prevChecked = outputController.captureCheckedPlainLines(plainLines);
 
-  const result = formatLogs(JSON.stringify(hits), preferencesController.getSortOrder());
+  const result = formatLogs(
+    JSON.stringify(hits),
+    preferencesController.getSortOrder(),
+    preferencesController.getOutputSettings()
+  );
 
   if (result.error) {
     outputEl.innerHTML = "";
@@ -107,6 +111,15 @@ const preferencesController = new PreferencesController({
     if (parsedData.length) applyFilter({ flash: false });
   }
 });
+const settingsController = new SettingsController({
+  popupManager,
+  preferencesController,
+  outputController,
+  onOutputSettingsChange: () => {
+    if (parsedData.length) applyFilter({ flash: false });
+  }
+});
+outputController.setHighlightSelectedRows(preferencesController.getHighlightSelectedRows());
 const searchController = new SearchUiController({
   onApply: () => applyFilter(),
   onApplyButton: () => {
@@ -132,7 +145,7 @@ function applyFilter({ flash = true } = {}) {
     return;
   }
   if (SEARCH_INPUT_FLASH_ENABLED && flash && q) searchController.flash();
-  const result = filterHits(parsedData, q);
+  const result = filterHits(parsedData, q, preferencesController.getOutputSettings());
   if (result.error) {
     searchController.setError(true);
     setStatus(`Filter error: ${result.error}`, "err");

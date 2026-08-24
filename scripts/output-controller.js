@@ -7,6 +7,7 @@ class OutputController {
     this.copySelectedButton = document.getElementById("copy-selected");
     this.selectBar = document.getElementById("output-select-bar");
     this.selectAll = document.getElementById("select-all-check");
+    this.highlightSelectedRows = false;
 
     this.output.addEventListener("change", event => this.handleSelectionChange(event));
     this.output.addEventListener("click", event => this.handleOutputClick(event));
@@ -50,7 +51,20 @@ class OutputController {
       this.selectAll.checked = false;
       this.selectAll.indeterminate = true;
     }
+    this.syncSelectedRowHighlights();
     this.updateCopySelected();
+  }
+
+  setHighlightSelectedRows(enabled) {
+    this.highlightSelectedRows = Boolean(enabled);
+    this.syncSelectedRowHighlights();
+  }
+
+  syncSelectedRowHighlights() {
+    this.output.querySelectorAll(".log-entry").forEach(entry => {
+      const checkbox = entry.querySelector(".row-check");
+      entry.classList.toggle("is-selected", this.highlightSelectedRows && checkbox?.checked);
+    });
   }
 
   reset() {
@@ -79,7 +93,7 @@ class OutputController {
     this.output.querySelectorAll(".row-check").forEach(checkbox => {
       checkbox.checked = this.selectAll.checked;
     });
-    this.updateCopySelected();
+    this.syncSelection();
   }
 
   async copyAll() {

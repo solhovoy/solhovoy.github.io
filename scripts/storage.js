@@ -35,3 +35,16 @@ function getSavedFilters() {
 function setSavedFilters(filters) {
   localStorage.setItem(LS_KEY_SAVED_FILTERS, JSON.stringify(filters));
 }
+
+function getOutputSettings() {
+  try {
+    const settings = JSON.parse(localStorage.getItem(LS_KEY_OUTPUT_SETTINGS)) || {};
+    return settings && typeof settings === "object" && !Array.isArray(settings) ? settings : {};
+  } catch {
+    return {};
+  }
+}
+
+function setOutputSettings(settings) {
+  localStorage.setItem(LS_KEY_OUTPUT_SETTINGS, JSON.stringify(settings));
+}

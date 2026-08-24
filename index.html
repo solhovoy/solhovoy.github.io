@@ -10,7 +10,9 @@
 
 <header>
   <h1>ELK Log Formatter</h1>
-  <button id="theme-toggle" class="theme-toggle" title="Toggle light/dark mode"><span class="theme-toggle-icon" aria-hidden="true"></span></button>
+  <button id="settings-toggle" class="settings-toggle" type="button" title="Settings" aria-label="Settings">
+    <span class="settings-icon" aria-hidden="true"></span>
+  </button>
 </header>
 
 <main>
@@ -179,6 +181,84 @@
   </div>
 </main>
 
+<div id="settings-modal" class="settings-modal" hidden>
+  <div class="settings-backdrop" data-settings-cancel></div>
+  <section class="settings-dialog" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="settings-header filter-help-header">
+      <span id="settings-title">Settings</span>
+      <button id="settings-close" class="filter-help-close" type="button" title="Close settings" aria-label="Close settings">✕</button>
+    </div>
+    <div class="settings-content">
+      <nav class="settings-nav" aria-label="Settings categories">
+        <button class="settings-category is-active" type="button" data-settings-category="general" aria-current="page">General</button>
+        <button class="settings-category" type="button" data-settings-category="output">Output</button>
+      </nav>
+      <div class="settings-panels">
+        <section class="settings-panel" data-settings-panel="general">
+          <h3>General Settings</h3>
+          <fieldset class="settings-field">
+            <legend>Theme</legend>
+            <button id="settings-theme-switch" class="theme-switch" type="button">
+              <span class="theme-switch-icon" aria-hidden="true"></span>
+              <span class="theme-switch-label"></span>
+            </button>
+          </fieldset>
+        </section>
+        <section class="settings-panel" data-settings-panel="output" hidden>
+          <h3>Output Settings</h3>
+          <label class="settings-checkbox">
+            <input id="settings-highlight-selected" type="checkbox" />
+            <span>Highlight selected row</span>
+          </label>
+          <label class="settings-checkbox">
+            <input id="settings-show-thread" type="checkbox" />
+            <span>Show "t=..." in output</span>
+          </label>
+          <label class="settings-checkbox">
+            <input id="settings-show-actor" type="checkbox" />
+            <span>Show "a=..." in output</span>
+          </label>
+          <label class="settings-checkbox">
+            <input id="settings-show-r" type="checkbox" />
+            <span>Show "r=..." in output</span>
+          </label>
+          <label class="settings-checkbox">
+            <input id="settings-show-p" type="checkbox" />
+            <span>Show "p=..." in output</span>
+          </label>
+          <label class="settings-checkbox">
+            <input id="settings-show-host" type="checkbox" />
+            <span>Show "h=..." in output</span>
+          </label>
+        </section>
+      </div>
+    </div>
+    <div id="settings-output-preview-row" class="settings-output-preview-row">
+      <div class="settings-preview-title">Formatted Output Preview:</div>
+      <div class="settings-output-preview" aria-label="Output preview">
+        <div id="settings-preview-entry" class="settings-preview-entry">
+          <input class="row-check" type="checkbox" checked disabled />
+          <span class="settings-preview-line-num">1</span>
+          <span class="settings-preview-toggle">▶</span>
+          <span class="settings-preview-ts">2026-06-09 13:01:58,256</span>
+          <span class="settings-preview-meta settings-preview-t">t=x33</span>
+          <span class="settings-preview-meta settings-preview-a">a=ui@4322</span>
+          <span class="settings-preview-meta settings-preview-r">r=fd324d</span>
+          <span class="settings-preview-meta settings-preview-p">p=test</span>
+          <span class="settings-preview-host">h=example.com</span>
+          <span class="settings-preview-level">INFO</span>
+          <span class="settings-preview-cls">c=Utils</span>
+          <span class="settings-preview-message">Hello world</span>
+        </div>
+      </div>
+    </div>
+    <div class="settings-actions">
+      <button id="settings-cancel" class="btn-generic" type="button">Cancel</button>
+      <button id="settings-save" class="btn-generic settings-save" type="button">Save</button>
+    </div>
+  </section>
+</div>
+
 <div id="toaster" class="toaster" data-align="end"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/basecoat-css@1.0.2/dist/js/basecoat.min.js" defer></script>
@@ -195,6 +275,7 @@
 <script src="/scripts/output-controller.js"></script>
 <script src="/scripts/preferences-controller.js"></script>
 <script src="/scripts/popup-manager.js"></script>
+<script src="/scripts/settings-controller.js"></script>
 <script src="/scripts/popup-filter-help.js"></script>
 <script src="/scripts/popup-date-range-history.js"></script>
 <script src="/scripts/popup-saved-filters.js"></script>

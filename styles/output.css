@@ -110,6 +110,7 @@ label.bar-col:hover,
 }
 .log-entry:hover { background: rgba(255, 255, 255, 0.05); }
 :root.light .log-entry:hover { background: rgba(0, 0, 0, 0.05); }
+.log-entry.is-selected { outline: 1px solid var(--selected-row-border); }
 span.break {
   display: block;
   line-height: 0;

@@ -3,20 +3,41 @@ class PreferencesController {
     this.onSortChange = onSortChange;
     this.sortButton = document.getElementById("sticky-sort");
     this.sortColumn = document.getElementById("bar-col-sort");
-    this.themeToggle = document.getElementById("theme-toggle");
-    this.themeIcon = this.themeToggle.querySelector(".theme-toggle-icon");
     this.sortOrder = localStorage.getItem("elkSortOrder") || "asc";
-    this.theme = localStorage.getItem("elkTheme") || "dark";
+    this.theme = localStorage.getItem(LS_KEY_THEME) || "dark";
+    this.outputSettings = getOutputSettings();
+    if (!this.outputSettings.shownFields) this.setShownFields(this.getShownFields());
+    this.highlightSelectedRows = this.outputSettings.highlightSelectedRows === true;
 
     this.applySortLabel();
     this.applyTheme();
     this.sortColumn.addEventListener("click", () => this.toggleSort());
-    this.themeToggle.addEventListener("click", () => this.toggleTheme());
     this.makeCollapsible("collapse-input", "panel-input", true);
   }
 
   getSortOrder() {
     return this.sortOrder;
+  }
+
+  getTheme() {
+    return this.theme;
+  }
+
+  getHighlightSelectedRows() {
+    return this.highlightSelectedRows;
+  }
+
+  getShownFields() {
+    const shownFields = { t: true, a: true, r: true, p: true, h: true };
+    if (this.outputSettings.shownFields) return { ...shownFields, ...this.outputSettings.shownFields };
+    return shownFields;
+  }
+
+  getOutputSettings() {
+    return {
+      ...this.outputSettings,
+      shownFields: this.getShownFields()
+    };
   }
 
   applySortLabel() {
@@ -26,13 +47,9 @@ class PreferencesController {
   applyTheme() {
     if (this.theme === "light") {
       document.documentElement.classList.add("light");
-      this.themeIcon.style.setProperty("--theme-icon", 'url("/assets/icon_theme_dark.svg")');
-      this.themeToggle.title = "Switch to dark mode";
       return;
     }
     document.documentElement.classList.remove("light");
-    this.themeIcon.style.setProperty("--theme-icon", 'url("/assets/icon_theme_light.svg")');
-    this.themeToggle.title = "Switch to light mode";
   }
 
   toggleSort() {
@@ -42,10 +59,27 @@ class PreferencesController {
     this.onSortChange(this.sortOrder);
   }
 
-  toggleTheme() {
-    this.theme = this.theme === "dark" ? "light" : "dark";
-    localStorage.setItem("elkTheme", this.theme);
+  setTheme(theme) {
+    if (theme !== "dark" && theme !== "light") return;
+    this.theme = theme;
+    localStorage.setItem(LS_KEY_THEME, this.theme);
     this.applyTheme();
+  }
+
+  setHighlightSelectedRows(enabled) {
+    this.setOutputSettings({ highlightSelectedRows: Boolean(enabled) });
+    this.highlightSelectedRows = this.outputSettings.highlightSelectedRows;
+  }
+
+  setShownFields(shownFields) {
+    const { hideHost, hiddenFields, ...outputSettings } = this.outputSettings;
+    this.outputSettings = { ...outputSettings, shownFields };
+    setOutputSettings(this.outputSettings);
+  }
+
+  setOutputSettings(settings) {
+    this.outputSettings = { ...this.outputSettings, ...settings };
+    setOutputSettings(this.outputSettings);
   }
 
   makeCollapsible(buttonId, panelId, isInput) {

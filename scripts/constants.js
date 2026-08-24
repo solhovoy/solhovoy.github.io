@@ -3,6 +3,8 @@ const SEARCH_INPUT_FLASH_ENABLED = false;
 
 const LS_KEY_RECENT_DATE_RANGES = "elkRecentDateRanges";
 const LS_KEY_SAVED_FILTERS = "elkSavedFilters";
+const LS_KEY_OUTPUT_SETTINGS = "elkOutputSettings";
+const LS_KEY_THEME = "elkTheme";
 
 const MSG_COPIED = "Copied to clipboard";
 const MSG_FILTER_SAVED = "Filter saved";

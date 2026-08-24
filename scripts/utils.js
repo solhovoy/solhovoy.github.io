@@ -1,5 +1,5 @@
 function copyText(text) {
-  return navigator.clipboard.writeText(text).catch(() => {
+  const fallbackCopy = () => {
     const textarea = document.createElement("textarea");
     textarea.value = text;
     textarea.style.position = "fixed";
@@ -8,7 +8,14 @@ function copyText(text) {
     textarea.select();
     document.execCommand("copy");
     document.body.removeChild(textarea);
-  });
+  };
+
+  if (!navigator.clipboard?.writeText) {
+    fallbackCopy();
+    return Promise.resolve();
+  }
+
+  return navigator.clipboard.writeText(text).catch(fallbackCopy);
 }
 
 function positionPopup(popup, trigger, width, { align = "end", offset = 8 } = {}) {
