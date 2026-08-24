@@ -64,6 +64,7 @@
   color: var(--text-dim);
   background: transparent;
   text-align: left;
+  font-size: 13px;
 }
 
 .settings-category:hover { color: var(--text); background: var(--bg-input); }
@@ -160,15 +161,17 @@
 .settings-preview-entry.is-h-hidden .settings-preview-host { display: none; }
 .settings-preview-entry .row-check { pointer-events: none; }
 .settings-preview-line-num,
-.settings-preview-toggle,
-.settings-preview-meta { color: var(--text-dim); }
+.settings-preview-toggle { color: var(--text-dim); }
 .settings-preview-line-num { display: inline-block; text-align: right; }
 .settings-preview-toggle { display: inline-block; font-size: 12px; }
-.settings-preview-ts { color: var(--accent); }
-.settings-preview-host { color: var(--text-dim); }
-.settings-preview-level { color: var(--info); font-weight: 700; }
+.settings-preview-ts { color: #74c0fc; }
+.settings-preview-meta { color: #868e96; }
+.settings-preview-host { color: #868e96; }
 .settings-preview-cls { color: #cc6de4; font-weight: 500; }
-.settings-preview-message { color: var(--text); }
+.settings-preview-message { color: #e9ecef; }
+.settings-preview-level { color: var(--info); font-weight: 700; }
+:root.light .settings-preview-message { color: #212529; }
+:root.light .settings-preview-ts { color: var(--accent); }
 :root.light .settings-preview-cls { color: #9c0dc0; }
 
 .settings-empty {
