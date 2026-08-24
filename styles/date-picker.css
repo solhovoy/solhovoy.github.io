@@ -55,6 +55,20 @@
 }
 .date-range-icon:hover,
 .date-range-icon:focus-visible { color: var(--text); outline: none; }
+.date-range-calendar-icon {
+  width: 16px;
+  height: 16px;
+  background: currentColor;
+  mask: url("/assets/icon_calendar.svg") center / contain no-repeat;
+  -webkit-mask: url("/assets/icon_calendar.svg") center / contain no-repeat;
+}
+.date-range-arrow-down-icon {
+  width: 12px;
+  height: 12px;
+  background: currentColor;
+  mask: url("/assets/icon_arrow_down.svg") center / contain no-repeat;
+  -webkit-mask: url("/assets/icon_arrow_down.svg") center / contain no-repeat;
+}
 .date-range-icon svg { display: block; fill: currentColor; }
 .date-range-arrow { flex: 0 0 auto; color: var(--text-dim); font-size: 16px; line-height: 1; }
 .date-range-clear { display: flex; align-items: center; align-self: stretch; justify-content: center; background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 12px; line-height: 1; padding: 0px 8px; transition: color 0.15s; }
