@@ -16,19 +16,19 @@ class OutputController {
     this.copySelectedButton.addEventListener("click", () => this.copySelected());
   }
 
-  captureCheckedPlainLines(plainLines) {
+  captureCheckedSelectionIds() {
     return new Set(
       [...this.output.querySelectorAll(".row-check:checked")]
-        .map(checkbox => plainLines[+checkbox.closest(".log-entry").dataset.index])
+        .map(checkbox => checkbox.closest(".log-entry").dataset.selectionId)
         .filter(Boolean)
     );
   }
 
-  restoreCheckedPlainLines(plainLines, checkedLines) {
-    if (!checkedLines.size) return;
+  restoreCheckedSelectionIds(selectionIds) {
+    if (!selectionIds.size) return;
     this.output.querySelectorAll(".row-check").forEach(checkbox => {
-      const index = +checkbox.closest(".log-entry").dataset.index;
-      if (checkedLines.has(plainLines[index])) checkbox.checked = true;
+      const selectionId = checkbox.closest(".log-entry").dataset.selectionId;
+      if (selectionIds.has(selectionId)) checkbox.checked = true;
     });
   }
 

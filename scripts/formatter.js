@@ -31,6 +31,19 @@ function formatTimestamp(raw) {
   }
 }
 
+function getSelectionId(hit) {
+  if (hit._id) return `id-${stableHash(String(hit._id))}`;
+  return `record-${stableHash(JSON.stringify(hit._original || hit))}`;
+}
+
+function stableHash(value) {
+  let hash = 5381;
+  for (let index = 0; index < value.length; index++) {
+    hash = (hash * 33) ^ value.charCodeAt(index);
+  }
+  return (hash >>> 0).toString(36);
+}
+
 // Fields that are already handled in the core output format
 const CORE_FIELDS = [
   "@timestamp", "log.level", "a", "c", "t", "host.hostname", "r", "p", "s",
@@ -47,6 +60,7 @@ const EXCLUDED_FIELDS = ["isVectorDebug", "stack_trace"];
  */
 function formatHit(hit, index, outputSettings = {}) {
   const fields = hit.fields || {};
+  const selectionId = getSelectionId(hit);
 
   const ts       = formatTimestamp(unwrap(fields["@timestamp"]    ?? ["?"]));
   const level    = String(unwrap(fields["log.level"]              ?? ["??"])).toUpperCase();
@@ -133,7 +147,7 @@ function formatHit(hit, index, outputSettings = {}) {
     `<pre class="stack-trace">${esc(stackTrace)}</pre>` : "";
 
   const html =
-    `<div class="log-entry" data-index="${index}">` +
+    `<div class="log-entry" data-index="${index}" data-selection-id="${selectionId}">` +
     `<div class="log-line">` +
     `<input type="checkbox" class="row-check" />` +
     `<span class="line-num">${index + 1}</span>` +

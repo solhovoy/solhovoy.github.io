@@ -11,7 +11,10 @@ A browser-based tool for formatting and filtering raw JSON log hits exported fro
 - **Sort toggle** — switch between ascending and descending timestamp order; persisted in `localStorage`
 - **Highlight** — matched search terms are highlighted in the output
 - **Copy to clipboard** — copy the formatted (filtered) output as plain text
-- **Dark/light theme** — persisted in `localStorage`
+- **Settings** — centered Settings dialog with live formatted-output preview and explicit Save/Cancel controls
+- **Dark/light theme** — switch themes from **Settings → General**; persisted in `localStorage`
+- **Output visibility** — show or hide `t`, `a`, `r`, `p`, and `h` fields from formatted output, copied text, and search; persisted as JSON in `localStorage`
+- **Selected rows** — optionally highlight checked logs with a theme-aware border; selections survive Output visibility changes
 
 ## Usage
 
@@ -41,18 +44,19 @@ Open `index.html` directly in a browser — no build step or server required.
 | `scripts/formatter.js` | Parses and formats raw Kibana/ES|QL JSON into log lines |
 | `scripts/search.js` | Lucene query evaluator for filtering hits |
 | `scripts/date-picker.js` | Active vanilla JS absolute date-range picker |
-| `scripts/ui.js` | Composition root: formatting, filtering, theme, sort, output state |
+| `scripts/ui.js` | Composition root: formatting, filtering, preferences, and output state |
 | `scripts/constants.js` | Shared immutable UI values |
-| `scripts/storage.js` | Saved-filter and date-range `localStorage` access |
+| `scripts/storage.js` | Saved-filter, date-range, and Output-settings `localStorage` access |
 | `scripts/utils.js` | Shared browser helpers |
 | `scripts/input-controller.js` | Input metadata, formatting triggers, and JSON file drop handling |
 | `scripts/search-ui-controller.js` | Search input, expanded editor, Apply, and Clear interactions |
 | `scripts/output-controller.js` | Output selection, copy actions, and raw JSON interactions |
-| `scripts/preferences-controller.js` | Theme, sort, and input-panel collapse preferences |
+| `scripts/preferences-controller.js` | Theme, sort, input-panel collapse, and persisted Output preferences |
+| `scripts/settings-controller.js` | Settings dialog categories, preview state, Save/Cancel behavior, and theme switching |
 | `scripts/popup-*.js` | Popup lifecycle plus saved filters, date history, and filter help controllers |
 | `styles/main.css` | CSS entry point; imports modules in cascade order |
 | `styles/tokens.css` and `styles/base.css` | Design tokens, theme variables, reset, and global element styles |
 | `styles/layout.css`, `controls.css`, `search.css`, and `input.css` | App shell and input/filter controls |
-| `styles/output.css`, `popups.css`, `toast.css`, and `scrollbars.css` | Output, overlays, notifications, and scrollbar components |
+| `styles/output.css`, `popups.css`, `settings.css`, `toast.css`, and `scrollbars.css` | Output, popup/modal, Settings, notifications, and scrollbar components |
 | `styles/date-picker.css` | Styles for the active date-range picker |
 | `scripts/lib/lucene-query-parser.min.js` | Bundled Lucene query parser |

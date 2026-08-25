@@ -62,8 +62,8 @@ function setLinenumWidth(count) {
 }
 
 function renderHits(hits) {
-  // Capture checked entries by plain text before re-render
-  const prevChecked = outputController.captureCheckedPlainLines(plainLines);
+  // Preserve checked entries across re-renders independently of output settings.
+  const prevChecked = outputController.captureCheckedSelectionIds();
 
   const result = formatLogs(
     JSON.stringify(hits),
@@ -87,8 +87,8 @@ function renderHits(hits) {
   plainLines = result.plains || [];
   setLinenumWidth(result.count);
 
-  // Restore checked state for entries still present after re-render
-  outputController.restoreCheckedPlainLines(plainLines, prevChecked);
+  // Restore checked state for entries still present after re-render.
+  outputController.restoreCheckedSelectionIds(prevChecked);
   outputController.showOutputControls(outputEl.querySelectorAll(".row-check").length > 0);
   outputController.syncSelection();
 
