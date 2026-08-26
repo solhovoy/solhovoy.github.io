@@ -5,6 +5,7 @@ class SearchUiController {
     this.onClear = onClear;
     this.input = document.getElementById("search-input");
     this.expand = document.getElementById("search-expand");
+    this.filterIcon = document.querySelector(".search-filter-icon");
     this.clearButton = document.getElementById("search-clear");
     this.applyButton = document.getElementById("filter-apply-btn");
 
@@ -58,6 +59,7 @@ class SearchUiController {
     this.input.value = this.expand.value;
     this.input.title = this.expand.value;
     this.expand.hidden = true;
+    this.filterIcon.style.removeProperty("height");
   }
 
   focus() {
@@ -88,6 +90,7 @@ class SearchUiController {
   resizeExpansion() {
     this.expand.style.height = "auto";
     this.expand.style.height = `${this.expand.scrollHeight}px`;
+    this.filterIcon.style.height = `${this.expand.offsetHeight - 2}px`;
   }
 
   applyOnEnter(event) {

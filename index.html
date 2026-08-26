@@ -45,8 +45,9 @@
     </div>
     <div class="search-bar">
       <div class="search-input-wrap">
+        <span class="search-filter-icon" aria-hidden="true"></span>
         <input type="text" id="search-input"
-          placeholder='Filter: r:"abc" AND c:"Guide" AND ("startup" OR "tune")'
+          placeholder='Filter formatted logs using KQL syntax (e.g. c:Guide AND NOT timeout)'
           spellcheck="false" autocomplete="off" />
         <textarea id="search-expand" rows="1" hidden spellcheck="false" autocomplete="off"></textarea>
         <button id="search-clear" title="Clear filter" hidden>✕</button>
