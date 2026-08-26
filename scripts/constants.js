@@ -8,6 +8,7 @@ const LS_KEY_THEME = "elkTheme";
 
 const MSG_COPIED = "Copied to clipboard";
 const MSG_FILTER_SAVED = "Filter saved";
+const MSG_SETTINGS_SAVED = "Settings saved";
 const MSG_FILTER_DUP = "Filter already exists";
 const MSG_NOTHING_SAVE = "Nothing to save";
 const MSG_NOTHING_EXPORT = "Nothing to export";

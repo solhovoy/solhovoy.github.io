@@ -112,6 +112,7 @@ class SettingsController {
     this.outputController.setHighlightSelectedRows(this.highlightSelectedInput.checked);
     this.onOutputSettingsChange();
     this.saved = true;
+    showToast(TOAST_TITLE_SAVED, { description: MSG_SETTINGS_SAVED });
     this.popupManager.close("settings", { blurTrigger: true });
   }
 }
