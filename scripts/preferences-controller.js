@@ -27,6 +27,10 @@ class PreferencesController {
     return this.highlightSelectedRows;
   }
 
+  getHideEmptyMetadata() {
+    return this.outputSettings.hideEmptyMetadata === true;
+  }
+
   getShownFields() {
     const shownFields = { t: true, a: true, r: true, p: true, h: true };
     if (this.outputSettings.shownFields) return { ...shownFields, ...this.outputSettings.shownFields };
@@ -69,6 +73,10 @@ class PreferencesController {
   setHighlightSelectedRows(enabled) {
     this.setOutputSettings({ highlightSelectedRows: Boolean(enabled) });
     this.highlightSelectedRows = this.outputSettings.highlightSelectedRows;
+  }
+
+  setHideEmptyMetadata(enabled) {
+    this.setOutputSettings({ hideEmptyMetadata: Boolean(enabled) });
   }
 
   setShownFields(shownFields) {

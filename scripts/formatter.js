@@ -17,6 +17,12 @@ function unwrap(value) {
   return value ?? "?";
 }
 
+function isEmptyMetadataValue(value) {
+  if (value == null || value === "") return true;
+  if (!Array.isArray(value)) return false;
+  return value.length === 0 || value.every(item => item == null || item === "");
+}
+
 function formatTimestamp(raw) {
   try {
     // "2026-06-09T12:56:28.142Z" → "2026-06-09 12:56:28,142"
@@ -110,12 +116,12 @@ function formatHit(hit, index, outputSettings = {}) {
     ...outputSettings.shownFields
   };
   const outputFields = [
-    { key: "t", value: `t=${thread}`, className: "meta meta-t" },
-    { key: "a", value: `a=${actor}`, className: "meta meta-a" },
-    { key: "r", value: `r=${r}`, className: "meta meta-r" },
-    { key: "p", value: `p=${p}`, className: "meta meta-p" },
-    { key: "h", value: `h=${hostname}`, className: "host" }
-  ].filter(field => shownFields[field.key]);
+    { key: "t", value: `t=${thread}`, className: "meta meta-t", empty: isEmptyMetadataValue(fields["t"]) },
+    { key: "a", value: `a=${actor}`, className: "meta meta-a", empty: isEmptyMetadataValue(fields["a"]) },
+    { key: "r", value: `r=${r}`, className: "meta meta-r", empty: isEmptyMetadataValue(fields["r"]) },
+    { key: "p", value: `p=${p}`, className: "meta meta-p", empty: isEmptyMetadataValue(fields["p"]) },
+    { key: "h", value: `h=${hostname}`, className: "host", empty: isEmptyMetadataValue(fields["host.hostname"]) }
+  ].filter(field => shownFields[field.key] && (!outputSettings.hideEmptyMetadata || !field.empty));
 
   // ── plain text ────────────────────────────────────────────────────────────
   const plainFields = outputFields.map(field => field.value).join(" ");

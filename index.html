@@ -206,30 +206,43 @@
         </section>
         <section class="settings-panel" data-settings-panel="output" hidden>
           <h3>Output Settings</h3>
-          <label class="settings-checkbox">
-            <input id="settings-highlight-selected" type="checkbox" />
-            <span>Highlight selected row</span>
-          </label>
-          <label class="settings-checkbox">
-            <input id="settings-show-thread" type="checkbox" />
-            <span>Show "t=..." in output</span>
-          </label>
-          <label class="settings-checkbox">
-            <input id="settings-show-actor" type="checkbox" />
-            <span>Show "a=..." in output</span>
-          </label>
-          <label class="settings-checkbox">
-            <input id="settings-show-r" type="checkbox" />
-            <span>Show "r=..." in output</span>
-          </label>
-          <label class="settings-checkbox">
-            <input id="settings-show-p" type="checkbox" />
-            <span>Show "p=..." in output</span>
-          </label>
-          <label class="settings-checkbox">
-            <input id="settings-show-host" type="checkbox" />
-            <span>Show "h=..." in output</span>
-          </label>
+          <fieldset class="settings-field settings-output-group">
+            <legend>Row appearance</legend>
+            <label class="settings-checkbox">
+              <input id="settings-highlight-selected" type="checkbox" />
+              <span>Highlight selected row</span>
+            </label>
+          </fieldset>
+          <fieldset class="settings-field settings-output-group">
+            <legend>Visible metadata</legend>
+            <label class="settings-checkbox">
+              <input id="settings-show-thread" type="checkbox" />
+              <span>Show "t=..." in output</span>
+            </label>
+            <label class="settings-checkbox">
+              <input id="settings-show-actor" type="checkbox" />
+              <span>Show "a=..." in output</span>
+            </label>
+            <label class="settings-checkbox">
+              <input id="settings-show-r" type="checkbox" />
+              <span>Show "r=..." in output</span>
+            </label>
+            <label class="settings-checkbox">
+              <input id="settings-show-p" type="checkbox" />
+              <span>Show "p=..." in output</span>
+            </label>
+            <label class="settings-checkbox">
+              <input id="settings-show-host" type="checkbox" />
+              <span>Show "h=..." in output</span>
+            </label>
+          </fieldset>
+          <fieldset class="settings-field settings-output-group">
+            <legend>Empty values</legend>
+            <label class="settings-checkbox">
+              <input id="settings-hide-empty-metadata" type="checkbox" />
+              <span>Automatically hide empty fields (t, a, r, p, h)</span>
+            </label>
+          </fieldset>
         </section>
       </div>
     </div>
@@ -244,7 +257,7 @@
           <span class="settings-preview-meta settings-preview-t">t=x33</span>
           <span class="settings-preview-meta settings-preview-a">a=ui@4322</span>
           <span class="settings-preview-meta settings-preview-r">r=fd324d</span>
-          <span class="settings-preview-meta settings-preview-p">p=test</span>
+          <span class="settings-preview-meta settings-preview-p settings-preview-empty">p=?</span>
           <span class="settings-preview-host">h=example.com</span>
           <span class="settings-preview-level">INFO</span>
           <span class="settings-preview-cls">c=Utils</span>

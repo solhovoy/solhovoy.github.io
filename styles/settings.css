@@ -42,10 +42,11 @@
 }
 
 .settings-content {
+  height: 300px;
   min-height: 250px;
   display: grid;
   grid-template-columns: 156px minmax(0, 1fr);
-  flex: 1 1 auto;
+  flex: 0 1 300px;
 }
 
 .settings-nav {
@@ -82,7 +83,7 @@
 
 .settings-field {
   display: grid;
-  gap: 8px;
+  /* gap: 8px; */
   border: 0;
 }
 
@@ -91,6 +92,10 @@
   font-size: 12px;
   font-weight: 600;
   color: var(--text-dim);
+}
+
+.settings-output-group + .settings-output-group {
+  margin-top: 10px;
 }
 
 .theme-switch {
@@ -159,6 +164,7 @@
 .settings-preview-entry.is-r-hidden .settings-preview-r,
 .settings-preview-entry.is-p-hidden .settings-preview-p,
 .settings-preview-entry.is-h-hidden .settings-preview-host { display: none; }
+.settings-preview-entry.is-empty-metadata-hidden .settings-preview-empty { display: none; }
 .settings-preview-entry .row-check { pointer-events: none; }
 .settings-preview-line-num,
 .settings-preview-toggle { color: var(--text-dim); }
