@@ -21,7 +21,6 @@
     <div class="panel-header">
       <span class="panel-label">Raw JSON Input</span>
       <div class="panel-header-right">
-        <span class="panel-meta" id="input-meta"></span>
         <button class="btn-generic" id="collapse-input" title="Collapse">▲</button>
       </div>
     </div>
@@ -39,8 +38,8 @@
     <div class="panel-header">
       <span class="panel-label">Formatted Output</span>
       <div class="panel-header-right">
-        <span class="panel-meta" id="output-meta"></span>
-        <button class="btn-generic" id="copy-output" title="Copy to clipboard" disabled>⧉ Copy</button>
+        <button id="copy-selected" class="btn-generic" style="background: var(--bg-input)" title="Copy selected to clipboard" disabled hidden>⧉ Copy Selected</button>
+        <button class="btn-generic" id="copy-output" title="Copy all to clipboard" hidden>⧉ Copy All</button>
       </div>
     </div>
     <div class="search-bar">
@@ -161,9 +160,6 @@
         </label>
         <div class="bar-col" id="bar-col-sort">
           <span id="sticky-sort"></span>
-        </div>
-        <div class="bar-col bar-col-rest">
-          <button id="copy-selected" class="btn-generic" style="background: var(--bg-input)" title="Copy selected lines to clipboard" disabled>⧉ Copy Selected</button>
         </div>
       </div>
       <div id="output"></div>

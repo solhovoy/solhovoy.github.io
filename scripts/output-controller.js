@@ -33,7 +33,7 @@ class OutputController {
   }
 
   showOutputControls(hasRows) {
-    this.copyOutputButton.disabled = !hasRows;
+    this.copyOutputButton.hidden = !hasRows;
     this.selectBar.hidden = !hasRows;
     if (!hasRows) this.clearSelectionState();
   }

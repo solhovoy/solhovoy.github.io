@@ -80,7 +80,7 @@
   border-right: 1px solid var(--border);
 }
 .bar-col:first-child { padding-left: 16px; }
-.bar-col:last-child { border-right: none; }
+/* .bar-col:last-child { border-right: none; } */
 .bar-col-rest { justify-content: flex-end; }
 label.bar-col,
 #bar-col-sort {
@@ -95,7 +95,7 @@ label.bar-col:hover,
 :root.light #bar-col-sort:hover { background: rgba(0,0,0,0.05); }
 #sticky-sort {
   font-size: 11px;
-  font-weight: 600;
+  /* font-weight: 600; */
   color: var(--text-dim);
   white-space: nowrap;
   font-family: inherit;

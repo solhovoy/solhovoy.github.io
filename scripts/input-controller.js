@@ -2,7 +2,6 @@ class InputController {
   constructor({ onFormat }) {
     this.onFormat = onFormat;
     this.input = document.getElementById("input");
-    this.meta = document.getElementById("input-meta");
     this.panel = document.getElementById("panel-input");
     this.dropOverlay = document.getElementById("raw-json-drop-overlay");
     this.dragCounter = 0;
@@ -12,7 +11,6 @@ class InputController {
       this.input.blur();
     }, 0));
     this.input.addEventListener("keydown", event => this.handleKeydown(event));
-    this.input.addEventListener("input", () => this.updateMeta());
     this.panel.addEventListener("dragenter", event => this.handleDragEnter(event));
     this.panel.addEventListener("dragleave", () => this.handleDragLeave());
     this.panel.addEventListener("dragover", event => event.preventDefault());
@@ -21,7 +19,6 @@ class InputController {
 
   clear() {
     this.input.value = "";
-    this.meta.textContent = "";
   }
 
   focus() {
@@ -33,11 +30,6 @@ class InputController {
       event.preventDefault();
       this.onFormat();
     }
-  }
-
-  updateMeta() {
-    const chars = this.input.value.length;
-    this.meta.textContent = chars ? `${chars.toLocaleString()} chars` : "";
   }
 
   handleDragEnter(event) {
@@ -66,7 +58,6 @@ class InputController {
     const reader = new FileReader();
     reader.onload = loadEvent => {
       this.input.value = loadEvent.target.result;
-      this.input.dispatchEvent(new Event("input"));
       this.onFormat();
     };
     reader.onerror = () => {

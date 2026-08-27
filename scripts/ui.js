@@ -13,7 +13,6 @@
 
 const inputEl    = document.getElementById("input");
 const outputEl   = document.getElementById("output");
-const outputMeta = document.getElementById("output-meta");
 const statusEl   = document.getElementById("status");
 const btnFormat      = document.getElementById("btn-format");
 const btnClear       = document.getElementById("btn-clear");
@@ -61,7 +60,7 @@ function setLinenumWidth(count) {
   document.documentElement.style.setProperty("--lnum-w", px + "px");
 }
 
-function renderHits(hits) {
+function renderHits(hits, totalCount = hits.length) {
   // Preserve checked entries across re-renders independently of output settings.
   const prevChecked = outputController.captureCheckedSelectionIds();
 
@@ -78,7 +77,6 @@ function renderHits(hits) {
     outputController.reset();
     setLinenumWidth(0);
     setStatus(result.error, "err");
-    outputMeta.textContent = "";
     return;
   }
 
@@ -95,9 +93,8 @@ function renderHits(hits) {
   if (result.warning) {
     setStatus(result.warning, "warn");
   } else {
-    setStatus(`✓ ${result.count} entries formatted`, "ok");
+    setStatus(`✓ ${result.count} of ${totalCount} entries formatted`, "ok");
   }
-  outputMeta.textContent = result.count ? `${result.count} entries` : "";
 }
 
 btnFormat.addEventListener("click", doFormat);
@@ -157,12 +154,11 @@ function applyFilter({ flash = true } = {}) {
   if (hits.length === 0) {
     outputEl.innerHTML = `<div class="no-filter-results">No entries match the filter / date range</div>`;
     outputController.showOutputControls(false);
-    outputMeta.textContent = `0 of ${parsedData.length} entries`;
+    setStatus(`✓ 0 of ${parsedData.length} entries formatted`, "ok");
     if (flash) flashOutput();
     return;
   }
-  renderHits(hits);
-  outputMeta.textContent = `${hits.length} of ${parsedData.length} entries`;
+  renderHits(hits, parsedData.length);
   highlightSearchTerms(result.patterns);
   if (flash) flashOutput();
 }
@@ -245,7 +241,6 @@ btnClear.addEventListener("click", () => {
   searchController.setValue("");
   dateRangeFilter.clear({ resetAvailableRange: true });
   searchController.setError(false);
-  outputMeta.textContent = "";
   setStatus("", "");
   inputController.focus();
 });
