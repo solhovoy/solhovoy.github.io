@@ -35,8 +35,8 @@ header .badge {
   width: 16px;
   height: 16px;
   background: var(--text-dim);
-  mask: url("/assets/icon_gear.svg") center / contain no-repeat;
-  -webkit-mask: url("/assets/icon_gear.svg") center / contain no-repeat;
+  mask: var(--icon-gear) center / contain no-repeat;
+  -webkit-mask: var(--icon-gear) center / contain no-repeat;
 }
 .settings-toggle:hover .settings-icon { background: var(--text); }
 

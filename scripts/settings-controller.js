@@ -78,7 +78,7 @@ class SettingsController {
     const switchToLight = this.preferencesController.getTheme() === "dark";
     this.themeSwitchIcon.style.setProperty(
       "--theme-switch-icon",
-      `url("/assets/icon_theme_${switchToLight ? "light" : "dark"}.svg")`
+      `var(--icon-theme-${switchToLight ? "light" : "dark"})`
     );
     this.themeSwitchLabel.textContent = `Switch to ${switchToLight ? "light" : "dark"} mode`;
   }

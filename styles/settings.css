@@ -169,7 +169,12 @@
 .settings-preview-line-num,
 .settings-preview-toggle { color: var(--text-dim); }
 .settings-preview-line-num { display: inline-block; text-align: right; }
-.settings-preview-toggle { display: inline-block; font-size: 12px; }
+.settings-preview-toggle {
+  display: inline-block;
+  font-size: 12px;
+  line-height: 1.4;
+  vertical-align: top;
+}
 .settings-preview-ts { color: #74c0fc; }
 .settings-preview-meta { color: #868e96; }
 .settings-preview-host { color: #868e96; }
