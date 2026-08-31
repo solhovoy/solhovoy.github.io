@@ -3,6 +3,9 @@ class SavedFiltersPopup {
     this.popupManager = popupManager;
     this.onSelect = onSelect;
     this.trigger = document.getElementById("filter-saved-btn");
+    this.searchTrigger = document.getElementById("filter-saved-search-btn");
+    this.trigger = this.trigger || this.searchTrigger;
+    this.activeTrigger = this.trigger;
     this.saveButton = document.getElementById("filter-save-btn");
     this.popup = document.getElementById("filter-saved-popup");
     this.closeButton = document.getElementById("filter-saved-close");
@@ -20,14 +23,17 @@ class SavedFiltersPopup {
       trigger: this.trigger,
       onOpen: () => {
         this.render();
-        positionPopup(this.popup, this.trigger, 620);
+        positionPopup(this.popup, this.activeTrigger, 620, { offset: 7 });
       }
     });
 
-    this.saveButton.addEventListener("click", () => this.save());
-    this.trigger.addEventListener("click", event => {
-      event.stopPropagation();
-      popupManager.toggle("saved-filters");
+    if (this.saveButton) this.saveButton.addEventListener("click", () => this.save());
+    [...new Set([this.trigger, this.searchTrigger])].forEach(trigger => {
+      trigger.addEventListener("click", event => {
+        event.stopPropagation();
+        this.activeTrigger = trigger;
+        popupManager.toggle("saved-filters");
+      });
     });
     this.closeButton.addEventListener("click", () => popupManager.close("saved-filters"));
     this.exportButton.addEventListener("click", event => this.export(event));

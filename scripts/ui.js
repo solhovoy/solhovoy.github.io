@@ -139,14 +139,14 @@ function applyFilter({ flash = true } = {}) {
     setStatus("", "");
     renderHits(parsedData);
     if (flash) flashOutput();
-    return;
+    return true;
   }
   if (SEARCH_INPUT_FLASH_ENABLED && flash && q) searchController.flash();
   const result = filterHits(parsedData, q, preferencesController.getOutputSettings());
   if (result.error) {
     searchController.setError(true);
     setStatus(`Filter error: ${result.error}`, "err");
-    return;
+    return false;
   }
   searchController.setError(false);
   setStatus("", "");
@@ -156,11 +156,12 @@ function applyFilter({ flash = true } = {}) {
     outputController.showOutputControls(false);
     setStatus(`✓ 0 of ${parsedData.length} entries formatted`, "ok");
     if (flash) flashOutput();
-    return;
+    return true;
   }
   renderHits(hits, parsedData.length);
   highlightSearchTerms(result.patterns);
   if (flash) flashOutput();
+  return true;
 }
 
 /**

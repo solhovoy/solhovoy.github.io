@@ -36,7 +36,10 @@
   <!-- ── Output panel ── -->
   <div class="panel" id="panel-output">
     <div class="panel-header">
-      <span class="panel-label">Formatted Output</span>
+      <div class="panel-header-title">
+        <span class="panel-label">Formatted Output</span>
+        <button id="filter-help-btn" class="filter-help-btn" title="Filter syntax help">?</button>
+      </div>
       <div class="panel-header-right">
         <button id="copy-selected" class="btn-generic" style="background: var(--bg-input)" title="Copy selected to clipboard" disabled hidden>⧉ Copy Selected</button>
         <button class="btn-generic" id="copy-output" title="Copy all to clipboard" hidden>⧉ Copy All</button>
@@ -44,12 +47,20 @@
     </div>
     <div class="search-bar">
       <div class="search-input-wrap">
-        <span class="search-filter-icon" aria-hidden="true"></span>
-        <input type="text" id="search-input"
-          placeholder='Filter formatted logs using KQL syntax (e.g. c:Guide AND NOT timeout)'
-          spellcheck="false" autocomplete="off" />
-        <textarea id="search-expand" rows="1" hidden spellcheck="false" autocomplete="off"></textarea>
-        <button id="search-clear" title="Clear filter" hidden>✕</button>
+        <div class="search-field-shell">
+          <button id="filter-saved-search-btn" class="search-filter-icon" type="button" title="Saved filters" aria-label="Saved filters">
+            <span class="search-filter-magnifying-icon" aria-hidden="true"></span>
+            <span class="date-range-arrow-down-icon" aria-hidden="true"></span>
+          </button>
+          <input type="text" id="search-input"
+            placeholder='Filter formatted logs using KQL syntax (e.g. c:Guide AND NOT timeout)'
+            spellcheck="false" autocomplete="off" />
+          <textarea id="search-expand" rows="1" hidden spellcheck="false" autocomplete="off"></textarea>
+          <button id="filter-save-btn" class="search-save-btn" type="button" title="Save current filter" aria-label="Save current filter" hidden>
+            <span class="search-save-icon" aria-hidden="true"></span>
+          </button>
+          <button id="search-clear" title="Clear filter" hidden>✕</button>
+        </div>
       </div>
       <div class="date-range-wrap" id="date-range-picker">
         <button id="date-range-history-btn" class="date-range-icon" type="button" title="Recently used date ranges" aria-label="Recently used date ranges">
@@ -66,9 +77,7 @@
         <button id="date-range-clear" class="date-range-clear" title="Clear time range" hidden>✕</button>
       </div>
       <button id="filter-apply-btn" class="btn-generic" title="Apply filter (Enter)">Apply</button>
-      <button id="filter-save-btn" class="filter-help-btn" title="Save current filter">+</button>
-      <button id="filter-saved-btn" class="filter-help-btn" title="Saved filters">☰</button>
-      <button id="filter-help-btn" class="filter-help-btn" title="Filter syntax help">?</button>
+      <!-- <button id="filter-saved-btn" class="filter-list-btn" title="Saved filters">☰</button> -->
     </div>
 
     <!-- ── Saved filters popup ── -->

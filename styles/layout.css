@@ -77,6 +77,10 @@ main {
   min-height: 20px;
 }
 #panel-output .panel-header { min-height: 23px; }
+.panel-header-title {
+  display: flex;
+  align-items: center;
+}
 .panel-header-right {
   display: flex;
   align-items: center;

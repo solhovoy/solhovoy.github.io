@@ -5,7 +5,9 @@ class SearchUiController {
     this.onClear = onClear;
     this.input = document.getElementById("search-input");
     this.expand = document.getElementById("search-expand");
+    this.fieldShell = document.querySelector(".search-field-shell");
     this.filterIcon = document.querySelector(".search-filter-icon");
+    this.saveButton = document.getElementById("filter-save-btn");
     this.clearButton = document.getElementById("search-clear");
     this.applyButton = document.getElementById("filter-apply-btn");
 
@@ -15,8 +17,10 @@ class SearchUiController {
     this.expand.addEventListener("input", () => this.updateExpansionState());
     this.expand.addEventListener("keydown", event => this.applyExpansionOnEnter(event));
     this.expand.addEventListener("blur", () => this.hideExpansion());
+    this.clearButton.addEventListener("mousedown", event => event.preventDefault());
     this.clearButton.addEventListener("click", () => this.clear());
     this.applyButton.addEventListener("click", () => this.onApplyButton());
+    this.updateSearchActions(this.input.value);
   }
 
   getValue() {
@@ -26,7 +30,7 @@ class SearchUiController {
   setValue(value) {
     this.input.value = value;
     this.input.title = value;
-    this.clearButton.hidden = !value;
+    this.updateSearchActions(value);
     if (!this.expand.hidden) {
       this.expand.value = value;
       this.resizeExpansion();
@@ -59,7 +63,7 @@ class SearchUiController {
     this.input.value = this.expand.value;
     this.input.title = this.expand.value;
     this.expand.hidden = true;
-    this.filterIcon.style.removeProperty("height");
+    this.fieldShell.style.removeProperty("height");
   }
 
   focus() {
@@ -77,20 +81,26 @@ class SearchUiController {
 
   updateInputState() {
     this.input.title = this.input.value;
-    this.clearButton.hidden = !this.input.value;
+    this.updateSearchActions(this.input.value);
   }
 
   updateExpansionState() {
     this.input.value = this.expand.value;
     this.input.title = this.expand.value;
-    this.clearButton.hidden = !this.expand.value;
+    this.updateSearchActions(this.expand.value);
     this.resizeExpansion();
+  }
+
+  updateSearchActions(value) {
+    const isEmpty = !value;
+    this.saveButton.hidden = isEmpty;
+    this.clearButton.hidden = isEmpty;
   }
 
   resizeExpansion() {
     this.expand.style.height = "auto";
     this.expand.style.height = `${this.expand.scrollHeight}px`;
-    this.filterIcon.style.height = `${this.expand.offsetHeight - 2}px`;
+    this.fieldShell.style.height = `${this.expand.offsetHeight + 2}px`;
   }
 
   applyOnEnter(event) {
@@ -103,7 +113,7 @@ class SearchUiController {
   applyExpansionOnEnter(event) {
     if (event.key !== "Enter") return;
     event.preventDefault();
-    this.onApply();
+    if (!this.onApply()) return;
     this.expand.blur();
   }
 

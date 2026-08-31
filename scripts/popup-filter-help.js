@@ -8,7 +8,7 @@ class FilterHelpPopup {
       name: "filter-help",
       popup,
       trigger,
-      onOpen: () => positionPopup(popup, trigger, 420)
+      onOpen: () => positionPopup(popup, trigger, 420, { offset: 9 })
     });
 
     trigger.addEventListener("click", event => {
