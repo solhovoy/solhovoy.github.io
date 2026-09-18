@@ -13,6 +13,7 @@ class SettingsController {
     this.themeSwitchIcon = this.themeSwitch.querySelector(".theme-switch-icon");
     this.themeSwitchLabel = this.themeSwitch.querySelector(".theme-switch-label");
     this.highlightSelectedInput = document.getElementById("settings-highlight-selected");
+    this.showRawElkInput = document.getElementById("settings-show-raw-elk");
     this.hideEmptyMetadataInput = document.getElementById("settings-hide-empty-metadata");
     this.shownFieldInputs = {
       t: document.getElementById("settings-show-thread"),
@@ -45,6 +46,7 @@ class SettingsController {
     this.categoryButtons.forEach(button => button.addEventListener("click", () => this.selectCategory(button.dataset.settingsCategory)));
     this.themeSwitch.addEventListener("click", () => this.toggleTheme());
     this.highlightSelectedInput.addEventListener("change", () => this.renderOutputPreview());
+    this.showRawElkInput.addEventListener("change", () => this.renderOutputPreview());
     this.hideEmptyMetadataInput.addEventListener("change", () => this.renderOutputPreview());
     Object.values(this.shownFieldInputs).forEach(input => input.addEventListener("change", () => this.renderOutputPreview()));
   }
@@ -53,6 +55,7 @@ class SettingsController {
     this.originalTheme = this.preferencesController.getTheme();
     this.saved = false;
     this.highlightSelectedInput.checked = this.preferencesController.getHighlightSelectedRows();
+    this.showRawElkInput.checked = this.preferencesController.getShowRawElk();
     this.hideEmptyMetadataInput.checked = this.preferencesController.getHideEmptyMetadata();
     const shownFields = this.preferencesController.getShownFields();
     Object.entries(this.shownFieldInputs).forEach(([key, input]) => {
@@ -85,6 +88,7 @@ class SettingsController {
 
   renderOutputPreview() {
     this.previewEntry.classList.toggle("is-selected", this.highlightSelectedInput.checked);
+    this.previewEntry.classList.toggle("is-raw-elk-hidden", !this.showRawElkInput.checked);
     this.previewEntry.classList.toggle("is-empty-metadata-hidden", this.hideEmptyMetadataInput.checked);
     Object.entries(this.shownFieldInputs).forEach(([key, input]) => {
       this.previewEntry.classList.toggle(`is-${key}-hidden`, !input.checked);
@@ -109,6 +113,7 @@ class SettingsController {
 
   save() {
     this.preferencesController.setHighlightSelectedRows(this.highlightSelectedInput.checked);
+    this.preferencesController.setShowRawElk(this.showRawElkInput.checked);
     this.preferencesController.setHideEmptyMetadata(this.hideEmptyMetadataInput.checked);
     const shownFields = Object.fromEntries(
       Object.entries(this.shownFieldInputs).map(([key, input]) => [key, input.checked])

@@ -31,6 +31,10 @@ class PreferencesController {
     return this.outputSettings.hideEmptyMetadata === true;
   }
 
+  getShowRawElk() {
+    return this.outputSettings.showRawElk !== false;
+  }
+
   getShownFields() {
     const shownFields = { t: true, a: true, r: true, p: true, h: true };
     if (this.outputSettings.shownFields) return { ...shownFields, ...this.outputSettings.shownFields };
@@ -77,6 +81,10 @@ class PreferencesController {
 
   setHideEmptyMetadata(enabled) {
     this.setOutputSettings({ hideEmptyMetadata: Boolean(enabled) });
+  }
+
+  setShowRawElk(enabled) {
+    this.setOutputSettings({ showRawElk: Boolean(enabled) });
   }
 
   setShownFields(shownFields) {

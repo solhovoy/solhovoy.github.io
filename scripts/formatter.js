@@ -140,7 +140,14 @@ function formatHit(hit, index, outputSettings = {}) {
   }
 
   // ── raw JSON (pretty-printed, use original if available) ─────────────────
-  const rawJson = JSON.stringify(hit._original || hit, null, 2);
+  const showRawElk = outputSettings.showRawElk !== false;
+  const rawJsonHtml = showRawElk
+    ? `<div class="raw-json" hidden>` +
+      `<button class="raw-collapse" title="Hide raw JSON">✕</button>` +
+      `<button class="raw-copy" title="Copy raw JSON">⧉</button>` +
+      `<pre class="raw-content">${esc(JSON.stringify(hit._original || hit, null, 2))}</pre>` +
+      `</div>`
+    : "";
 
   // ── html (coloured) ───────────────────────────────────────────────────────
   const lvlClass = LEVEL_CLASS[level] ?? "";
@@ -157,7 +164,9 @@ function formatHit(hit, index, outputSettings = {}) {
     `<div class="log-line">` +
     `<input type="checkbox" class="row-check" />` +
     `<span class="line-num">${index + 1}</span>` +
-    `<button class="raw-toggle" title="Show raw JSON">▶</button>` +
+    (showRawElk
+      ? `<button class="raw-toggle" title="Show raw JSON">▶</button>`
+      : `<button class="raw-toggle-placeholder" type="button" tabindex="-1" aria-hidden="true">▶</button>`) +
     `<span class="ts">${esc(ts)}</span>` +
     fieldsHtml +
     ` <span class="level ${lvlClass}">${esc(level)}</span>` +
@@ -167,11 +176,7 @@ function formatHit(hit, index, outputSettings = {}) {
     extraHtml +
     `</div>` +
     stackHtml +
-    `<div class="raw-json" hidden>` +
-    `<button class="raw-collapse" title="Hide raw JSON">✕</button>` +
-    `<button class="raw-copy" title="Copy raw JSON">⧉</button>` +
-    `<pre class="raw-content">${esc(rawJson)}</pre>` +
-    `</div>` +
+    rawJsonHtml +
     `<span class="break"><br></span>` +
     `</div>`;
 

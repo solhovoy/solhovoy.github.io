@@ -42,11 +42,11 @@
 }
 
 .settings-content {
-  height: 300px;
+  height: 320px;
   min-height: 250px;
   display: grid;
   grid-template-columns: 156px minmax(0, 1fr);
-  flex: 0 1 300px;
+  flex: 0 1 320px;
 }
 
 .settings-nav {
@@ -165,6 +165,7 @@
 .settings-preview-entry.is-p-hidden .settings-preview-p,
 .settings-preview-entry.is-h-hidden .settings-preview-host { display: none; }
 .settings-preview-entry.is-empty-metadata-hidden .settings-preview-empty { display: none; }
+.settings-preview-entry.is-raw-elk-hidden .settings-preview-toggle { visibility: hidden; }
 .settings-preview-entry .row-check { pointer-events: none; }
 .settings-preview-line-num,
 .settings-preview-toggle { color: var(--text-dim); }

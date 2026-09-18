@@ -195,18 +195,25 @@ span.break {
   user-select: none;
   -webkit-user-select: none;
 }
-.raw-toggle {
+.raw-toggle,
+.raw-toggle-placeholder {
   background: none;
   border: none;
   color: var(--text-dim);
-  cursor: pointer;
   font-size: 10px;
   padding: 0 4px;
   line-height: 1.7;
-  transition: color 0.15s, transform 0.15s;
   display: inline-block;
   user-select: none;
   -webkit-user-select: none;
+}
+.raw-toggle {
+  cursor: pointer;
+  transition: color 0.15s, transform 0.15s;
+}
+.raw-toggle-placeholder {
+  visibility: hidden;
+  pointer-events: none;
 }
 .raw-toggle:hover { color: var(--accent); }
 .log-entry.expanded .raw-toggle { transform: rotate(90deg); color: var(--accent); }

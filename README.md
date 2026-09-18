@@ -13,7 +13,7 @@ A browser-based tool for formatting and filtering raw JSON log hits exported fro
 - **Copy to clipboard** — copy the formatted (filtered) output as plain text
 - **Settings** — centered Settings dialog with live formatted-output preview and explicit Save/Cancel controls
 - **Dark/light theme** — switch themes from **Settings → General**; persisted in `localStorage`
-- **Output visibility** — show or hide `t`, `a`, `r`, `p`, and `h` fields from formatted output, copied text, and search; persisted as JSON in `localStorage`
+- **Output visibility** — show or hide raw JSON data and the `t`, `a`, `r`, `p`, and `h` fields; persisted as JSON in `localStorage`
 - **Selected rows** — optionally highlight checked logs with a theme-aware border; selections survive Output visibility changes
 
 ## Usage
