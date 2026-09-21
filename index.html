@@ -192,7 +192,12 @@
   <section class="settings-dialog" role="dialog" aria-modal="true" aria-labelledby="settings-title">
     <div class="settings-header filter-help-header">
       <span id="settings-title">Settings</span>
-      <button id="settings-close" class="filter-help-close" type="button" title="Close settings" aria-label="Close settings">✕</button>
+      <div class="filter-saved-header-actions">
+        <button id="settings-export" class="filter-help-close" type="button" title="Export settings as JSON">
+          <span class="export-icon" aria-hidden="true"></span>Export
+        </button>
+        <button id="settings-close" class="filter-help-close" type="button" title="Close settings" aria-label="Close settings">✕</button>
+      </div>
     </div>
     <div class="settings-content">
       <nav class="settings-nav" aria-label="Settings categories">
@@ -274,6 +279,9 @@
           <span class="settings-preview-message">Hello world</span>
         </div>
       </div>
+    </div>
+    <div id="settings-drop-overlay" class="filter-saved-drop-overlay" hidden>
+      <span>Drop a JSON file here to import settings.</span>
     </div>
     <div class="settings-actions">
       <button id="settings-cancel" class="btn-generic" type="button">Cancel</button>

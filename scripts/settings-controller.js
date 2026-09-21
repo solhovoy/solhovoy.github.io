@@ -9,6 +9,8 @@ class SettingsController {
     this.closeButton = document.getElementById("settings-close");
     this.cancelButton = document.getElementById("settings-cancel");
     this.saveButton = document.getElementById("settings-save");
+    this.exportButton = document.getElementById("settings-export");
+    this.dropOverlay = document.getElementById("settings-drop-overlay");
     this.themeSwitch = document.getElementById("settings-theme-switch");
     this.themeSwitchIcon = this.themeSwitch.querySelector(".theme-switch-icon");
     this.themeSwitchLabel = this.themeSwitch.querySelector(".theme-switch-label");
@@ -27,6 +29,7 @@ class SettingsController {
     this.categoryButtons = [...document.querySelectorAll("[data-settings-category]")];
     this.panels = [...document.querySelectorAll("[data-settings-panel]")];
     this.activeCategory = "general";
+    this.dragCounter = 0;
     this.originalTheme = this.preferencesController.getTheme();
     this.saved = false;
 
@@ -42,6 +45,11 @@ class SettingsController {
     this.closeButton.addEventListener("click", () => this.cancel());
     this.cancelButton.addEventListener("click", () => this.cancel());
     this.saveButton.addEventListener("click", () => this.save());
+    this.exportButton.addEventListener("click", event => this.export(event));
+    this.popup.addEventListener("dragenter", event => this.handleDragEnter(event));
+    this.popup.addEventListener("dragleave", event => this.handleDragLeave(event));
+    this.popup.addEventListener("dragover", event => this.handleDragOver(event));
+    this.popup.addEventListener("drop", event => this.handleImport(event));
     this.popup.querySelector("[data-settings-cancel]").addEventListener("click", () => this.cancel());
     this.categoryButtons.forEach(button => button.addEventListener("click", () => this.selectCategory(button.dataset.settingsCategory)));
     this.themeSwitch.addEventListener("click", () => this.toggleTheme());
@@ -111,7 +119,117 @@ class SettingsController {
     this.popupManager.close("settings", { blurTrigger: true });
   }
 
-  save() {
+  getSnapshot() {
+    const outputSettings = this.preferencesController.getOutputSettings();
+    return {
+      theme: this.preferencesController.getTheme(),
+      outputSettings: {
+        highlightSelectedRows: outputSettings.highlightSelectedRows === true,
+        showRawElk: outputSettings.showRawElk !== false,
+        hideEmptyMetadata: outputSettings.hideEmptyMetadata === true,
+        shownFields: { ...this.preferencesController.getShownFields() }
+      }
+    };
+  }
+
+  export(event) {
+    event.stopPropagation();
+    const blob = new Blob([JSON.stringify(this.getSnapshot(), null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "elk-formatter-settings.json";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  handleDragEnter(event) {
+    event.preventDefault();
+    this.dragCounter++;
+    this.dropOverlay.hidden = false;
+  }
+
+  handleDragLeave(event) {
+    if (event.currentTarget.contains(event.relatedTarget)) return;
+    this.dragCounter = 0;
+    this.dropOverlay.hidden = true;
+  }
+
+  handleDragOver(event) {
+    event.preventDefault();
+  }
+
+  handleImport(event) {
+    event.preventDefault();
+    this.dragCounter = 0;
+    this.dropOverlay.hidden = true;
+    const file = event.dataTransfer?.files?.[0];
+    if (!file || !file.name.endsWith(".json")) {
+      showToast(TOAST_TITLE_WRONG_FILE, { description: MSG_DROP_NOT_JSON, category: TOAST_CATEGORY_WARNING });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = event => this.importSettings(event.target.result);
+    reader.onerror = () => showToast(TOAST_TITLE_IMPORT_FAILED, {
+      description: MSG_IMPORT_READ_FAILED,
+      category: TOAST_CATEGORY_ERROR
+    });
+    reader.readAsText(file);
+  }
+
+  importSettings(content) {
+    let snapshot;
+    try {
+      snapshot = JSON.parse(content);
+    } catch {
+      showToast(TOAST_TITLE_IMPORT_FAILED, { description: MSG_IMPORT_INVALID_JSON, category: TOAST_CATEGORY_ERROR });
+      return;
+    }
+    if (!this.isValidSnapshot(snapshot)) {
+      showToast(TOAST_TITLE_IMPORT_FAILED, {
+        description: MSG_SETTINGS_IMPORT_BAD_FORMAT,
+        category: TOAST_CATEGORY_ERROR
+      });
+      return;
+    }
+
+    const currentOutputSettings = this.preferencesController.getOutputSettings();
+    this.preferencesController.setTheme(snapshot.theme);
+    this.setOutputControls({ ...currentOutputSettings, ...snapshot.outputSettings });
+    this.renderThemeSwitch();
+    this.renderOutputPreview();
+    this.save({ showToast: false });
+    showToast(TOAST_TITLE_IMPORTED, { description: MSG_SETTINGS_IMPORTED });
+  }
+
+  isValidSnapshot(snapshot) {
+    if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) return false;
+    if (snapshot.theme !== "dark" && snapshot.theme !== "light") return false;
+    const outputSettings = snapshot.outputSettings;
+    if (!outputSettings || typeof outputSettings !== "object" || Array.isArray(outputSettings)) return false;
+    for (const key of ["highlightSelectedRows", "showRawElk", "hideEmptyMetadata"]) {
+      if (key in outputSettings && typeof outputSettings[key] !== "boolean") return false;
+    }
+    if ("shownFields" in outputSettings) {
+      const shownFields = outputSettings.shownFields;
+      if (!shownFields || typeof shownFields !== "object" || Array.isArray(shownFields)) return false;
+      if (Object.values(shownFields).some(value => typeof value !== "boolean")) return false;
+      if (Object.keys(shownFields).some(key => !["t", "a", "r", "p", "h"].includes(key))) return false;
+    }
+    return true;
+  }
+
+  setOutputControls(settings) {
+    this.highlightSelectedInput.checked = settings.highlightSelectedRows === true;
+    this.showRawElkInput.checked = settings.showRawElk !== false;
+    this.hideEmptyMetadataInput.checked = settings.hideEmptyMetadata === true;
+    const shownFields = this.preferencesController.getShownFields();
+    Object.entries(this.shownFieldInputs).forEach(([key, input]) => {
+      input.checked = settings.shownFields?.[key] ?? shownFields[key];
+    });
+  }
+
+  save({ showToast: shouldShowToast = true } = {}) {
     this.preferencesController.setHighlightSelectedRows(this.highlightSelectedInput.checked);
     this.preferencesController.setShowRawElk(this.showRawElkInput.checked);
     this.preferencesController.setHideEmptyMetadata(this.hideEmptyMetadataInput.checked);
@@ -122,7 +240,7 @@ class SettingsController {
     this.outputController.setHighlightSelectedRows(this.highlightSelectedInput.checked);
     this.onOutputSettingsChange();
     this.saved = true;
-    showToast(TOAST_TITLE_SAVED, { description: MSG_SETTINGS_SAVED });
+    if (shouldShowToast) showToast(TOAST_TITLE_SAVED, { description: MSG_SETTINGS_SAVED });
     this.popupManager.close("settings", { blurTrigger: true });
   }
 }

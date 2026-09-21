@@ -11,10 +11,12 @@ A browser-based tool for formatting and filtering raw JSON log hits exported fro
 - **Sort toggle** — switch between ascending and descending timestamp order; persisted in `localStorage`
 - **Highlight** — matched search terms are highlighted in the output
 - **Copy to clipboard** — copy the formatted (filtered) output as plain text
-- **Settings** — centered Settings dialog with live formatted-output preview and explicit Save/Cancel controls
+- **Settings** — centered Settings dialog with live formatted-output preview, explicit Save/Cancel controls, and JSON export/import
 - **Dark/light theme** — switch themes from **Settings → General**; persisted in `localStorage`
 - **Output visibility** — show or hide raw JSON data and the `t`, `a`, `r`, `p`, and `h` fields; persisted as JSON in `localStorage`
 - **Selected rows** — optionally highlight checked logs with a theme-aware border; selections survive Output visibility changes
+
+Settings can be exported from the Settings dialog as a JSON snapshot containing the theme and output visibility settings. Drop that JSON file onto the dialog to import it; valid imports fill the controls and are saved automatically. Sort order is not included.
 
 ## Usage
 
