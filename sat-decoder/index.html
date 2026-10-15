@@ -34,35 +34,32 @@
           <div class="panel-heading">
             <div>
               <p class="section-label">DECODED TOKEN</p>
-              <h2>Token details</h2>
             </div>
-            <button class="icon-button" id="copy-button" type="button" title="Copy JSON" disabled>
-              <span aria-hidden="true">&#10697;</span><span class="sr-only">Copy JSON</span>
-            </button>
+            <div class="heading-actions" id="heading-actions" hidden>
+              <span class="chip chip-valid" id="expiry-badge"></span>
+              <button
+                class="icon-button text-button"
+                id="view-toggle"
+                type="button"
+                title="Show header"
+                aria-label="Show header"
+                disabled
+              >header</button>
+              <button class="icon-button" id="copy-button" type="button" title="Copy JSON" disabled>
+                <span aria-hidden="true">&#10697;</span><span class="sr-only">Copy JSON</span>
+              </button>
+            </div>
           </div>
 
           <div class="result-empty" id="empty-state">
             <span class="empty-glyph" aria-hidden="true">{ }</span>
             <p>Paste a SAT token on the left</p>
-            <span>The header and claims will appear here</span>
+            <span>The header and payload will appear here</span>
           </div>
 
           <div class="result-content" id="result-content" hidden>
-            <section class="token-section">
-              <div class="section-title-row">
-                <h3>Header</h3>
-                <span class="chip chip-header">JWT</span>
-              </div>
-              <pre id="header-output"></pre>
-            </section>
-            <section class="token-section">
-              <div class="section-title-row">
-                <h3>Claims</h3>
-                <span class="chip chip-valid" id="expiry-badge"></span>
-              </div>
-              <div class="claim-summary" id="claim-summary"></div>
-              <pre id="payload-output"></pre>
-            </section>
+            <pre id="payload-output" aria-label="Decoded JSON"></pre>
+            <div class="header-meta" id="header-meta" aria-label="Token header and lifetime"></div>
           </div>
 
           <div class="error-message" id="error-message" role="alert" hidden></div>
@@ -72,7 +69,6 @@
           <div class="panel-heading">
             <div>
               <p class="section-label">SOURCE TOKEN</p>
-              <h2>Input</h2>
             </div>
             <span class="status-dot" id="input-status">Waiting</span>
           </div>

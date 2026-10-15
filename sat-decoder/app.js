@@ -1,17 +1,28 @@
 const tokenInput = document.querySelector("#token-input");
 const emptyState = document.querySelector("#empty-state");
 const resultContent = document.querySelector("#result-content");
-const headerOutput = document.querySelector("#header-output");
+const headerMeta = document.querySelector("#header-meta");
 const payloadOutput = document.querySelector("#payload-output");
-const claimSummary = document.querySelector("#claim-summary");
 const expiryBadge = document.querySelector("#expiry-badge");
+const headingActions = document.querySelector("#heading-actions");
 const errorMessage = document.querySelector("#error-message");
 const inputStatus = document.querySelector("#input-status");
 const tokenMeta = document.querySelector("#token-meta");
 const clearButton = document.querySelector("#clear-button");
 const copyButton = document.querySelector("#copy-button");
+const viewToggle = document.querySelector("#view-toggle");
 
 let decodedToken = null;
+let currentView = "payload";
+
+function renderJson() {
+  if (!decodedToken) return;
+  const nextView = currentView === "payload" ? "header" : "payload";
+  payloadOutput.textContent = JSON.stringify(decodedToken[currentView], null, 2);
+  viewToggle.textContent = nextView;
+  viewToggle.title = `Show ${nextView}`;
+  viewToggle.setAttribute("aria-label", `Showing ${currentView}. Show ${nextView}`);
+}
 
 function decodeBase64Url(segment) {
   const normalized = segment.replace(/-/g, "+").replace(/_/g, "/");
@@ -46,28 +57,48 @@ function formatDate(unixTime) {
   }).format(new Date(unixTime * 1000));
 }
 
-function renderClaims(payload) {
-  const details = [];
-  if (payload.sub) details.push(["sub", payload.sub]);
-  if (payload.iss) details.push(["iss", payload.iss]);
-  if (payload.exp) details.push(["exp", formatDate(payload.exp)]);
+function createChip(label, value, className = "") {
+  const chip = document.createElement("span");
+  chip.className = `meta-chip ${className}`.trim();
+  if (label) {
+    const name = document.createElement("span");
+    name.className = "meta-chip-key";
+    name.textContent = label;
+    chip.append(name);
+  }
+  chip.append(document.createTextNode(String(value)));
+  return chip;
+}
 
-  claimSummary.replaceChildren(
-    ...details.map(([key, value]) => {
-      const card = document.createElement("div");
-      card.className = "claim-card";
-      const name = document.createElement("strong");
-      name.textContent = key;
-      const text = document.createElement("span");
-      text.textContent = value;
-      card.append(name, text);
-      return card;
-    }),
-  );
+function createTimeChip(label, unixTime) {
+  const chip = createChip(label, formatDate(unixTime), "meta-chip-time");
+  chip.title = String(unixTime);
+  return chip;
+}
+
+function renderMeta(header, payload) {
+  const chips = [];
+  if (header.alg) chips.push(createChip("", header.alg, "meta-chip-strong"));
+  if (header.typ) chips.push(createChip("", header.typ));
+
+  for (const [key, value] of Object.entries(header)) {
+    if (["alg", "typ", "kid"].includes(key)) continue;
+    const text = typeof value === "object" ? JSON.stringify(value) : value;
+    chips.push(createChip(key, text));
+  }
+
+  if (typeof payload.iat === "number") {
+    chips.push(createTimeChip("iat", payload.iat));
+  } else if (typeof payload.nbf === "number") {
+    chips.push(createTimeChip("nbf", payload.nbf));
+  }
+  if (typeof payload.exp === "number") chips.push(createTimeChip("exp", payload.exp));
+
+  headerMeta.replaceChildren(...chips);
 }
 
 function renderExpiry(payload) {
-  if (!payload.exp) {
+  if (typeof payload.exp !== "number") {
     expiryBadge.textContent = "NO EXP";
     expiryBadge.className = "chip chip-header";
     return;
@@ -82,18 +113,21 @@ function resetView() {
   decodedToken = null;
   emptyState.hidden = false;
   resultContent.hidden = true;
+  headingActions.hidden = true;
   errorMessage.hidden = true;
   inputStatus.textContent = "Waiting";
   inputStatus.className = "status-dot";
   tokenMeta.textContent = "Bearer JWT format supported";
   clearButton.disabled = true;
   copyButton.disabled = true;
+  viewToggle.disabled = true;
 }
 
 function showError(error) {
   decodedToken = null;
   emptyState.hidden = true;
   resultContent.hidden = true;
+  headingActions.hidden = true;
   errorMessage.textContent = error.message;
   errorMessage.hidden = false;
   inputStatus.textContent = "Error";
@@ -101,6 +135,7 @@ function showError(error) {
   tokenMeta.textContent = "Check the token and try again";
   clearButton.disabled = false;
   copyButton.disabled = true;
+  viewToggle.disabled = true;
 }
 
 function decodeInput() {
@@ -113,24 +148,31 @@ function decodeInput() {
 
   try {
     decodedToken = parseToken(value);
-    headerOutput.textContent = JSON.stringify(decodedToken.header, null, 2);
-    payloadOutput.textContent = JSON.stringify(decodedToken.payload, null, 2);
-    renderClaims(decodedToken.payload);
+    renderMeta(decodedToken.header, decodedToken.payload);
+    renderJson();
     renderExpiry(decodedToken.payload);
     emptyState.hidden = true;
     resultContent.hidden = false;
+    headingActions.hidden = false;
     errorMessage.hidden = true;
     inputStatus.textContent = "Ready";
     inputStatus.className = "status-dot is-ready";
     tokenMeta.textContent = `${decodedToken.segments} JWT segments · signature not verified`;
     clearButton.disabled = false;
     copyButton.disabled = false;
+    viewToggle.disabled = false;
   } catch (error) {
     showError(error);
   }
 }
 
 tokenInput.addEventListener("input", decodeInput);
+
+viewToggle.addEventListener("click", () => {
+  currentView = currentView === "payload" ? "header" : "payload";
+  renderJson();
+  payloadOutput.scrollTop = 0;
+});
 
 clearButton.addEventListener("click", () => {
   tokenInput.value = "";
