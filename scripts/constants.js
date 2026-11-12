@@ -10,7 +10,7 @@ const LS_KEY_FIELDS_PANEL_WIDTH = "elkFieldsPanelWidth";
 // Keep in sync with the default #fields-panel flex-basis in styles/output.css.
 const FIELDS_PANEL_DEFAULT_WIDTH = 280;
 // Field names hidden from the fields panel; "*" matches any characters.
-const FIELDS_PANEL_HIDDEN_PATTERNS = ["@timestamp", "kv_obj.*"];
+const FIELDS_PANEL_HIDDEN_PATTERNS = ["@timestamp", "kv_obj.*", "event.action", "event_action_*", "event.size"];
 
 const MSG_COPIED = "Copied to clipboard";
 const MSG_FILTER_SAVED = "Filter saved";

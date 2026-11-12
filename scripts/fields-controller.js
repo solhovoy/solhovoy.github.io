@@ -134,15 +134,35 @@ class FieldsController {
     const matches = key => key.toLowerCase().includes(query);
     const selected = this.getSelectedFields().filter(matches);
     const available = this.fields.filter(key => !this.selectedFields.has(key) && matches(key));
-    this.renderList(this.selectedList, selected, true);
-    this.renderList(this.availableList, available, false);
+    this.renderList(this.selectedList, selected, true, query);
+    this.renderList(this.availableList, available, false, query);
     document.getElementById("fields-selected-count").textContent = selected.length;
     document.getElementById("fields-available-count").textContent = available.length;
     this.resetButton.hidden = this.selectedFields.size === 0;
     this.updateToggle();
   }
 
-  renderList(list, fields, selected) {
+  appendHighlighted(element, text, query) {
+    if (!query) {
+      element.textContent = text;
+      return;
+    }
+    const lower = text.toLowerCase();
+    let start = 0;
+    let index = lower.indexOf(query);
+    while (index !== -1) {
+      if (index > start) element.append(text.slice(start, index));
+      const mark = document.createElement("span");
+      mark.className = "search-match";
+      mark.textContent = text.slice(index, index + query.length);
+      element.append(mark);
+      start = index + query.length;
+      index = lower.indexOf(query, start);
+    }
+    if (start < text.length) element.append(text.slice(start));
+  }
+
+  renderList(list, fields, selected, query = "") {
     const fragment = document.createDocumentFragment();
     for (const key of fields) {
       const item = document.createElement("li");
@@ -152,7 +172,7 @@ class FieldsController {
       button.title = `${selected ? "Remove" : "Add"} ${key}`;
       const name = document.createElement("span");
       name.className = "field-name";
-      name.textContent = key;
+      this.appendHighlighted(name, key, query);
       const action = document.createElement("span");
       action.textContent = selected ? "-" : "+";
       action.setAttribute("aria-hidden", "true");

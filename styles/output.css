@@ -242,7 +242,8 @@ body.is-resizing-fields {
 :root.light #output .ts { color: var(--accent); }
 :root.light #output .cls { color: #9c0dc0; font-weight: 500; }
 #output .url { color: #3d87c1; }
-#output .search-match {
+#output .search-match,
+.field-name .search-match {
   color: black;
   background: rgba(255, 255, 0);
   border-radius: 4px;
