@@ -42,7 +42,46 @@ class FieldsController {
       this.onChange();
     });
     this.render();
+    this.panel.style.setProperty("--fields-panel-width", `${this.getWidth()}px`);
+    document.getElementById("fields-resizer").addEventListener("pointerdown", event => this.startResize(event));
     this.setOpen(localStorage.getItem(LS_KEY_FIELDS_PANEL_OPEN) === "true", { animate: false });
+  }
+
+  startResize(event) {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    const handle = event.currentTarget;
+    const startX = event.clientX;
+    const startWidth = this.panel.getBoundingClientRect().width;
+    handle.setPointerCapture(event.pointerId);
+    document.body.classList.add("is-resizing-fields");
+    const onMove = moveEvent => {
+      // Negative flex-basis is invalid and would fall back to content width; CSS min-width handles the rest.
+      const width = Math.max(0, Math.round(startWidth + moveEvent.clientX - startX));
+      this.panel.style.setProperty("--fields-panel-width", `${width}px`);
+    };
+    const onEnd = () => {
+      handle.removeEventListener("pointermove", onMove);
+      handle.removeEventListener("pointerup", onEnd);
+      handle.removeEventListener("pointercancel", onEnd);
+      document.body.classList.remove("is-resizing-fields");
+      // Persist the rendered width so CSS min/max limits are applied to the stored value.
+      this.setWidth(this.panel.getBoundingClientRect().width);
+    };
+    handle.addEventListener("pointermove", onMove);
+    handle.addEventListener("pointerup", onEnd);
+    handle.addEventListener("pointercancel", onEnd);
+  }
+
+  getWidth() {
+    const width = Number(localStorage.getItem(LS_KEY_FIELDS_PANEL_WIDTH));
+    return Number.isFinite(width) && width > 0 ? width : FIELDS_PANEL_DEFAULT_WIDTH;
+  }
+
+  setWidth(width) {
+    const rounded = Math.round(width);
+    this.panel.style.setProperty("--fields-panel-width", `${rounded}px`);
+    localStorage.setItem(LS_KEY_FIELDS_PANEL_WIDTH, String(rounded));
   }
 
   isOpen() {

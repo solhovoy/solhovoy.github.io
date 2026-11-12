@@ -125,6 +125,7 @@ class SettingsController {
     return {
       theme: this.preferencesController.getTheme(),
       fieldsPanelOpen: this.fieldsController.isOpen(),
+      fieldsPanelWidth: this.fieldsController.getWidth(),
       outputSettings: {
         highlightSelectedRows: outputSettings.highlightSelectedRows === true,
         showRawElk: outputSettings.showRawElk !== false,
@@ -198,6 +199,7 @@ class SettingsController {
     const currentOutputSettings = this.preferencesController.getOutputSettings();
     this.preferencesController.setTheme(snapshot.theme);
     if ("fieldsPanelOpen" in snapshot) this.fieldsController.setOpen(snapshot.fieldsPanelOpen);
+    if ("fieldsPanelWidth" in snapshot) this.fieldsController.setWidth(snapshot.fieldsPanelWidth);
     this.setOutputControls({ ...currentOutputSettings, ...snapshot.outputSettings });
     this.renderThemeSwitch();
     this.renderOutputPreview();
@@ -209,6 +211,8 @@ class SettingsController {
     if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) return false;
     if (snapshot.theme !== "dark" && snapshot.theme !== "light") return false;
     if ("fieldsPanelOpen" in snapshot && typeof snapshot.fieldsPanelOpen !== "boolean") return false;
+    if ("fieldsPanelWidth" in snapshot
+      && !(Number.isFinite(snapshot.fieldsPanelWidth) && snapshot.fieldsPanelWidth > 0)) return false;
     const outputSettings = snapshot.outputSettings;
     if (!outputSettings || typeof outputSettings !== "object" || Array.isArray(outputSettings)) return false;
     for (const key of ["highlightSelectedRows", "showRawElk", "hideEmptyMetadata"]) {

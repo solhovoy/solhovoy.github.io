@@ -6,6 +6,9 @@ const LS_KEY_SAVED_FILTERS = "elkSavedFilters";
 const LS_KEY_OUTPUT_SETTINGS = "elkOutputSettings";
 const LS_KEY_THEME = "elkTheme";
 const LS_KEY_FIELDS_PANEL_OPEN = "elkFieldsPanelOpen";
+const LS_KEY_FIELDS_PANEL_WIDTH = "elkFieldsPanelWidth";
+// Keep in sync with the default #fields-panel flex-basis in styles/output.css.
+const FIELDS_PANEL_DEFAULT_WIDTH = 280;
 // Field names hidden from the fields panel; "*" matches any characters.
 const FIELDS_PANEL_HIDDEN_PATTERNS = ["@timestamp", "kv_obj.*"];
 
