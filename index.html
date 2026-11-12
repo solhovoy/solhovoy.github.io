@@ -46,6 +46,10 @@
       </div>
     </div>
     <div class="search-bar">
+      <button id="fields-toggle" class="fields-toggle-btn" type="button" aria-expanded="false" aria-controls="fields-panel" title="Show fields panel" aria-label="Show fields panel">
+        <span class="fields-toggle-icon" aria-hidden="true"></span>
+        <span id="fields-toggle-count" class="fields-toggle-count" aria-hidden="true" hidden></span>
+      </button>
       <div class="search-input-wrap">
         <div class="search-field-shell">
           <button id="filter-saved-search-btn" class="search-filter-icon" type="button" title="Saved filters" aria-label="Saved filters">
@@ -62,7 +66,7 @@
           <button id="search-clear" title="Clear filter" hidden>✕</button>
         </div>
       </div>
-      <div class="date-range-wrap" id="date-range-picker">
+      <div class="date-range-wrap is-empty" id="date-range-picker">
         <button id="date-range-history-btn" class="date-range-icon" type="button" title="Recently used date ranges" aria-label="Recently used date ranges">
           <span class="date-range-calendar-icon" aria-hidden="true"></span>
           <span class="date-range-arrow-down-icon" aria-hidden="true"></span>
@@ -162,7 +166,30 @@
         </section>
       </div>
     </div>
-    <div id="output-wrap">
+    <div class="output-layout">
+      <aside id="fields-panel" aria-label="Log fields" hidden>
+        <div class="fields-panel-header">
+          <strong>Fields</strong>
+          <button id="fields-close" class="filter-help-close" type="button" title="Close fields panel" aria-label="Close fields panel">✕</button>
+        </div>
+        <div class="fields-search-wrap">
+          <input id="fields-search" type="search" placeholder="Search field names" aria-label="Search field names" autocomplete="off" spellcheck="false" />
+          <button id="fields-search-clear" class="date-range-clear" type="button" title="Clear field search" aria-label="Clear field search" hidden>✕</button>
+        </div>
+        <p class="fields-hint">Date is always shown. Select fields to show only their key=value pairs.</p>
+        <div id="fields-scroll" class="fields-scroll">
+        <div class="fields-panel-header fields-section-header">
+          <h3>Selected fields <span id="fields-selected-count">0</span></h3>
+          <button id="fields-reset" class="fields-reset-btn" type="button" title="Reset selected fields" aria-label="Reset selected fields" hidden>
+            <span class="fields-reset-icon" aria-hidden="true"></span>
+          </button>
+        </div>
+        <ul id="fields-selected" class="fields-list"></ul>
+        <h3>Available fields <span id="fields-available-count">0</span></h3>
+        <ul id="fields-available" class="fields-list"></ul>
+        </div>
+      </aside>
+      <div id="output-wrap">
       <div id="output-select-bar" hidden>
         <label class="bar-col">
           <input type="checkbox" id="select-all-check" title="Select / Deselect All" />
@@ -172,6 +199,7 @@
         </div>
       </div>
       <div id="output"></div>
+      </div>
     </div>
   </div>
 
@@ -304,6 +332,7 @@
 <script src="scripts/input-controller.js"></script>
 <script src="scripts/search-ui-controller.js"></script>
 <script src="scripts/output-controller.js"></script>
+<script src="scripts/fields-controller.js"></script>
 <script src="scripts/preferences-controller.js"></script>
 <script src="scripts/popup-manager.js"></script>
 <script src="scripts/settings-controller.js"></script>

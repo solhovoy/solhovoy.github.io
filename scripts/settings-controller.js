@@ -1,8 +1,9 @@
 class SettingsController {
-  constructor({ popupManager, preferencesController, outputController, onOutputSettingsChange }) {
+  constructor({ popupManager, preferencesController, outputController, fieldsController, onOutputSettingsChange }) {
     this.popupManager = popupManager;
     this.preferencesController = preferencesController;
     this.outputController = outputController;
+    this.fieldsController = fieldsController;
     this.onOutputSettingsChange = onOutputSettingsChange;
     this.popup = document.getElementById("settings-modal");
     this.trigger = document.getElementById("settings-toggle");
@@ -123,6 +124,7 @@ class SettingsController {
     const outputSettings = this.preferencesController.getOutputSettings();
     return {
       theme: this.preferencesController.getTheme(),
+      fieldsPanelOpen: this.fieldsController.isOpen(),
       outputSettings: {
         highlightSelectedRows: outputSettings.highlightSelectedRows === true,
         showRawElk: outputSettings.showRawElk !== false,
@@ -195,6 +197,7 @@ class SettingsController {
 
     const currentOutputSettings = this.preferencesController.getOutputSettings();
     this.preferencesController.setTheme(snapshot.theme);
+    if ("fieldsPanelOpen" in snapshot) this.fieldsController.setOpen(snapshot.fieldsPanelOpen);
     this.setOutputControls({ ...currentOutputSettings, ...snapshot.outputSettings });
     this.renderThemeSwitch();
     this.renderOutputPreview();
@@ -205,6 +208,7 @@ class SettingsController {
   isValidSnapshot(snapshot) {
     if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) return false;
     if (snapshot.theme !== "dark" && snapshot.theme !== "light") return false;
+    if ("fieldsPanelOpen" in snapshot && typeof snapshot.fieldsPanelOpen !== "boolean") return false;
     const outputSettings = snapshot.outputSettings;
     if (!outputSettings || typeof outputSettings !== "object" || Array.isArray(outputSettings)) return false;
     for (const key of ["highlightSelectedRows", "showRawElk", "hideEmptyMetadata"]) {

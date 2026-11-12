@@ -45,6 +45,7 @@ function doFormat() {
 
   // Normalize: handle single hit, convert _source to fields if needed
   parsedData = normalizeInput(data);
+  fieldsController.setHits(parsedData);
   dateRangeFilter.populateFromHits(parsedData);
   if (searchController.getValue().trim() || dateRangeFilter.hasRange()) {
     applyFilter();
@@ -67,7 +68,10 @@ function renderHits(hits, totalCount = hits.length) {
   const result = formatLogs(
     JSON.stringify(hits),
     preferencesController.getSortOrder(),
-    preferencesController.getOutputSettings()
+    {
+      ...preferencesController.getOutputSettings(),
+      selectedFields: fieldsController.getSelectedFields()
+    }
   );
 
   if (result.error) {
@@ -108,10 +112,16 @@ const preferencesController = new PreferencesController({
     if (parsedData.length) applyFilter({ flash: false });
   }
 });
+const fieldsController = new FieldsController({
+  onChange: () => {
+    if (parsedData.length) applyFilter({ flash: false });
+  }
+});
 const settingsController = new SettingsController({
   popupManager,
   preferencesController,
   outputController,
+  fieldsController,
   onOutputSettingsChange: () => {
     if (parsedData.length) applyFilter({ flash: false });
   }
@@ -137,6 +147,7 @@ function applyFilter({ flash = true } = {}) {
   if (!q && !dateRangeFilter.hasRange()) {
     searchController.setError(false);
     setStatus("", "");
+    fieldsController.setHits(parsedData, { keepSelected: true });
     renderHits(parsedData);
     if (flash) flashOutput();
     return true;
@@ -151,7 +162,10 @@ function applyFilter({ flash = true } = {}) {
   searchController.setError(false);
   setStatus("", "");
   const hits = dateRangeFilter.filterHits(result.hits);
+  fieldsController.setHits(hits, { keepSelected: true });
   if (hits.length === 0) {
+    plainText = "";
+    plainLines = [];
     outputEl.innerHTML = `<div class="no-filter-results">No entries match the filter / date range</div>`;
     outputController.showOutputControls(false);
     setStatus(`✓ 0 of ${parsedData.length} entries formatted`, "ok");
@@ -237,6 +251,7 @@ btnClear.addEventListener("click", () => {
   plainText = "";
   plainLines = [];
   parsedData = [];
+  fieldsController.clear();
   outputController.reset();
   setLinenumWidth(0);
   searchController.setValue("");

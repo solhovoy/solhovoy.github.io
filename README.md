@@ -15,8 +15,9 @@ A browser-based tool for formatting and filtering raw JSON log hits exported fro
 - **Dark/light theme** — switch themes from **Settings → General**; persisted in `localStorage`
 - **Output visibility** — show or hide raw JSON data and the `t`, `a`, `r`, `p`, and `h` fields; persisted as JSON in `localStorage`
 - **Selected rows** — optionally highlight checked logs with a theme-aware border; selections survive Output visibility changes
+- **Field picker** — click the fields-panel icon before the filter input to search available keys and add/remove selected fields in a left sidebar (hidden by default; open/closed state persisted in `localStorage`; a badge on the icon shows the selected count). With any fields selected, output and clipboard copies contain only the date and those `key=value` pairs; missing values appear as `null`. Nested objects use dotted keys. Date is always displayed and is not listed. The reset (revert) icon next to **Selected fields** restores the standard format. Queries and date ranges still filter the original logs, independently of field selection.
 
-Settings can be exported from the Settings dialog as a JSON snapshot containing the theme and output visibility settings. Drop that JSON file onto the dialog to import it; valid imports fill the controls and are saved automatically. Sort order is not included.
+Settings can be exported from the Settings dialog as a JSON snapshot containing the theme, output visibility settings, and the fields panel open/closed state. Drop that JSON file onto the dialog to import it; valid imports fill the controls and are saved automatically (older snapshots without the fields panel state leave it unchanged). Sort order is not included.
 
 ## Usage
 
@@ -25,6 +26,7 @@ Open `index.html` directly in a browser — no build step or server required.
 1. Paste JSON log data into the **Raw JSON Input** textarea
 2. Click **Format** (or the output updates automatically)
 3. Optionally type a Lucene query and/or choose an `@timestamp` date and time range to narrow results
+4. Click the fields-panel icon (left of the filter input) to choose which keys to display. Available fields reflect the logs matching the current query and date range; selected fields stay selected even if absent from the filtered logs. The field-name search has a clear button on the right; clearing it restores the full field list without changing selected fields. Removing all selected fields restores the standard output. Selection is kept while filtering/sorting, and **Clear** resets it.
 
 ## Filter Syntax
 
@@ -53,6 +55,7 @@ Open `index.html` directly in a browser — no build step or server required.
 | `scripts/input-controller.js` | Input metadata, formatting triggers, and JSON file drop handling |
 | `scripts/search-ui-controller.js` | Search input, expanded editor, Apply, and Clear interactions |
 | `scripts/output-controller.js` | Output selection, copy actions, and raw JSON interactions |
+| `scripts/fields-controller.js` | Available/selected log fields, field-name search, and sidebar controls |
 | `scripts/preferences-controller.js` | Theme, sort, input-panel collapse, and persisted Output preferences |
 | `scripts/settings-controller.js` | Settings dialog categories, preview state, Save/Cancel behavior, and theme switching |
 | `scripts/popup-*.js` | Popup lifecycle plus saved filters, date history, and filter help controllers |

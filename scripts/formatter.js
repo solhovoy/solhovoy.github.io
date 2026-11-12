@@ -61,6 +61,16 @@ const CORE_FIELDS = [
 // Additional fields to exclude from "extra fields" output (can be customized)
 const EXCLUDED_FIELDS = ["isVectorDebug", "stack_trace"];
 
+function getLogFields(hit) {
+  return Object.fromEntries(Object.entries(hit?.fields || {}).flatMap(([key, raw]) => {
+    const value = Array.isArray(raw) && raw.length === 1 ? raw[0] : raw;
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      return Object.entries(flattenObject(value, key));
+    }
+    return [[key, value]];
+  }));
+}
+
 /**
  * Returns { plain: string, html: string } for a single hit.
  */
@@ -69,6 +79,11 @@ function formatHit(hit, index, outputSettings = {}) {
   const selectionId = getSelectionId(hit);
 
   const ts       = formatTimestamp(unwrap(fields["@timestamp"]    ?? ["?"]));
+  const selectedFields = (outputSettings.selectedFields || []).filter(key => key !== "@timestamp");
+  const logFields = selectedFields.length ? getLogFields(hit) : null;
+  const selectedPairs = selectedFields.map(key =>
+    `${key}=${formatValue(Object.hasOwn(logFields, key) ? logFields[key] : null)}`
+  );
   const level    = String(unwrap(fields["log.level"]              ?? ["??"])).toUpperCase();
   const actor    = unwrap(fields["a"]                             ?? ["?"]);
   const thread   = unwrap(fields["t"]                             ?? ["?"]);
@@ -138,6 +153,9 @@ function formatHit(hit, index, outputSettings = {}) {
   if (stackTrace) {
     plain += `\n${stackTrace}`;
   }
+  if (selectedFields.length) {
+    plain = `${ts} ${selectedPairs.join(" ")}`;
+  }
 
   // ── raw JSON (pretty-printed, use original if available) ─────────────────
   const showRawElk = outputSettings.showRawElk !== false;
@@ -156,8 +174,14 @@ function formatHit(hit, index, outputSettings = {}) {
   const extraHtml = extraFields ? ` <span class="msg">${applyHighlighting(esc(extraFields))}</span>` : "";
   const fieldsHtml = outputFields.map(field => ` <span class="${field.className}">${esc(field.value)}</span>`).join("");
   // Stack trace HTML (inline with preserved formatting)
-  const stackHtml = stackTrace ? 
+  const stackHtml = stackTrace && !selectedFields.length ?
     `<pre class="stack-trace">${esc(stackTrace)}</pre>` : "";
+  const contentHtml = selectedFields.length
+    ? selectedPairs.map(pair => ` <span class="msg">${applyHighlighting(esc(pair))}</span>`).join("")
+    : fieldsHtml +
+      ` <span class="level ${lvlClass}">${esc(level)}</span>` +
+      ` <span class="cls">${clsField}=${esc(clsValue)}</span>` +
+      msgHtml + customHtml + extraHtml;
 
   const html =
     `<div class="log-entry" data-index="${index}" data-selection-id="${selectionId}">` +
@@ -168,12 +192,7 @@ function formatHit(hit, index, outputSettings = {}) {
       ? `<button class="raw-toggle" title="Show raw JSON">▶</button>`
       : `<button class="raw-toggle-placeholder" type="button" tabindex="-1" aria-hidden="true">▶</button>`) +
     `<span class="ts">${esc(ts)}</span>` +
-    fieldsHtml +
-    ` <span class="level ${lvlClass}">${esc(level)}</span>` +
-    ` <span class="cls">${clsField}=${esc(clsValue)}</span>` +
-    msgHtml +
-    customHtml +
-    extraHtml +
+    contentHtml +
     `</div>` +
     stackHtml +
     rawJsonHtml +

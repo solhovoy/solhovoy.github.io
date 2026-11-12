@@ -1,6 +1,165 @@
 /* ── Output (pre) ── */
+.output-layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 8px;
+}
+.fields-toggle-btn {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  margin: -1px 6px -1px 0;
+  padding: 0;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.fields-toggle-btn:hover { color: var(--text); }
+.fields-toggle-btn:focus-visible { color: var(--text); outline: 2px solid var(--accent); outline-offset: 1px; }
+.fields-toggle-icon {
+  width: 30px;
+  height: 30px;
+  background: currentColor;
+  mask: var(--icon-panel-fields-open) center / contain no-repeat;
+  -webkit-mask: var(--icon-panel-fields-open) center / contain no-repeat;
+}
+.fields-toggle-btn[aria-expanded="true"] .fields-toggle-icon {
+  mask-image: var(--icon-panel-fields-close);
+  -webkit-mask-image: var(--icon-panel-fields-close);
+}
+.fields-toggle-count {
+  position: absolute;
+  top: -3px;
+  right: -4px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  box-sizing: border-box;
+  border-radius: 7px;
+  background: var(--primary-action);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 14px;
+  text-align: center;
+  pointer-events: none;
+}
+.fields-toggle-count[hidden] { display: none; }
+#fields-panel {
+  flex: 0 0 min(280px, 45%);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 12px 6px;
+}
+#fields-panel.is-animated { animation: fields-slide-in 0.15s ease-out; }
+#fields-panel[hidden] { display: none; }
+.fields-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 0 -12px;
+  padding: 0 12px 6px;
+}
+@keyframes fields-slide-in {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #fields-panel.is-animated { animation: none; }
+}
+.fields-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.fields-search-wrap {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.fields-search-wrap:focus-within { border-color: var(--accent); }
+#fields-search {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 2px 6px;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: var(--text);
+  font: 11px var(--mono);
+  outline: none;
+}
+#fields-search::placeholder { color: var(--text-dim); }
+#fields-search::-webkit-search-cancel-button { -webkit-appearance: none; }
+#fields-search-clear { flex-shrink: 0; }
+#fields-search-clear:focus-visible,
+.field-option:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.fields-hint {
+  color: var(--text-dim);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 10px 0;
+}
+.fields-panel-header.fields-section-header { margin-bottom: 0; }
+#fields-panel h3 { font-size: 12px; }
+#fields-panel h3 span { color: var(--text-dim); margin-left: 4px; }
+.fields-reset-btn {
+  background: transparent;
+  padding: 2px;
+  margin: -2px 0;
+  color: var(--text-dim);
+}
+.fields-reset-btn:hover,
+.fields-reset-btn:focus-visible { color: var(--text); }
+.fields-reset-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.fields-reset-icon {
+  display: block;
+  width: 14px;
+  height: 14px;
+  background: currentColor;
+  mask: var(--icon-revert) center / contain no-repeat;
+  -webkit-mask: var(--icon-revert) center / contain no-repeat;
+}
+.fields-list { list-style: none; margin: 6px 0 14px; }
+.field-option {
+  width: 100%;
+  justify-content: space-between;
+  background: transparent;
+  color: var(--text);
+  padding: 6px;
+  text-align: left;
+  font-weight: 400;
+}
+.field-option:hover { background: var(--bg-input); color: var(--accent); }
+:root.light .field-option:hover { background: rgba(0, 0, 0, 0.05); }
+.field-name { overflow-wrap: anywhere; min-width: 0; }
 #output-wrap {
   flex: 1;
+  min-width: 0;
   background: var(--bg-input);
   border: 1px solid var(--border);
   border-radius: var(--radius);

@@ -5,6 +5,9 @@ const LS_KEY_RECENT_DATE_RANGES = "elkRecentDateRanges";
 const LS_KEY_SAVED_FILTERS = "elkSavedFilters";
 const LS_KEY_OUTPUT_SETTINGS = "elkOutputSettings";
 const LS_KEY_THEME = "elkTheme";
+const LS_KEY_FIELDS_PANEL_OPEN = "elkFieldsPanelOpen";
+// Field names hidden from the fields panel; "*" matches any characters.
+const FIELDS_PANEL_HIDDEN_PATTERNS = ["@timestamp", "kv_obj.*"];
 
 const MSG_COPIED = "Copied to clipboard";
 const MSG_FILTER_SAVED = "Filter saved";
