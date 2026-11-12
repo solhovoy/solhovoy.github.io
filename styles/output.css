@@ -109,6 +109,22 @@ label.bar-col:hover,
   padding-left: 4px;
   border-radius: 4px;
 }
+/* Clickable first column: checkbox + line number + raw arrow */
+.log-entry::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: calc(35px + var(--lnum-w));
+  cursor: pointer;
+}
+.row-check,
+.raw-toggle,
+.raw-json {
+  z-index: 1;
+}
+.raw-toggle { position: relative; }
 .log-entry:hover { background: rgba(255, 255, 255, 0.05); }
 :root.light .log-entry:hover { background: rgba(0, 0, 0, 0.05); }
 .log-entry.is-selected { outline: 1px solid var(--selected-row-border); }

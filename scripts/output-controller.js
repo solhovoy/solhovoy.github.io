@@ -89,6 +89,17 @@ class OutputController {
     this.syncSelection();
   }
 
+  // Clicks on the first-column overlay (.log-entry::after) target the entry itself
+  toggleRowFromCheckColumn(event) {
+    const entry = event.target;
+    if (!entry.classList?.contains("log-entry")) return false;
+    const checkbox = entry.querySelector(".row-check");
+    if (!checkbox) return false;
+    checkbox.checked = !checkbox.checked;
+    this.syncSelection();
+    return true;
+  }
+
   toggleSelectAll() {
     this.output.querySelectorAll(".row-check").forEach(checkbox => {
       checkbox.checked = this.selectAll.checked;
@@ -116,6 +127,7 @@ class OutputController {
   }
 
   handleOutputClick(event) {
+    if (this.toggleRowFromCheckColumn(event)) return;
     const copyButton = event.target.closest(".raw-copy");
     if (copyButton) {
       const rawJson = copyButton.closest(".raw-json");
