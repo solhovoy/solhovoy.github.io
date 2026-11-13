@@ -70,7 +70,8 @@ function renderHits(hits, totalCount = hits.length) {
     preferencesController.getSortOrder(),
     {
       ...preferencesController.getOutputSettings(),
-      selectedFields: fieldsController.getSelectedFields()
+      selectedFields: fieldsController.getSelectedFields(),
+      sortField: outputController.getColumnSort()
     }
   );
 
@@ -84,7 +85,9 @@ function renderHits(hits, totalCount = hits.length) {
     return;
   }
 
+  outputController.setFieldColumns(fieldsController.getSelectedFields());
   outputEl.innerHTML = result.html;
+  outputController.fitColumnsToContent();
   plainText = result.plain;
   plainLines = result.plains || [];
   setLinenumWidth(result.count);
@@ -105,9 +108,15 @@ btnFormat.addEventListener("click", doFormat);
 const inputController = new InputController({ onFormat: doFormat });
 const outputController = new OutputController({
   getPlainText: () => plainText,
-  getPlainLines: () => plainLines
+  getPlainLines: () => plainLines,
+  onReorderColumns: order => fieldsController.setSelectedOrder(order),
+  onColumnSortChange: () => {
+    if (parsedData.length) applyFilter({ flash: false });
+  }
 });
 const preferencesController = new PreferencesController({
+  // While sorting by a field column, clicking the date header restores the date sort.
+  interceptSortClick: () => outputController.clearColumnSort(),
   onSortChange: () => {
     if (parsedData.length) applyFilter({ flash: false });
   }
@@ -166,6 +175,7 @@ function applyFilter({ flash = true } = {}) {
   if (hits.length === 0) {
     plainText = "";
     plainLines = [];
+    outputController.setFieldColumns([]);
     outputEl.innerHTML = `<div class="no-filter-results">No entries match the filter / date range</div>`;
     outputController.showOutputControls(false);
     setStatus(`✓ 0 of ${parsedData.length} entries formatted`, "ok");
@@ -173,9 +183,78 @@ function applyFilter({ flash = true } = {}) {
     return true;
   }
   renderHits(hits, parsedData.length);
+  highlightFieldColumns(result.fieldPatterns);
   highlightSearchTerms(result.patterns);
+  // Highlight marks add padding, so re-measure auto column widths.
+  if (result.patterns?.length || result.fieldPatterns?.length) outputController.fitColumnsToContent();
   if (flash) flashOutput();
   return true;
+}
+
+/**
+ * Highlight field-specific matches (field:value) inside selected-field column cells,
+ * which render only the value without the "field=" prefix used by highlightSearchTerms.
+ */
+function highlightFieldColumns(fieldPatterns) {
+  if (!fieldPatterns || !fieldPatterns.length) return;
+  const byField = new Map();
+  for (const { field, pattern } of fieldPatterns) {
+    for (const key of [field, `kv_obj.${field}`]) {
+      if (!byField.has(key)) byField.set(key, []);
+      byField.get(key).push(pattern);
+    }
+  }
+  const regexes = new Map([...byField].map(([key, list]) => [key, new RegExp(`(${list.join("|")})`, "gi")]));
+  outputEl.querySelectorAll(".col[data-field]").forEach(cell => {
+    const regex = regexes.get(cell.dataset.field);
+    if (!regex) return;
+    // Match against the full cell text: syntax highlighting may split it into several text nodes.
+    const ranges = [...cell.textContent.matchAll(regex)]
+      .filter(match => match[0])
+      .map(match => [match.index, match.index + match[0].length]);
+    if (ranges.length) wrapTextRanges(cell, ranges);
+  });
+}
+
+/** Wrap [start, end) character ranges of an element's text in .search-match spans. */
+function wrapTextRanges(element, ranges) {
+  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  let offset = 0;
+  while (walker.nextNode()) {
+    const node = walker.currentNode;
+    nodes.push({ node, start: offset, end: offset + node.textContent.length });
+    offset += node.textContent.length;
+  }
+  for (const { node, start, end } of nodes) {
+    // Keep offsets aligned with textContent, but don't nest marks in already highlighted text.
+    if (node.parentElement?.closest(".search-match")) continue;
+    const parts = ranges
+      .filter(([from, to]) => Math.max(from, start) < Math.min(to, end))
+      .map(([from, to]) => ({
+        from: Math.max(from, start) - start,
+        to: Math.min(to, end) - start,
+        // The match continues from the previous / into the next text node.
+        contStart: from < start,
+        contEnd: to > end
+      }));
+    if (!parts.length) continue;
+    const text = node.textContent;
+    const frag = document.createDocumentFragment();
+    let last = 0;
+    for (const { from, to, contStart, contEnd } of parts) {
+      if (from > last) frag.appendChild(document.createTextNode(text.slice(last, from)));
+      const mark = document.createElement("span");
+      mark.className = "search-match";
+      mark.classList.toggle("cont-start", contStart);
+      mark.classList.toggle("cont-end", contEnd);
+      mark.textContent = text.slice(from, to);
+      frag.appendChild(mark);
+      last = to;
+    }
+    if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+    node.parentNode.replaceChild(frag, node);
+  }
 }
 
 /**
@@ -188,60 +267,14 @@ function highlightSearchTerms(patterns) {
   // Combine patterns from search.js (already built with correct word boundaries)
   const regex = new RegExp(`(${patterns.join("|")})`, "gi");
 
-  // Walk text nodes in output and wrap matches
-  const walker = document.createTreeWalker(
-    outputEl,
-    NodeFilter.SHOW_TEXT,
-    {
-      acceptNode: (node) => {
-        // Skip nodes inside raw-json sections
-        if (node.parentElement?.closest(".raw-json")) return NodeFilter.FILTER_REJECT;
-        // Skip line numbers
-        if (node.parentElement?.closest(".line-num")) return NodeFilter.FILTER_REJECT;
-        // Skip if no match
-        if (!regex.test(node.textContent)) return NodeFilter.FILTER_REJECT;
-        regex.lastIndex = 0;
-        return NodeFilter.FILTER_ACCEPT;
-      }
-    }
-  );
-
-  const nodesToProcess = [];
-  while (walker.nextNode()) {
-    nodesToProcess.push(walker.currentNode);
-  }
-
-  for (const textNode of nodesToProcess) {
-    const text = textNode.textContent;
-    regex.lastIndex = 0;
-    
-    // Use matchAll to find matches
-    const matches = [...text.matchAll(regex)];
-    if (!matches.length) continue;
-
-    const frag = document.createDocumentFragment();
-    let lastIndex = 0;
-
-    for (const match of matches) {
-      // Add text before match
-      if (match.index > lastIndex) {
-        frag.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
-      }
-      // Add highlighted match
-      const mark = document.createElement("span");
-      mark.className = "search-match";
-      mark.textContent = match[0];
-      frag.appendChild(mark);
-      lastIndex = match.index + match[0].length;
-    }
-
-    // Add remaining text
-    if (lastIndex < text.length) {
-      frag.appendChild(document.createTextNode(text.slice(lastIndex)));
-    }
-
-    textNode.parentNode.replaceChild(frag, textNode);
-  }
+  // Match against each line part's full text: syntax highlighting (e.g. URLs) splits
+  // "field=value" into several text nodes. Line prefix and raw JSON are skipped.
+  outputEl.querySelectorAll(".log-line > span:not(.line-prefix), .stack-trace").forEach(element => {
+    const ranges = [...element.textContent.matchAll(regex)]
+      .filter(match => match[0])
+      .map(match => [match.index, match.index + match[0].length]);
+    if (ranges.length) wrapTextRanges(element, ranges);
+  });
 }
 
 // ── Clear ───────────────────────────────────────────────────────────────
@@ -252,6 +285,7 @@ btnClear.addEventListener("click", () => {
   plainLines = [];
   parsedData = [];
   fieldsController.clear();
+  outputController.setFieldColumns([]);
   outputController.reset();
   setLinenumWidth(0);
   searchController.setValue("");

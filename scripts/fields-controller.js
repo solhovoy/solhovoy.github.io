@@ -42,6 +42,7 @@ class FieldsController {
       this.onChange();
     });
     this.render();
+    this.panel.style.setProperty("--fields-panel-min-width", `${FIELDS_PANEL_MIN_WIDTH}px`);
     this.panel.style.setProperty("--fields-panel-width", `${this.getWidth()}px`);
     document.getElementById("fields-resizer").addEventListener("pointerdown", event => this.startResize(event));
     this.setOpen(localStorage.getItem(LS_KEY_FIELDS_PANEL_OPEN) === "true", { animate: false });
@@ -56,8 +57,8 @@ class FieldsController {
     handle.setPointerCapture(event.pointerId);
     document.body.classList.add("is-resizing-fields");
     const onMove = moveEvent => {
-      // Negative flex-basis is invalid and would fall back to content width; CSS min-width handles the rest.
-      const width = Math.max(0, Math.round(startWidth + moveEvent.clientX - startX));
+      // CSS max-width still caps the panel at 60% of the layout.
+      const width = Math.max(FIELDS_PANEL_MIN_WIDTH, Math.round(startWidth + moveEvent.clientX - startX));
       this.panel.style.setProperty("--fields-panel-width", `${width}px`);
     };
     const onEnd = () => {
@@ -122,6 +123,33 @@ class FieldsController {
     return [...this.selectedFields];
   }
 
+  // Reorders selected fields; fields missing from `order` keep their relative order at the end.
+  setSelectedOrder(order) {
+    const rest = this.getSelectedFields().filter(key => !order.includes(key));
+    this.selectedFields = new Set([...order.filter(key => this.selectedFields.has(key)), ...rest]);
+    this.render();
+    this.onChange();
+  }
+
+  startSelectedDrag(event, key, button, visibleKeys) {
+    startReorderDrag(event, button, {
+      axis: "y",
+      getItems: () => [...this.selectedList.querySelectorAll(".field-option")],
+      indicatorParent: this.selectedList,
+      label: key,
+      onDrop: (from, to) => {
+        // The list may be filtered by search, so place the field next to its visible neighbour.
+        const visible = visibleKeys.filter(visibleKey => visibleKey !== key);
+        const order = this.getSelectedFields().filter(selectedKey => selectedKey !== key);
+        const position = to < visible.length
+          ? order.indexOf(visible[to])
+          : order.indexOf(visible[visible.length - 1]) + 1;
+        order.splice(position, 0, key);
+        this.setSelectedOrder(order);
+      }
+    });
+  }
+
   clear() {
     this.selectedFields.clear();
     this.search.value = "";
@@ -178,6 +206,10 @@ class FieldsController {
       action.setAttribute("aria-hidden", "true");
       button.append(name, action);
       button.setAttribute("aria-label", button.title);
+      if (selected && fields.length > 1) {
+        button.title += "\nDrag to reorder";
+        button.addEventListener("pointerdown", event => this.startSelectedDrag(event, key, button, fields));
+      }
       button.addEventListener("click", () => {
         const index = [...list.children].indexOf(item);
         const scrollTop = this.scrollArea.scrollTop;

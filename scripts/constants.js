@@ -9,8 +9,22 @@ const LS_KEY_FIELDS_PANEL_OPEN = "elkFieldsPanelOpen";
 const LS_KEY_FIELDS_PANEL_WIDTH = "elkFieldsPanelWidth";
 // Keep in sync with the default #fields-panel flex-basis in styles/output.css.
 const FIELDS_PANEL_DEFAULT_WIDTH = 280;
+// Applied to #fields-panel via the --fields-panel-min-width CSS variable (desktop only).
+const FIELDS_PANEL_MIN_WIDTH = 200;
+// Selected-field column widths in px; the last column fills the remaining space.
+const FIELD_COLUMN_DEFAULT_WIDTH = 200;
+const FIELD_COLUMN_MIN_WIDTH = 40;
+const FIELD_COLUMN_LAST_MIN_WIDTH = 120;
+// Keep in sync with .col / .bar-col horizontal padding (8px + 8px) and header border (1px) in styles/output.css.
+const FIELD_COLUMN_PADDING = 17;
+// Auto-scroll while resizing or reordering columns near the output edges: zone width (px) and max speed (px/s).
+// Speed grows linearly from 0 at the zone's inner border to the max at the output edge and beyond.
+const FIELD_COLUMN_AUTOSCROLL_EDGE = 40;
+const FIELD_COLUMN_AUTOSCROLL_SPEED = 300;
+// Pointer movement (px) before a press on a column header or selected field becomes a reorder drag.
+const REORDER_DRAG_THRESHOLD = 4;
 // Field names hidden from the fields panel; "*" matches any characters.
-const FIELDS_PANEL_HIDDEN_PATTERNS = ["@timestamp", "kv_obj.*", "event.action", "event_action_*", "event.size"];
+const FIELDS_PANEL_HIDDEN_PATTERNS = ["@timestamp", "kv_obj.*", "event_action_*", "event.size"];
 
 const MSG_COPIED = "Copied to clipboard";
 const MSG_FILTER_SAVED = "Filter saved";

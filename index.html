@@ -168,15 +168,16 @@
     </div>
     <div class="output-layout">
       <aside id="fields-panel" aria-label="Log fields" hidden>
-        <div class="fields-panel-header">
-          <strong>Fields</strong>
+        <div class="fields-panel-header fields-panel-title">
+          <span>Fields</span>
           <button id="fields-close" class="filter-help-close" type="button" title="Close fields panel" aria-label="Close fields panel">✕</button>
         </div>
         <div class="fields-search-wrap">
+          <label for="fields-search" class="fields-search-icon" aria-hidden="true"><span class="search-filter-magnifying-icon"></span></label>
           <input id="fields-search" type="search" placeholder="Search field names" aria-label="Search field names" autocomplete="off" spellcheck="false" />
           <button id="fields-search-clear" class="date-range-clear" type="button" title="Clear field search" aria-label="Clear field search" hidden>✕</button>
         </div>
-        <p class="fields-hint">Date is always shown. Select fields to show only their key=value pairs.</p>
+        <p class="fields-hint">Select fields to show values as columns.</p>
         <div id="fields-scroll" class="fields-scroll">
         <div class="fields-panel-header fields-section-header">
           <h3>Selected fields <span id="fields-selected-count">0</span></h3>

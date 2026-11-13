@@ -48,6 +48,10 @@ test("projects selected pairs only, preserves falsy and multi-valued fields, and
   assert.equal(result.plains[1],
     "2026-11-12 10:00:00,123 nested.code=null enabled=null empty=null nil=null tags=null");
   assert.doesNotMatch(result.html, /unselected|Service|Other|stack-trace|class="level/);
+  const firstRow = result.html.split('class="log-entry"')[1];
+  assert.match(firstRow, /class="log-line is-columns"/);
+  assert.equal((firstRow.match(/class="col msg"/g) || []).length, 5);
+  assert.match(firstRow, /title="\[&quot;one&quot;,&quot;two&quot;\]">\["one","two"\]<\/span>/);
 });
 
 test("selected keys override metadata visibility, escape HTML, and keep the raw JSON original", () => {
@@ -58,12 +62,30 @@ test("selected keys override metadata visibility, escape HTML, and keep the raw 
   });
   assert.equal(result.plain,
     "2026-11-12 10:00:00,123 t=thread <key>=<script>alert(1)</script>");
-  assert.match(result.html, /&lt;key&gt;=&lt;script&gt;/);
+  assert.match(result.html, /class="col msg"[^>]*>&lt;script&gt;alert\(1\)&lt;\/script&gt;<\/span>/);
   assert.doesNotMatch(result.html, /<script>/);
   assert.match(result.html, /class="raw-json"/);
   assert.match(result.html, /"c": "RawOnly"/);
   assert.doesNotMatch(result.plain, /RawOnly/);
   assert.equal((result.plain.match(/2026-11-12/g) || []).length, 1);
+});
+
+test("sorts by a selected field column numerically, keeps empty values as-is, and breaks ties by time", () => {
+  const at = minute => `2026-11-12T10:0${minute}:00.000Z`;
+  const records = [
+    { "@timestamp": at(1), size: "10" },
+    { "@timestamp": at(2), size: "9" },
+    { "@timestamp": at(3) },
+    { "@timestamp": at(4), size: "9" }
+  ];
+  const sizes = (order, sortOrder = "asc") => [...formatLogs(JSON.stringify(records), sortOrder, {
+    selectedFields: ["size"], sortField: { field: "size", order }
+  }).plains].map(line => line.slice(11, 16) + line.split(" ").pop());
+  assert.deepEqual(sizes("asc"), ["10:02size=9", "10:04size=9", "10:01size=10", "10:03size=null"]);
+  assert.deepEqual(sizes("desc", "desc"), ["10:03size=null", "10:01size=10", "10:04size=9", "10:02size=9"]);
+  // A sort field that is no longer selected falls back to the date sort.
+  const fallback = formatLogs(JSON.stringify(records), "asc", { sortField: { field: "size", order: "desc" } });
+  assert.deepEqual([...fallback.plains].map(line => line.slice(11, 16)), ["10:01", "10:02", "10:03", "10:04"]);
 });
 
 test("empty selection restores the standard formatter without changing sort or settings", () => {

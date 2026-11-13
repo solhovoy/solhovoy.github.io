@@ -81,9 +81,8 @@ function formatHit(hit, index, outputSettings = {}) {
   const ts       = formatTimestamp(unwrap(fields["@timestamp"]    ?? ["?"]));
   const selectedFields = (outputSettings.selectedFields || []).filter(key => key !== "@timestamp");
   const logFields = selectedFields.length ? getLogFields(hit) : null;
-  const selectedPairs = selectedFields.map(key =>
-    `${key}=${formatValue(Object.hasOwn(logFields, key) ? logFields[key] : null)}`
-  );
+  const selectedValues = selectedFields.map(key => getSelectedValue(logFields, key));
+  const selectedPairs = selectedFields.map((key, i) => `${key}=${selectedValues[i]}`);
   const level    = String(unwrap(fields["log.level"]              ?? ["??"])).toUpperCase();
   const actor    = unwrap(fields["a"]                             ?? ["?"]);
   const thread   = unwrap(fields["t"]                             ?? ["?"]);
@@ -177,7 +176,9 @@ function formatHit(hit, index, outputSettings = {}) {
   const stackHtml = stackTrace && !selectedFields.length ?
     `<pre class="stack-trace">${esc(stackTrace)}</pre>` : "";
   const contentHtml = selectedFields.length
-    ? selectedPairs.map(pair => ` <span class="msg">${applyHighlighting(esc(pair))}</span>`).join("")
+    ? selectedValues.map((value, i) =>
+        `<span class="col msg" data-field="${esc(selectedFields[i]).replace(/"/g, "&quot;")}" title="${esc(value).replace(/"/g, "&quot;")}">${applyHighlighting(esc(value))}</span>`
+      ).join("")
     : fieldsHtml +
       ` <span class="level ${lvlClass}">${esc(level)}</span>` +
       ` <span class="cls">${clsField}=${esc(clsValue)}</span>` +
@@ -185,12 +186,14 @@ function formatHit(hit, index, outputSettings = {}) {
 
   const html =
     `<div class="log-entry" data-index="${index}" data-selection-id="${selectionId}">` +
-    `<div class="log-line">` +
+    `<div class="log-line${selectedFields.length ? " is-columns" : ""}">` +
+    `<span class="line-prefix">` +
     `<input type="checkbox" class="row-check" />` +
     `<span class="line-num">${index + 1}</span>` +
     (showRawElk
       ? `<button class="raw-toggle" title="Show raw JSON">▶</button>`
       : `<button class="raw-toggle-placeholder" type="button" tabindex="-1" aria-hidden="true">▶</button>`) +
+    `</span>` +
     `<span class="ts">${esc(ts)}</span>` +
     contentHtml +
     `</div>` +
@@ -314,6 +317,11 @@ function formatValue(val) {
   if (val === null || val === undefined) return "null";
   if (typeof val === "object") return JSON.stringify(val);
   return String(val);
+}
+
+// The value shown in a selected-field column; also used as its sort key.
+function getSelectedValue(logFields, key) {
+  return formatValue(Object.hasOwn(logFields, key) ? logFields[key] : null);
 }
 
 function esc(str) {
@@ -526,13 +534,27 @@ function formatLogs(rawJson, sortOrder = "asc", outputSettings = {}) {
     };
   }
 
-  // Sort by @timestamp
-  const sorted = [...data].sort((a, b) => {
-    const ta = unwrap((a.fields || {})["@timestamp"] ?? ["0"]);
-    const tb = unwrap((b.fields || {})["@timestamp"] ?? ["0"]);
-    const cmp = ta < tb ? -1 : ta > tb ? 1 : 0;
-    return sortOrder === "asc" ? cmp : -cmp;
-  });
+  // Sort by a selected-field column if requested, otherwise (and for ties) by @timestamp.
+  const { sortField } = outputSettings;
+  const sortByField = Boolean(sortField) && sortField.field !== "@timestamp" &&
+    (outputSettings.selectedFields || []).includes(sortField.field);
+  // Numeric-aware, so "9" < "10" and "15ms" < "120ms".
+  const collator = new Intl.Collator(undefined, { numeric: true });
+  const sorted = data
+    .map(hit => ({
+      hit,
+      time: unwrap((hit.fields || {})["@timestamp"] ?? ["0"]),
+      key: sortByField ? getSelectedValue(getLogFields(hit), sortField.field) : ""
+    }))
+    .sort((a, b) => {
+      if (sortByField) {
+        const cmp = collator.compare(a.key, b.key);
+        if (cmp) return sortField.order === "desc" ? -cmp : cmp;
+      }
+      const cmp = a.time < b.time ? -1 : a.time > b.time ? 1 : 0;
+      return sortOrder === "asc" ? cmp : -cmp;
+    })
+    .map(item => item.hit);
 
   const plains = [];
   const htmls  = [];

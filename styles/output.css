@@ -60,20 +60,22 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  /* Visible so the resizer can extend into the gap; .fields-scroll handles content overflow. */
+  overflow: visible;
   background: var(--bg-panel);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 12px 12px 6px;
+  padding: 0 12px 6px;
 }
 #fields-panel.is-animated { animation: fields-slide-in 0.15s ease-out; }
 #fields-panel[hidden] { display: none; }
 .fields-resizer {
   position: absolute;
   top: 0;
-  right: 0;
+  /* Extends into the gap between the panel and the output for an easier grab. */
+  right: -7px;
   bottom: 0;
-  width: 6px;
+  width: 13px;
   cursor: col-resize;
   touch-action: none;
   z-index: 1;
@@ -82,7 +84,7 @@
   content: "";
   position: absolute;
   top: 0;
-  right: 0;
+  right: 7px;
   bottom: 0;
   width: 2px;
   background: var(--accent);
@@ -99,7 +101,7 @@ body.is-resizing-fields {
 @media (min-width: 769px) {
   #fields-panel {
     flex-basis: var(--fields-panel-width, min(280px, 45%));
-    min-width: 180px;
+    min-width: var(--fields-panel-min-width);
     max-width: 60%;
   }
 }
@@ -127,6 +129,20 @@ body.is-resizing-fields {
   gap: 8px;
   margin-bottom: 10px;
 }
+/* Same height and bottom border as #output-select-bar so the lines align. */
+.fields-panel-title {
+  flex-shrink: 0;
+  box-sizing: border-box;
+  height: 28px;
+  margin: 0 -12px 12px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-dim);
+}
 .fields-search-wrap {
   display: flex;
   align-items: center;
@@ -137,6 +153,19 @@ body.is-resizing-fields {
   overflow: hidden;
 }
 .fields-search-wrap:focus-within { border-color: var(--accent); }
+/* Same look as the filter input's .search-filter-icon, without the dropdown arrow. */
+.fields-search-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 100%;
+  border-right: 1px solid var(--border);
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-input));
+  color: var(--text-dim);
+  cursor: text;
+}
 #fields-search {
   flex: 1;
   width: 100%;
@@ -164,7 +193,13 @@ body.is-resizing-fields {
   margin: 10px 0;
 }
 .fields-panel-header.fields-section-header { margin-bottom: 0; }
-#fields-panel h3 { font-size: 12px; }
+#fields-panel h3 {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--accent);
+}
 #fields-panel h3 span { color: var(--text-dim); margin-left: 4px; }
 .fields-reset-btn {
   background: transparent;
@@ -184,6 +219,7 @@ body.is-resizing-fields {
   -webkit-mask: var(--icon-revert) center / contain no-repeat;
 }
 .fields-list { list-style: none; margin: 6px 0 14px; }
+#fields-selected { position: relative; }
 .field-option {
   width: 100%;
   justify-content: space-between;
@@ -194,6 +230,9 @@ body.is-resizing-fields {
   font-weight: 400;
 }
 .field-option:hover { background: var(--bg-input); color: var(--accent); }
+/* Red on hover in Selected fields signals that clicking removes the field. */
+#fields-selected .field-option:hover { color: var(--error); }
+#fields-selected .field-option.is-dragging { color: var(--accent); background: var(--bg-input); }
 :root.light .field-option:hover { background: rgba(0, 0, 0, 0.05); }
 .field-name { overflow-wrap: anywhere; min-width: 0; }
 #output-wrap {
@@ -250,6 +289,9 @@ body.is-resizing-fields {
   padding: 0 1px;
   /* font-weight: normal; */
 }
+/* A match split across text nodes (e.g. "url=" + highlighted URL) renders as one seamless mark. */
+#output .search-match.cont-start { border-top-left-radius: 0; border-bottom-left-radius: 0; padding-left: 0; }
+#output .search-match.cont-end { border-top-right-radius: 0; border-bottom-right-radius: 0; padding-right: 0; }
 #output .level { font-weight: 700; }
 #output .lvl-info { color: var(--info); }
 #output .lvl-warn { color: var(--warn); }
@@ -289,17 +331,131 @@ label.bar-col,
   transition: background 0.1s;
 }
 label.bar-col:hover,
-#bar-col-sort:hover { background: rgba(255,255,255,0.05); }
+#bar-col-sort:hover,
+.bar-col-field:hover { background: rgba(255,255,255,0.05); }
 :root.light label.bar-col:hover,
-:root.light #bar-col-sort:hover { background: rgba(0,0,0,0.05); }
+:root.light #bar-col-sort:hover,
+:root.light .bar-col-field:hover { background: rgba(0,0,0,0.05); }
 #sticky-sort {
   font-size: 11px;
-  /* font-weight: 600; */
+  font-weight: 600;
   color: var(--text-dim);
   white-space: nowrap;
   font-family: inherit;
 }
 #bar-col-sort:hover #sticky-sort { color: var(--text); }
+
+/* ── Selected-field columns ── */
+#output-wrap.is-columns #output-select-bar {
+  grid-template-columns: calc(52px + var(--lnum-w)) 23ch var(--field-cols);
+  /* Match #output's right padding and width so the header spans the full scroll width. */
+  padding-right: 12px;
+  min-width: calc(64px + var(--lnum-w) + 23ch + var(--field-cols-min));
+}
+#output-wrap.is-columns #output {
+  min-width: calc(64px + var(--lnum-w) + 23ch + var(--field-cols-min));
+}
+.bar-col-field {
+  position: relative;
+  min-width: 0;
+  color: var(--text-dim);
+  font-weight: 600;
+  transition: background 0.1s;
+}
+.bar-col-field:hover { color: var(--text); }
+.bar-col-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.col-resizer {
+  position: absolute;
+  top: 0;
+  /* Extends past the column border so the grab area also covers the start of the next column. */
+  right: -5px;
+  bottom: 0;
+  width: 11px;
+  z-index: 1;
+  cursor: col-resize;
+  touch-action: none;
+}
+.col-resizer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 5px;
+  bottom: 0;
+  width: 2px;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.col-resizer:hover::after,
+.col-resizer:active::after { opacity: 1; }
+body.is-resizing-column {
+  cursor: col-resize;
+  user-select: none;
+  -webkit-user-select: none;
+}
+#output-wrap.is-columns .bar-col-field { cursor: pointer; }
+.bar-col-field.is-sorted { color: var(--text); }
+.bar-col-sort-icon {
+  flex-shrink: 0;
+  margin-left: 4px;
+  font-size: 11px;
+  color: var(--accent);
+}
+/* The date sort is idle while a field column drives the order. */
+#bar-col-sort.is-inactive .bar-col-sort-icon { display: none; }
+.bar-col-field.is-dragging { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); }
+
+/* ── Drag to reorder (column headers and selected fields) ── */
+body.is-reordering,
+body.is-reordering * {
+  cursor: grabbing !important;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.reorder-ghost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  pointer-events: none;
+  padding: 3px 8px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+.reorder-indicator {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  background: var(--accent);
+}
+.reorder-indicator[hidden] { display: none; }
+.reorder-indicator.is-x { top: 0; width: 2px; margin-left: -1px; }
+.reorder-indicator.is-y { left: 0; right: 0; height: 2px; margin-top: -1px; }
+.log-line.is-columns {
+  display: grid;
+  grid-template-columns: calc(36px + var(--lnum-w)) 23ch var(--field-cols);
+  padding-left: 0;
+  text-indent: 0;
+}
+.log-line.is-columns .line-prefix { white-space: nowrap; }
+.log-line.is-columns .col {
+  min-width: 0;
+  padding: 0 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 /* ── Log entry with raw JSON toggle ── */
 .log-entry {

@@ -1,5 +1,5 @@
 class PreferencesController {
-  constructor({ onSortChange }) {
+  constructor({ onSortChange, interceptSortClick = () => false }) {
     this.onSortChange = onSortChange;
     this.sortButton = document.getElementById("sticky-sort");
     this.sortColumn = document.getElementById("bar-col-sort");
@@ -11,7 +11,9 @@ class PreferencesController {
 
     this.applySortLabel();
     this.applyTheme();
-    this.sortColumn.addEventListener("click", () => this.toggleSort());
+    this.sortColumn.addEventListener("click", () => {
+      if (!interceptSortClick()) this.toggleSort();
+    });
     this.makeCollapsible("collapse-input", "panel-input", true);
   }
 
@@ -49,7 +51,10 @@ class PreferencesController {
   }
 
   applySortLabel() {
-    this.sortButton.textContent = this.sortOrder === "asc" ? "⬆ Sort Old-New" : "⬇ Sort New-Old";
+    const icon = document.createElement("span");
+    icon.className = "bar-col-sort-icon";
+    icon.textContent = this.sortOrder === "asc" ? "⬆" : "⬇";
+    this.sortButton.replaceChildren(this.sortOrder === "asc" ? "Sort Old-New" : "Sort New-Old", icon);
   }
 
   applyTheme() {

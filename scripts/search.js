@@ -43,11 +43,13 @@ function filterHits(hits, queryStr, outputSettings = {}) {
 
   // Extract regex patterns for highlighting (same patterns used in search)
   const patterns = [];
-  collectPatterns(ast, patterns);
+  const fieldPatterns = [];
+  collectPatterns(ast, patterns, fieldPatterns);
 
   return {
     hits: hits.filter(hit => evalNode(ast, hit, outputSettings)),
-    patterns
+    patterns,
+    fieldPatterns
   };
 }
 
@@ -55,8 +57,10 @@ function filterHits(hits, queryStr, outputSettings = {}) {
  * Collect regex patterns from AST for highlighting.
  * Uses the same buildMatchPattern() as search.
  * For field-specific searches, includes field prefix in pattern.
+ * fieldPatterns collects { field, pattern } value-only patterns for column cells,
+ * where the value is rendered without the "field=" prefix.
  */
-function collectPatterns(node, patterns) {
+function collectPatterns(node, patterns, fieldPatterns = []) {
   if (!node) return;
 
   // Leaf node — has a "term" key
@@ -68,6 +72,9 @@ function collectPatterns(node, patterns) {
       // Field-specific search: create pattern that matches "field=value"
       const fieldPattern = buildFieldMatchPattern(field, term);
       if (fieldPattern) patterns.push(fieldPattern);
+      // Pure wildcard (field:*) matches any value, so highlight the whole cell.
+      const valuePattern = term.replace(/\*/g, "") ? buildMatchPattern(term) : "^[\\s\\S]+";
+      if (valuePattern) fieldPatterns.push({ field, pattern: valuePattern });
     } else {
       // Free-text search: match term anywhere
       const pattern = buildMatchPattern(term);
@@ -77,8 +84,8 @@ function collectPatterns(node, patterns) {
 
   // Recurse into left/right — skip NOT branch (don't highlight excluded terms)
   const op = (node.operator || "").toUpperCase();
-  if (node.left) collectPatterns(node.left, patterns);
-  if (node.right && op !== "NOT") collectPatterns(node.right, patterns);
+  if (node.left) collectPatterns(node.left, patterns, fieldPatterns);
+  if (node.right && op !== "NOT") collectPatterns(node.right, patterns, fieldPatterns);
 }
 
 /**
