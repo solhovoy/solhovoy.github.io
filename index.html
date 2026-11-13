@@ -235,6 +235,7 @@
       <nav class="settings-nav" aria-label="Settings categories">
         <button class="settings-category is-active" type="button" data-settings-category="general" aria-current="page">General</button>
         <button class="settings-category" type="button" data-settings-category="output">Output</button>
+        <button class="settings-category" type="button" data-settings-category="export">Export</button>
       </nav>
       <div class="settings-panels">
         <section class="settings-panel" data-settings-panel="general">
@@ -288,6 +289,36 @@
             <label class="settings-checkbox">
               <input id="settings-hide-empty-metadata" type="checkbox" />
               <span>Automatically hide empty fields (t, a, r, p, h)</span>
+            </label>
+          </fieldset>
+        </section>
+        <section class="settings-panel" data-settings-panel="export" hidden>
+          <h3>Export Settings</h3>
+          <fieldset class="settings-field">
+            <legend>Include in JSON</legend>
+            <label class="settings-checkbox">
+              <input type="checkbox" data-settings-export="uiState" checked />
+              <span>UI State</span>
+            </label>
+            <label class="settings-checkbox">
+              <input type="checkbox" data-settings-export="general" checked />
+              <span>General Settings</span>
+            </label>
+            <label class="settings-checkbox">
+              <input type="checkbox" data-settings-export="output" checked />
+              <span>Output Settings</span>
+            </label>
+            <label class="settings-checkbox">
+              <input type="checkbox" data-settings-export="savedFilters" checked />
+              <span>Saved Filters</span>
+            </label>
+            <label class="settings-checkbox">
+              <input type="checkbox" data-settings-export="recentDateRanges" checked />
+              <span>Recently used date ranges</span>
+            </label>
+            <label class="settings-checkbox">
+              <input type="checkbox" data-settings-export="pinnedFields" checked />
+              <span>Pinned Fields</span>
             </label>
           </fieldset>
         </section>

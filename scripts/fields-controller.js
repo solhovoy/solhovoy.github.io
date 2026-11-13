@@ -140,9 +140,13 @@ class FieldsController {
   }
 
   togglePinned(key) {
-    this.pinnedFields = this.pinnedFields.includes(key)
+    this.setPinnedFields(this.pinnedFields.includes(key)
       ? this.pinnedFields.filter(pinnedKey => pinnedKey !== key)
-      : [...this.pinnedFields, key];
+      : [...this.pinnedFields, key]);
+  }
+
+  setPinnedFields(fields) {
+    this.pinnedFields = [...new Set(fields)];
     setPinnedFields(this.pinnedFields);
     this.render();
   }

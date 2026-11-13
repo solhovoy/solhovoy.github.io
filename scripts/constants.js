@@ -5,6 +5,7 @@ const LS_KEY_RECENT_DATE_RANGES = "elkRecentDateRanges";
 const LS_KEY_SAVED_FILTERS = "elkSavedFilters";
 const LS_KEY_PINNED_FIELDS = "elkPinnedFields";
 const LS_KEY_OUTPUT_SETTINGS = "elkOutputSettings";
+const LS_KEY_EXPORT_SETTINGS = "elkExportSettings";
 const LS_KEY_THEME = "elkTheme";
 const LS_KEY_FIELDS_PANEL_OPEN = "elkFieldsPanelOpen";
 const LS_KEY_FIELDS_PANEL_WIDTH = "elkFieldsPanelWidth";

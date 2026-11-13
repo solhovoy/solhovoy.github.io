@@ -11,6 +11,7 @@ class SettingsController {
     this.cancelButton = document.getElementById("settings-cancel");
     this.saveButton = document.getElementById("settings-save");
     this.exportButton = document.getElementById("settings-export");
+    this.exportInputs = [...document.querySelectorAll("[data-settings-export]")];
     this.dropOverlay = document.getElementById("settings-drop-overlay");
     this.themeSwitch = document.getElementById("settings-theme-switch");
     this.themeSwitchIcon = this.themeSwitch.querySelector(".theme-switch-icon");
@@ -63,6 +64,10 @@ class SettingsController {
   open() {
     this.originalTheme = this.preferencesController.getTheme();
     this.saved = false;
+    const exportSettings = getExportSettings();
+    this.exportInputs.forEach(input => {
+      input.checked = exportSettings[input.dataset.settingsExport] !== false;
+    });
     this.highlightSelectedInput.checked = this.preferencesController.getHighlightSelectedRows();
     this.showRawElkInput.checked = this.preferencesController.getShowRawElk();
     this.hideEmptyMetadataInput.checked = this.preferencesController.getHideEmptyMetadata();
@@ -121,29 +126,46 @@ class SettingsController {
   }
 
   getSnapshot() {
-    const outputSettings = this.preferencesController.getOutputSettings();
-    return {
-      theme: this.preferencesController.getTheme(),
-      fieldsPanelOpen: this.fieldsController.isOpen(),
-      fieldsPanelWidth: this.fieldsController.getWidth(),
-      outputSettings: {
+    const included = Object.fromEntries(
+      this.exportInputs.map(input => [input.dataset.settingsExport, input.checked])
+    );
+    const snapshot = {};
+    if (included.uiState) {
+      snapshot.fieldsPanelOpen = this.fieldsController.isOpen();
+      snapshot.fieldsPanelWidth = this.fieldsController.getWidth();
+      snapshot.sortOrder = this.preferencesController.getSortOrder();
+    }
+    if (included.general) snapshot.theme = this.preferencesController.getTheme();
+    if (included.output) {
+      const outputSettings = this.preferencesController.getOutputSettings();
+      snapshot.outputSettings = {
         highlightSelectedRows: outputSettings.highlightSelectedRows === true,
         showRawElk: outputSettings.showRawElk !== false,
         hideEmptyMetadata: outputSettings.hideEmptyMetadata === true,
         shownFields: { ...this.preferencesController.getShownFields() }
-      }
-    };
+      };
+    }
+    if (included.savedFilters) snapshot.savedFilters = getSavedFilters();
+    if (included.recentDateRanges) snapshot.recentDateRanges = getRecentDateRanges();
+    if (included.pinnedFields) snapshot.pinnedFields = getPinnedFields();
+    return snapshot;
   }
 
   export(event) {
     event.stopPropagation();
-    const blob = new Blob([JSON.stringify(this.getSnapshot(), null, 2)], { type: "application/json" });
+    const snapshot = this.getSnapshot();
+    if (!Object.keys(snapshot).length) {
+      showToast(TOAST_TITLE_NOTHING_EXPORT, { description: MSG_NOTHING_EXPORT, category: TOAST_CATEGORY_WARNING });
+      return;
+    }
+    const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
     link.download = "elk-formatter-settings.json";
     link.click();
     URL.revokeObjectURL(url);
+    this.cancel();
   }
 
   handleDragEnter(event) {
@@ -197,9 +219,18 @@ class SettingsController {
     }
 
     const currentOutputSettings = this.preferencesController.getOutputSettings();
-    this.preferencesController.setTheme(snapshot.theme);
+    if ("theme" in snapshot) this.preferencesController.setTheme(snapshot.theme);
     if ("fieldsPanelOpen" in snapshot) this.fieldsController.setOpen(snapshot.fieldsPanelOpen);
     if ("fieldsPanelWidth" in snapshot) this.fieldsController.setWidth(snapshot.fieldsPanelWidth);
+    if ("sortOrder" in snapshot) this.preferencesController.setSortOrder(snapshot.sortOrder);
+    if ("savedFilters" in snapshot) setSavedFilters(snapshot.savedFilters);
+    if ("recentDateRanges" in snapshot) {
+      setRecentDateRanges(snapshot.recentDateRanges.slice(0, MAX_RECENT_DATE_RANGES).map(range => ({
+        start: new Date(range.start).toISOString(),
+        end: new Date(range.end).toISOString()
+      })));
+    }
+    if ("pinnedFields" in snapshot) this.fieldsController.setPinnedFields(snapshot.pinnedFields);
     this.setOutputControls({ ...currentOutputSettings, ...snapshot.outputSettings });
     this.renderThemeSwitch();
     this.renderOutputPreview();
@@ -209,10 +240,28 @@ class SettingsController {
 
   isValidSnapshot(snapshot) {
     if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) return false;
-    if (snapshot.theme !== "dark" && snapshot.theme !== "light") return false;
+    if (![
+      "theme", "fieldsPanelOpen", "fieldsPanelWidth", "sortOrder",
+      "outputSettings", "savedFilters", "recentDateRanges", "pinnedFields"
+    ].some(key => key in snapshot)) return false;
+    if ("theme" in snapshot && snapshot.theme !== "dark" && snapshot.theme !== "light") return false;
+    if ("sortOrder" in snapshot && snapshot.sortOrder !== "asc" && snapshot.sortOrder !== "desc") return false;
     if ("fieldsPanelOpen" in snapshot && typeof snapshot.fieldsPanelOpen !== "boolean") return false;
     if ("fieldsPanelWidth" in snapshot
       && !(Number.isFinite(snapshot.fieldsPanelWidth) && snapshot.fieldsPanelWidth > 0)) return false;
+    for (const key of ["savedFilters", "pinnedFields"]) {
+      if (key in snapshot && (!Array.isArray(snapshot[key])
+        || !snapshot[key].every(value => typeof value === "string" && (key !== "pinnedFields" || value.length > 0)))) return false;
+    }
+    if ("recentDateRanges" in snapshot) {
+      if (!Array.isArray(snapshot.recentDateRanges) || !snapshot.recentDateRanges.every(range => {
+        if (typeof range?.start !== "string" || typeof range?.end !== "string") return false;
+        const start = new Date(range.start);
+        const end = new Date(range.end);
+        return Number.isFinite(start.getTime()) && Number.isFinite(end.getTime()) && start <= end;
+      })) return false;
+    }
+    if (!("outputSettings" in snapshot)) return true;
     const outputSettings = snapshot.outputSettings;
     if (!outputSettings || typeof outputSettings !== "object" || Array.isArray(outputSettings)) return false;
     for (const key of ["highlightSelectedRows", "showRawElk", "hideEmptyMetadata"]) {
@@ -238,6 +287,9 @@ class SettingsController {
   }
 
   save({ showToast: shouldShowToast = true } = {}) {
+    setExportSettings(Object.fromEntries(
+      this.exportInputs.map(input => [input.dataset.settingsExport, input.checked])
+    ));
     this.preferencesController.setHighlightSelectedRows(this.highlightSelectedInput.checked);
     this.preferencesController.setShowRawElk(this.showRawElkInput.checked);
     this.preferencesController.setHideEmptyMetadata(this.hideEmptyMetadataInput.checked);

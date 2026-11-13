@@ -66,10 +66,14 @@ class PreferencesController {
   }
 
   toggleSort() {
-    this.sortOrder = this.sortOrder === "asc" ? "desc" : "asc";
+    this.setSortOrder(this.sortOrder === "asc" ? "desc" : "asc");
+    this.onSortChange(this.sortOrder);
+  }
+
+  setSortOrder(sortOrder) {
+    this.sortOrder = sortOrder;
     localStorage.setItem("elkSortOrder", this.sortOrder);
     this.applySortLabel();
-    this.onSortChange(this.sortOrder);
   }
 
   setTheme(theme) {

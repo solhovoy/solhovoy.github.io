@@ -61,3 +61,16 @@ function getOutputSettings() {
 function setOutputSettings(settings) {
   localStorage.setItem(LS_KEY_OUTPUT_SETTINGS, JSON.stringify(settings));
 }
+
+function getExportSettings() {
+  try {
+    const settings = JSON.parse(localStorage.getItem(LS_KEY_EXPORT_SETTINGS)) || {};
+    return settings && typeof settings === "object" && !Array.isArray(settings) ? settings : {};
+  } catch {
+    return {};
+  }
+}
+
+function setExportSettings(settings) {
+  localStorage.setItem(LS_KEY_EXPORT_SETTINGS, JSON.stringify(settings));
+}
