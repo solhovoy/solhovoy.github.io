@@ -3,6 +3,7 @@ const SEARCH_INPUT_FLASH_ENABLED = false;
 
 const LS_KEY_RECENT_DATE_RANGES = "elkRecentDateRanges";
 const LS_KEY_SAVED_FILTERS = "elkSavedFilters";
+const LS_KEY_PINNED_FIELDS = "elkPinnedFields";
 const LS_KEY_OUTPUT_SETTINGS = "elkOutputSettings";
 const LS_KEY_THEME = "elkTheme";
 const LS_KEY_FIELDS_PANEL_OPEN = "elkFieldsPanelOpen";
@@ -10,7 +11,7 @@ const LS_KEY_FIELDS_PANEL_WIDTH = "elkFieldsPanelWidth";
 // Keep in sync with the default #fields-panel flex-basis in styles/output.css.
 const FIELDS_PANEL_DEFAULT_WIDTH = 280;
 // Applied to #fields-panel via the --fields-panel-min-width CSS variable (desktop only).
-const FIELDS_PANEL_MIN_WIDTH = 200;
+const FIELDS_PANEL_MIN_WIDTH = 210;
 // Selected-field column widths in px; the last column fills the remaining space.
 const FIELD_COLUMN_DEFAULT_WIDTH = 200;
 const FIELD_COLUMN_MIN_WIDTH = 40;

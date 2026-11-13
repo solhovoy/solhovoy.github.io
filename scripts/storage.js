@@ -36,6 +36,19 @@ function setSavedFilters(filters) {
   localStorage.setItem(LS_KEY_SAVED_FILTERS, JSON.stringify(filters));
 }
 
+function getPinnedFields() {
+  try {
+    const fields = JSON.parse(localStorage.getItem(LS_KEY_PINNED_FIELDS)) || [];
+    return Array.isArray(fields) ? [...new Set(fields.filter(field => typeof field === "string" && field))] : [];
+  } catch {
+    return [];
+  }
+}
+
+function setPinnedFields(fields) {
+  localStorage.setItem(LS_KEY_PINNED_FIELDS, JSON.stringify(fields));
+}
+
 function getOutputSettings() {
   try {
     const settings = JSON.parse(localStorage.getItem(LS_KEY_OUTPUT_SETTINGS)) || {};

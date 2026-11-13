@@ -179,14 +179,16 @@
         </div>
         <p class="fields-hint">Select fields to show values as columns.</p>
         <div id="fields-scroll" class="fields-scroll">
+        <h3><button class="fields-section-toggle" type="button" aria-expanded="true" aria-controls="fields-pinned">Pinned fields <span id="fields-pinned-count">0</span></button></h3>
+        <ul id="fields-pinned" class="fields-list"></ul>
         <div class="fields-panel-header fields-section-header">
-          <h3>Selected fields <span id="fields-selected-count">0</span></h3>
+          <h3><button class="fields-section-toggle" type="button" aria-expanded="true" aria-controls="fields-selected">Selected fields <span id="fields-selected-count">0</span></button></h3>
           <button id="fields-reset" class="fields-reset-btn" type="button" title="Reset selected fields" aria-label="Reset selected fields" hidden>
             <span class="fields-reset-icon" aria-hidden="true"></span>
           </button>
         </div>
         <ul id="fields-selected" class="fields-list"></ul>
-        <h3>Available fields <span id="fields-available-count">0</span></h3>
+        <h3><button class="fields-section-toggle" type="button" aria-expanded="true" aria-controls="fields-available">Available fields <span id="fields-available-count">0</span></button></h3>
         <ul id="fields-available" class="fields-list"></ul>
         </div>
         <div id="fields-resizer" class="fields-resizer" title="Drag to resize, double-click to reset" aria-hidden="true"></div>

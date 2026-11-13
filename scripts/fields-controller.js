@@ -11,6 +11,7 @@ class FieldsController {
     this.onChange = onChange;
     this.fields = [];
     this.selectedFields = new Set();
+    this.pinnedFields = getPinnedFields();
     this.panel = document.getElementById("fields-panel");
     this.scrollArea = document.getElementById("fields-scroll");
     this.toggle = document.getElementById("fields-toggle");
@@ -18,9 +19,17 @@ class FieldsController {
     this.search = document.getElementById("fields-search");
     this.searchClearButton = document.getElementById("fields-search-clear");
     this.selectedList = document.getElementById("fields-selected");
+    this.pinnedList = document.getElementById("fields-pinned");
     this.availableList = document.getElementById("fields-available");
     this.resetButton = document.getElementById("fields-reset");
 
+    this.panel.querySelectorAll(".fields-section-toggle").forEach(button => {
+      const list = document.getElementById(button.getAttribute("aria-controls"));
+      button.addEventListener("click", () => {
+        list.hidden = !list.hidden;
+        button.setAttribute("aria-expanded", String(!list.hidden));
+      });
+    });
     this.toggle.addEventListener("click", () => this.setOpen(this.panel.hidden));
     document.getElementById("fields-close").addEventListener("click", () => {
       this.setOpen(false);
@@ -130,6 +139,14 @@ class FieldsController {
     return [...this.selectedFields];
   }
 
+  togglePinned(key) {
+    this.pinnedFields = this.pinnedFields.includes(key)
+      ? this.pinnedFields.filter(pinnedKey => pinnedKey !== key)
+      : [...this.pinnedFields, key];
+    setPinnedFields(this.pinnedFields);
+    this.render();
+  }
+
   // Reorders selected fields; fields missing from `order` keep their relative order at the end.
   setSelectedOrder(order) {
     const rest = this.getSelectedFields().filter(key => !order.includes(key));
@@ -168,10 +185,13 @@ class FieldsController {
     const query = this.search.value.trim().toLowerCase();
     const matches = key => key.toLowerCase().includes(query);
     const selected = this.getSelectedFields().filter(matches);
+    const pinned = this.pinnedFields.filter(matches);
     const available = this.fields.filter(key => !this.selectedFields.has(key) && matches(key));
-    this.renderList(this.selectedList, selected, true, query);
-    this.renderList(this.availableList, available, false, query);
+    this.renderList(this.selectedList, selected, "selected", query);
+    this.renderList(this.pinnedList, pinned, "pinned", query);
+    this.renderList(this.availableList, available, "available", query);
     document.getElementById("fields-selected-count").textContent = selected.length;
+    document.getElementById("fields-pinned-count").textContent = pinned.length;
     document.getElementById("fields-available-count").textContent = available.length;
     this.resetButton.hidden = this.selectedFields.size === 0;
     this.updateToggle();
@@ -197,10 +217,25 @@ class FieldsController {
     if (start < text.length) element.append(text.slice(start));
   }
 
-  renderList(list, fields, selected, query = "") {
+  // Re-renders, then focuses the control at the same position in `list` without losing the scroll position.
+  renderKeepingPlace(list, item, selector, update) {
+    const index = [...list.children].indexOf(item);
+    const scrollTop = this.scrollArea.scrollTop;
+    update();
+    const controls = list.querySelectorAll(selector);
+    const next = controls[Math.min(index, controls.length - 1)];
+    if (next) next.focus({ preventScroll: true });
+    this.scrollArea.scrollTop = scrollTop;
+  }
+
+  // mode: "selected" removes on click, "available" adds, "pinned" always adds and never mirrors the selection.
+  renderList(list, fields, mode, query = "") {
+    const selected = mode === "selected";
     const fragment = document.createDocumentFragment();
     for (const key of fields) {
       const item = document.createElement("li");
+      item.className = "field-item";
+      if (mode === "pinned" && !this.fields.includes(key)) item.classList.add("is-missing");
       const button = document.createElement("button");
       button.type = "button";
       button.className = "field-option";
@@ -218,19 +253,30 @@ class FieldsController {
         button.addEventListener("pointerdown", event => this.startSelectedDrag(event, key, button, fields));
       }
       button.addEventListener("click", () => {
-        const index = [...list.children].indexOf(item);
-        const scrollTop = this.scrollArea.scrollTop;
-        if (selected) this.selectedFields.delete(key);
-        else this.selectedFields.add(key);
-        this.render();
-        this.onChange();
-        // Keep the user's place in long lists: focus the neighbouring item without scrolling.
-        const buttons = list.querySelectorAll("button");
-        const nextButton = buttons[Math.min(index, buttons.length - 1)];
-        if (nextButton) nextButton.focus({ preventScroll: true });
-        this.scrollArea.scrollTop = scrollTop;
+        if (mode === "pinned" && this.selectedFields.has(key)) return;
+        this.renderKeepingPlace(list, item, ".field-option", () => {
+          if (selected) this.selectedFields.delete(key);
+          else this.selectedFields.add(key);
+          this.render();
+          this.onChange();
+        });
       });
-      item.appendChild(button);
+      const isPinned = this.pinnedFields.includes(key);
+      const pin = document.createElement("button");
+      pin.type = "button";
+      pin.className = "field-pin-btn";
+      pin.classList.toggle("is-pinned", isPinned);
+      pin.title = `${isPinned ? "Unpin" : "Pin"} ${key}`;
+      pin.setAttribute("aria-label", pin.title);
+      pin.setAttribute("aria-pressed", String(isPinned));
+      const pinIcon = document.createElement("span");
+      pinIcon.className = "field-pin-icon";
+      pinIcon.setAttribute("aria-hidden", "true");
+      pin.appendChild(pinIcon);
+      pin.addEventListener("click", () => {
+        this.renderKeepingPlace(list, item, ".field-pin-btn", () => this.togglePinned(key));
+      });
+      item.append(button, pin);
       fragment.appendChild(item);
     }
     list.replaceChildren(fragment);
