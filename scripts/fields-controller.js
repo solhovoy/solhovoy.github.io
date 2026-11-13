@@ -44,7 +44,9 @@ class FieldsController {
     this.render();
     this.panel.style.setProperty("--fields-panel-min-width", `${FIELDS_PANEL_MIN_WIDTH}px`);
     this.panel.style.setProperty("--fields-panel-width", `${this.getWidth()}px`);
-    document.getElementById("fields-resizer").addEventListener("pointerdown", event => this.startResize(event));
+    const resizer = document.getElementById("fields-resizer");
+    resizer.addEventListener("pointerdown", event => this.startResize(event));
+    resizer.addEventListener("dblclick", () => this.resetWidth());
     this.setOpen(localStorage.getItem(LS_KEY_FIELDS_PANEL_OPEN) === "true", { animate: false });
   }
 
@@ -83,6 +85,11 @@ class FieldsController {
     const rounded = Math.round(width);
     this.panel.style.setProperty("--fields-panel-width", `${rounded}px`);
     localStorage.setItem(LS_KEY_FIELDS_PANEL_WIDTH, String(rounded));
+  }
+
+  resetWidth() {
+    this.panel.style.setProperty("--fields-panel-width", `${FIELDS_PANEL_DEFAULT_WIDTH}px`);
+    localStorage.removeItem(LS_KEY_FIELDS_PANEL_WIDTH);
   }
 
   isOpen() {
