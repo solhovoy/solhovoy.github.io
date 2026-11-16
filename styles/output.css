@@ -521,7 +521,6 @@ body.is-reordering * {
   padding-left: 0;
   text-indent: 0;
 }
-.log-line.is-columns .line-prefix { white-space: nowrap; }
 .log-line.is-columns .col {
   min-width: 0;
   padding: 0 8px;
@@ -579,6 +578,13 @@ span.break {
   text-indent: calc(-36px - var(--lnum-w));
   border-radius: 4px;
   transition: background 0.1s;
+}
+.line-prefix {
+  display: inline-block;
+  /* Match the hanging indent rather than the controls' font-dependent width. */
+  width: calc(36px + var(--lnum-w));
+  text-indent: 0;
+  white-space: nowrap;
 }
 .row-check,
 #select-all-check {

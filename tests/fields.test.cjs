@@ -26,7 +26,7 @@ test("highlights keys, literals, numbers and durations without matching inside w
     ["nested.ready=true disabled=false optional=null",
       '<span class="log-key">nested.ready</span>=<span class="log-literal">true</span> ' +
       '<span class="log-key">disabled</span>=<span class="log-literal">false</span> ' +
-      '<span class="log-key">optional</span>=<span class="log-literal">null</span>'],
+      '<span class="log-key">optional</span>=null'],
     ["retries=3 latency=150 ms ratio=-2.5 elapsed=2.5s",
       '<span class="log-key">retries</span>=<span class="log-number">3</span> ' +
       '<span class="log-key">latency</span>=<span class="log-number">150 ms</span> ' +
@@ -57,7 +57,7 @@ test("identifier highlighting is off by default and can be enabled via SYNTAX_HI
     '<span class="log-key">requestId</span>=req-123 ' +
     `<span class="log-key">context.trace_id</span>=<span class="log-string">"${traceId}"</span> ` +
     '<span class="log-key">request.id</span>=<span class="log-number">42</span> ' +
-    '<span class="log-key">traceId</span>=<span class="log-literal">null</span>');
+    '<span class="log-key">traceId</span>=null');
   assert.equal(applyHighlighting("req-123", "requestId"), "req-123");
   withHighlights({ identifier: true }, () => {
     assert.equal(applyHighlighting(input),
@@ -65,9 +65,9 @@ test("identifier highlighting is off by default and can be enabled via SYNTAX_HI
       '<span class="log-key">requestId</span>=<span class="log-identifier">req-123</span> ' +
       `<span class="log-key">context.trace_id</span>=<span class="log-string">"${traceId}"</span> ` +
       '<span class="log-key">request.id</span>=<span class="log-identifier">42</span> ' +
-      '<span class="log-key">traceId</span>=<span class="log-literal">null</span>');
+      '<span class="log-key">traceId</span>=null');
     assert.equal(applyHighlighting("req-123", "requestId"), '<span class="log-identifier">req-123</span>');
-    assert.equal(applyHighlighting("null", "trace.id"), '<span class="log-literal">null</span>');
+    assert.equal(applyHighlighting("null", "trace.id"), "null");
   });
 });
 
@@ -192,7 +192,7 @@ test("uses highlighting in messages, extra fields and columns without changing p
     "json_Service.duration=150 ms missing=null");
   assert.match(columns.html, /data-field="requestId" title="req-123">req-123<\/span>/);
   assert.match(columns.html, /data-field="traceId"[^>]*>4bf92f3577b34da6a3ce929d0e0e4736<\/span>/);
-  assert.match(columns.html, /data-field="missing" title="null"><span class="log-literal">null<\/span>/);
+  assert.match(columns.html, /data-field="missing" title="null">null<\/span>/);
 });
 
 test("discovers all data fields across supported input shapes, including nested and excluded fields", () => {
