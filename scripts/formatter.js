@@ -345,6 +345,7 @@ function esc(str) {
  *   field   — colors a whole selected-field column value when the column name matches
  */
 const SYNTAX_HIGHLIGHTS = {
+  // strings (quoted text)
   string: {
     enabled: true,
     className: "log-string",
@@ -354,6 +355,7 @@ const SYNTAX_HIGHLIGHTS = {
     pattern: String.raw`"(?:\\[^\r\n]|[^"\\\r\n])*"(?![\w{[])|(?<!\w)'(?:\\[^\r\n]|[^'\\\r\n])*'(?![\w{[])`,
     inner: ["url"]
   },
+  // URLs
   url: {
     enabled: true,
     className: "url",
@@ -374,18 +376,21 @@ const SYNTAX_HIGHLIGHTS = {
       value: /^(?!(?:true|false|null)$)\w[\w.:-]*$/i
     }
   },
+  // keys (e.g., variable names before assignment)
   key: {
     enabled: true,
     className: "log-key",
     colors: { dark: "#91a7b3", light: "#526b78" },
     pattern: String.raw`(?<![\w.@-])[@a-z_][\w.@-]*(?=\s*=)`
   },
+  // booleans (true/false)
   literal: {
     enabled: true,
     className: "log-literal",
     colors: { dark: "#b197fc", light: "#7042a6" },
-    pattern: String.raw`(?<![\w.-])(?:true|false|null)(?![\w.-])`
+    pattern: String.raw`(?<![\w.-])(?:true|false)(?![\w.-])`
   },
+  // number (integer or floating-point)
   number: {
     enabled: true,
     className: "log-number",
