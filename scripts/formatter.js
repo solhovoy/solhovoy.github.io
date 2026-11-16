@@ -361,7 +361,8 @@ const SYNTAX_HIGHLIGHTS = {
     enabled: true,
     className: "url",
     colors: { dark: "#3d87c1", light: "#3d87c1" },
-    pattern: String.raw`[a-z][a-z0-9+.-]*:\/\/[^\s"'\\]+`
+    // Brackets/braces end the URL (except an IPv6 host), and trailing punctuation is left out.
+    pattern: String.raw`[a-z][a-z0-9+.-]*:\/\/(?:\[[0-9a-f:.]+\](?:[^\s"'\\[\]{}]*[^\s"'\\[\]{}.,;:!?)])?|[^\s"'\\[\]{}]*[^\s"'\\[\]{}.,;:!?)])`
   },
   // UUIDs and request/trace IDs (requestId, trace_id, request.id, ...).
   identifier: {

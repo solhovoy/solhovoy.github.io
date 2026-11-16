@@ -131,6 +131,10 @@ test("highlights URLs inside quoted strings without coloring quotes or other nes
   assert.equal(applyHighlighting('"https://one.test/1 and wss://two.test/2"'),
     '<span class="log-string">"<span class="url">https://one.test/1</span> and ' +
     '<span class="url">wss://two.test/2</span>"</span>');
+  assert.equal(applyHighlighting("urls=[http://a.test/x],[http://b.test/y]} (see https://c.test/z)."),
+    '<span class="log-key">urls</span>=[<span class="url">http://a.test/x</span>],[<span class="url">http://b.test/y</span>]} ' +
+    '(see <span class="url">https://c.test/z</span>).');
+  assert.equal(applyHighlighting("http://[::1]:8080/p"), '<span class="url">http://[::1]:8080/p</span>');
   assert.equal(applyHighlighting(String.raw`"open \"https://example.test/1\" and 'http://example.test/2'"`),
     String.raw`<span class="log-string">"open \"<span class="url">https://example.test/1</span>\" and '<span class="url">http://example.test/2</span>'"</span>`);
 });
