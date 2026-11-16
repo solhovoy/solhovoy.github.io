@@ -9,8 +9,191 @@ vm.runInContext(
   fs.readFileSync(path.join(__dirname, "../scripts/formatter.js"), "utf8"),
   formatter
 );
-const { normalizeInput, getLogFields, formatLogs } = formatter;
+const { normalizeInput, getLogFields, formatLogs, applyHighlighting } = formatter;
+const SYNTAX_HIGHLIGHTS = vm.runInContext("SYNTAX_HIGHLIGHTS", formatter);
 const timestamp = "2026-11-12T10:00:00.123Z";
+
+function withHighlights(overrides, fn) {
+  const previous = Object.fromEntries(Object.keys(overrides).map(type => [type, SYNTAX_HIGHLIGHTS[type].enabled]));
+  Object.entries(overrides).forEach(([type, enabled]) => { SYNTAX_HIGHLIGHTS[type].enabled = enabled; });
+  try { fn(); } finally {
+    Object.entries(previous).forEach(([type, enabled]) => { SYNTAX_HIGHLIGHTS[type].enabled = enabled; });
+  }
+}
+
+test("highlights keys, literals, numbers and durations without matching inside words or versions", () => {
+  const cases = [
+    ["nested.ready=true disabled=false optional=null",
+      '<span class="log-key">nested.ready</span>=<span class="log-literal">true</span> ' +
+      '<span class="log-key">disabled</span>=<span class="log-literal">false</span> ' +
+      '<span class="log-key">optional</span>=<span class="log-literal">null</span>'],
+    ["retries=3 latency=150 ms ratio=-2.5 elapsed=2.5s",
+      '<span class="log-key">retries</span>=<span class="log-number">3</span> ' +
+      '<span class="log-key">latency</span>=<span class="log-number">150 ms</span> ' +
+      '<span class="log-key">ratio</span>=<span class="log-number">-2.5</span> ' +
+      '<span class="log-key">elapsed</span>=<span class="log-number">2.5s</span>'],
+    ["(.5) +2e-3", '(<span class="log-number">.5</span>) <span class="log-number">+2e-3</span>'],
+    ["trueish false_positive null-value user123 192.168.1.1 2026-11-16 1.2.3",
+      "trueish false_positive null-value user123 192.168.1.1 2026-11-16 1.2.3"]
+  ];
+  for (const [input, expected] of cases) assert.equal(applyHighlighting(input), expected);
+});
+
+test("applyHighlightColors publishes per-theme rule colors as CSS variables", () => {
+  const props = {};
+  const root = { style: { setProperty: (name, value) => { props[name] = value; } } };
+  formatter.applyHighlightColors(root);
+  assert.equal(props["--hl-string-dark"], "#e6da6a");
+  assert.equal(props["--hl-string-light"], "#766a00");
+  assert.deepEqual(Object.keys(props).length, Object.keys(SYNTAX_HIGHLIGHTS).length * 2);
+});
+
+test("identifier highlighting is off by default and can be enabled via SYNTAX_HIGHLIGHTS", () => {
+  const uuid = "550e8400-e29b-41d4-a716-446655440000";
+  const traceId = "4bf92f3577b34da6a3ce929d0e0e4736";
+  const input = `${uuid} requestId=req-123 context.trace_id="${traceId}" request.id=42 traceId=null`;
+  assert.equal(applyHighlighting(input),
+    `${uuid} ` +
+    '<span class="log-key">requestId</span>=req-123 ' +
+    `<span class="log-key">context.trace_id</span>=<span class="log-string">"${traceId}"</span> ` +
+    '<span class="log-key">request.id</span>=<span class="log-number">42</span> ' +
+    '<span class="log-key">traceId</span>=<span class="log-literal">null</span>');
+  assert.equal(applyHighlighting("req-123", "requestId"), "req-123");
+  withHighlights({ identifier: true }, () => {
+    assert.equal(applyHighlighting(input),
+      `<span class="log-identifier">${uuid}</span> ` +
+      '<span class="log-key">requestId</span>=<span class="log-identifier">req-123</span> ' +
+      `<span class="log-key">context.trace_id</span>=<span class="log-string">"${traceId}"</span> ` +
+      '<span class="log-key">request.id</span>=<span class="log-identifier">42</span> ' +
+      '<span class="log-key">traceId</span>=<span class="log-literal">null</span>');
+    assert.equal(applyHighlighting("req-123", "requestId"), '<span class="log-identifier">req-123</span>');
+    assert.equal(applyHighlighting("null", "trace.id"), '<span class="log-literal">null</span>');
+  });
+});
+
+test("each highlight type can be disabled independently, falling back to the remaining rules", () => {
+  const input = `count=42 ok=true name="see https://example.test/1"`;
+  withHighlights({ string: false }, () => assert.equal(applyHighlighting(input),
+    '<span class="log-key">count</span>=<span class="log-number">42</span> ' +
+    '<span class="log-key">ok</span>=<span class="log-literal">true</span> ' +
+    '<span class="log-key">name</span>="see <span class="url">https://example.test/1</span>"'));
+  withHighlights({ url: false, key: false }, () => assert.equal(applyHighlighting(input),
+    'count=<span class="log-number">42</span> ok=<span class="log-literal">true</span> ' +
+    'name=<span class="log-string">"see https://example.test/1"</span>'));
+  withHighlights({ number: false, literal: false }, () => assert.doesNotMatch(applyHighlighting(input), /log-number|log-literal/));
+  const all = Object.fromEntries(Object.keys(SYNTAX_HIGHLIGHTS).map(type => [type, false]));
+  withHighlights(all, () => assert.equal(applyHighlighting('<a href="x">'), '&lt;a href="x"&gt;'));
+  assert.match(applyHighlighting(input), /log-string.*class="url"/);
+});
+
+test("highlights single- and double-quoted strings as whole tokens, including escaped quotes", () => {
+  const strings = [
+    '""', "''",
+    String.raw`"say \"hello\" and 'bye'"`,
+    String.raw`'say \'hello\' and "bye"'`,
+    String.raw`"C:\\logs\\"`,
+    '"ready=true count=42"',
+    "'550e8400-e29b-41d4-a716-446655440000'"
+  ];
+  for (const value of strings) {
+    assert.equal(applyHighlighting(value), `<span class="log-string">${value}</span>`);
+  }
+  assert.equal(applyHighlighting("requestId='req-123'"),
+    '<span class="log-key">requestId</span>=<span class="log-string">\'req-123\'</span>');
+  assert.equal(applyHighlighting('"<b>&</b>"'),
+    '<span class="log-string">"&lt;b&gt;&amp;&lt;/b&gt;"</span>');
+  assert.equal(applyHighlighting("Can't open 'file.txt'"),
+    'Can\'t open <span class="log-string">\'file.txt\'</span>');
+  const unfinished = '"unfinished\n\'also unfinished';
+  assert.equal(applyHighlighting(unfinished), unfinished);
+});
+
+test("keeps quote pairs aligned in unescaped embedded JSON with apostrophes", () => {
+  const s = value => `<span class="log-string">${value}</span>`;
+  assert.equal(applyHighlighting(`cfg="{"key":"'"}" json="{"Men's":"x"}" list="["a"]" on="true"`),
+    `<span class="log-key">cfg</span>="{${s('"key"')}:${s(`"'"`)}}" ` +
+    `<span class="log-key">json</span>="{${s(`"Men's"`)}:${s('"x"')}}" ` +
+    `<span class="log-key">list</span>="[${s('"a"')}]" ` +
+    `<span class="log-key">on</span>=${s('"true"')}`);
+});
+
+test("highlights URLs inside quoted strings without coloring quotes or other nested tokens", () => {
+  const url = "https://example.test/123?ready=true&requestId=req-123";
+  const urlHtml = '<span class="url">https://example.test/123?ready=true&amp;requestId=req-123</span>';
+  for (const quote of ["'", '"']) {
+    assert.equal(applyHighlighting(`${quote}${url}${quote}`),
+      `<span class="log-string">${quote}${urlHtml}${quote}</span>`);
+    assert.equal(applyHighlighting(`${quote}before ${url} after true 42${quote}`),
+      `<span class="log-string">${quote}before ${urlHtml} after true 42${quote}</span>`);
+  }
+  assert.equal(applyHighlighting('"https://one.test/1 and wss://two.test/2"'),
+    '<span class="log-string">"<span class="url">https://one.test/1</span> and ' +
+    '<span class="url">wss://two.test/2</span>"</span>');
+  assert.equal(applyHighlighting(String.raw`"open \"https://example.test/1\" and 'http://example.test/2'"`),
+    String.raw`<span class="log-string">"open \"<span class="url">https://example.test/1</span>\" and '<span class="url">http://example.test/2</span>'"</span>`);
+});
+
+test("keeps URLs as single tokens and escapes raw text before adding markup", () => {
+  const url = "https://example.test/123?ready=true&requestId=req-123&tag=<test>";
+  assert.equal(
+    applyHighlighting(`url=${url}`),
+    '<span class="log-key">url</span>=' +
+    '<span class="url">https://example.test/123?ready=true&amp;requestId=req-123&amp;tag=&lt;test&gt;</span>'
+  );
+  assert.equal(
+    applyHighlighting('<script class="url">true & 42</script>'),
+    '&lt;script <span class="log-key">class</span>=<span class="log-string">"url"</span>&gt;' +
+    '<span class="log-literal">true</span> &amp; <span class="log-number">42</span>&lt;/script&gt;'
+  );
+});
+
+test("prefers event_action_original from ignored_field_values over the kv-parsed copy", () => {
+  const hit = {
+    _id: "1",
+    fields: {
+      "@timestamp": [timestamp],
+      event_action_before_kv_parsing: ["firstText= params= a=1  b=2"]
+    },
+    ignored_field_values: { event_action_original: ["params={a=1 , b=2}"] }
+  };
+  const result = formatLogs(JSON.stringify([hit]), "asc", { hideEmptyMetadata: true });
+  assert.match(result.plain, /params=\{a=1 , b=2\}$/);
+  const logFields = getLogFields({ ...hit, ignored_field_values: { ...hit.ignored_field_values, "@timestamp": ["other"] } });
+  assert.equal(logFields.event_action_original, "params={a=1 , b=2}");
+  assert.equal(logFields["@timestamp"], timestamp);
+});
+
+test("uses highlighting in messages, extra fields and columns without changing plain text or raw JSON", () => {
+  const record = {
+    "@timestamp": timestamp,
+    "log.level": "INFO",
+    c: "Service",
+    "event.action": "ready=true count=42",
+    "json_Service.duration": "150 ms",
+    requestId: "req-123",
+    traceId: "4bf92f3577b34da6a3ce929d0e0e4736"
+  };
+  const result = formatLogs(JSON.stringify(record), "asc", { hideEmptyMetadata: true });
+  assert.equal(result.plain,
+    "2026-11-12 10:00:00,123 INFO c=Service ready=true count=42 duration=150 ms " +
+    "requestId=req-123 traceId=4bf92f3577b34da6a3ce929d0e0e4736");
+  assert.match(result.html, /<span class="log-key">ready<\/span>=<span class="log-literal">true<\/span>/);
+  assert.match(result.html, /<span class="log-key">duration<\/span>=<span class="log-number">150 ms<\/span>/);
+  assert.match(result.html, /<span class="log-key">requestId<\/span>=req-123/);
+  assert.doesNotMatch(result.html, /log-identifier/);
+  const raw = result.html.match(/<pre class="raw-content">([\s\S]*?)<\/pre>/)[1];
+  assert.equal(raw, JSON.stringify(record, null, 2));
+  const columns = formatLogs(JSON.stringify(record), "asc", {
+    selectedFields: ["requestId", "traceId", "json_Service.duration", "missing"],
+    showRawElk: false
+  });
+  assert.equal(columns.plain,
+    "2026-11-12 10:00:00,123 requestId=req-123 traceId=4bf92f3577b34da6a3ce929d0e0e4736 " +
+    "json_Service.duration=150 ms missing=null");
+  assert.match(columns.html, /data-field="requestId" title="req-123">req-123<\/span>/);
+  assert.match(columns.html, /data-field="traceId"[^>]*>4bf92f3577b34da6a3ce929d0e0e4736<\/span>/);
+  assert.match(columns.html, /data-field="missing" title="null"><span class="log-literal">null<\/span>/);
+});
 
 test("discovers all data fields across supported input shapes, including nested and excluded fields", () => {
   const fields = { "@timestamp": timestamp, nested: { errorCode: 0 }, source_type: "test" };
@@ -51,7 +234,7 @@ test("projects selected pairs only, preserves falsy and multi-valued fields, and
   const firstRow = result.html.split('class="log-entry"')[1];
   assert.match(firstRow, /class="log-line is-columns"/);
   assert.equal((firstRow.match(/class="col msg"/g) || []).length, 5);
-  assert.match(firstRow, /title="\[&quot;one&quot;,&quot;two&quot;\]">\["one","two"\]<\/span>/);
+  assert.match(firstRow, /title="\[&quot;one&quot;,&quot;two&quot;\]">\[<span class="log-string">"one"<\/span>,<span class="log-string">"two"<\/span>\]<\/span>/);
 });
 
 test("selected keys override metadata visibility, escape HTML, and keep the raw JSON original", () => {
@@ -62,7 +245,7 @@ test("selected keys override metadata visibility, escape HTML, and keep the raw 
   });
   assert.equal(result.plain,
     "2026-11-12 10:00:00,123 t=thread <key>=<script>alert(1)</script>");
-  assert.match(result.html, /class="col msg"[^>]*>&lt;script&gt;alert\(1\)&lt;\/script&gt;<\/span>/);
+  assert.match(result.html, /class="col msg"[^>]*>&lt;script&gt;alert\(<span class="log-number">1<\/span>\)&lt;\/script&gt;<\/span>/);
   assert.doesNotMatch(result.html, /<script>/);
   assert.match(result.html, /class="raw-json"/);
   assert.match(result.html, /"c": "RawOnly"/);

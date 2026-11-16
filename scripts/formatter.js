@@ -62,7 +62,9 @@ const CORE_FIELDS = [
 const EXCLUDED_FIELDS = ["isVectorDebug", "stack_trace"];
 
 function getLogFields(hit) {
-  return Object.fromEntries(Object.entries(hit?.fields || {}).flatMap(([key, raw]) => {
+  // Values too long for the keyword mapping are only in ignored_field_values; regular fields win.
+  const source = { ...hit?.ignored_field_values, ...hit?.fields };
+  return Object.fromEntries(Object.entries(source).flatMap(([key, raw]) => {
     const value = Array.isArray(raw) && raw.length === 1 ? raw[0] : raw;
     if (value && typeof value === "object" && !Array.isArray(value)) {
       return Object.entries(flattenObject(value, key));
@@ -94,8 +96,11 @@ function formatHit(hit, index, outputSettings = {}) {
   const clsField = fields["c"] ? "c" : (fields["s"] ? "s" : "c");
   const clsValue = unwrap(fields["c"] ?? fields["s"] ?? ["?"]);
   
+  // Long values exceed the keyword ignore_above limit and are moved to ignored_field_values;
+  // prefer that untouched original over the punctuation-stripped kv-parsing copy.
   const rawMessage = unwrap(
     fields["event_action_original"]        ??
+    hit.ignored_field_values?.["event_action_original"] ??
     fields["event_action_before_kv_parsing"] ??
     fields["event.action"]                 ??
     ["?"]
@@ -168,16 +173,16 @@ function formatHit(hit, index, outputSettings = {}) {
 
   // ── html (coloured) ───────────────────────────────────────────────────────
   const lvlClass = LEVEL_CLASS[level] ?? "";
-  const msgHtml = displayMessage ? ` <span class="msg">${applyHighlighting(esc(displayMessage))}</span>` : "";
-  const customHtml = customData ? ` <span class="msg">${applyHighlighting(esc(customData))}</span>` : "";
-  const extraHtml = extraFields ? ` <span class="msg">${applyHighlighting(esc(extraFields))}</span>` : "";
+  const msgHtml = displayMessage ? ` <span class="msg">${applyHighlighting(displayMessage)}</span>` : "";
+  const customHtml = customData ? ` <span class="msg">${applyHighlighting(customData)}</span>` : "";
+  const extraHtml = extraFields ? ` <span class="msg">${applyHighlighting(extraFields)}</span>` : "";
   const fieldsHtml = outputFields.map(field => ` <span class="${field.className}">${esc(field.value)}</span>`).join("");
   // Stack trace HTML (inline with preserved formatting)
   const stackHtml = stackTrace && !selectedFields.length ?
     `<pre class="stack-trace">${esc(stackTrace)}</pre>` : "";
   const contentHtml = selectedFields.length
     ? selectedValues.map((value, i) =>
-        `<span class="col msg" data-field="${esc(selectedFields[i]).replace(/"/g, "&quot;")}" title="${esc(value).replace(/"/g, "&quot;")}">${applyHighlighting(esc(value))}</span>`
+        `<span class="col msg" data-field="${esc(selectedFields[i]).replace(/"/g, "&quot;")}" title="${esc(value).replace(/"/g, "&quot;")}">${applyHighlighting(value, selectedFields[i])}</span>`
       ).join("")
     : fieldsHtml +
       ` <span class="level ${lvlClass}">${esc(level)}</span>` +
@@ -332,25 +337,119 @@ function esc(str) {
 }
 
 /**
- * Highlighting patterns for formatted output.
- * Each entry: { pattern: RegExp (must have capturing group), className: string }
+ * Syntax highlighting for formatted output. Set `enabled` to turn a token type on/off.
+ * Rules are listed by priority: when several match at the same position, the earlier wins.
+ *   colors  — text color per theme, exposed as CSS variables --hl-<type>-dark / --hl-<type>-light
+ *   pattern — regex source (case-insensitive, no named groups)
+ *   inner   — rule types still highlighted inside this token (e.g. URLs inside strings)
+ *   field   — colors a whole selected-field column value when the column name matches
  */
-const HIGHLIGHT_PATTERNS = [
-  // URLs: http://, https://, ws://, wss://, etc.
-  { pattern: /([a-zA-Z][a-zA-Z0-9+.-]*:\/\/[^\s]+)/g, className: "url" },
-];
+const SYNTAX_HIGHLIGHTS = {
+  string: {
+    enabled: true,
+    className: "log-string",
+    colors: { dark: "#e6da6a", light: "#766a00" },
+    // A closing quote directly followed by a word char, "{" or "[" is treated as an opening one, which keeps
+    // pairs aligned in unescaped embedded JSON (a="{"b":1}" c="{"d":2}") and skips apostrophes (Men's).
+    pattern: String.raw`"(?:\\[^\r\n]|[^"\\\r\n])*"(?![\w{[])|(?<!\w)'(?:\\[^\r\n]|[^'\\\r\n])*'(?![\w{[])`,
+    inner: ["url"]
+  },
+  url: {
+    enabled: true,
+    className: "url",
+    colors: { dark: "#3d87c1", light: "#3d87c1" },
+    pattern: String.raw`[a-z][a-z0-9+.-]*:\/\/[^\s"'\\]+`
+  },
+  // UUIDs and request/trace IDs (requestId, trace_id, request.id, ...).
+  identifier: {
+    enabled: false,
+    className: "log-identifier",
+    colors: { dark: "#63c3b4", light: "#0b7265" },
+    pattern: [
+      String.raw`(?<![\w-])[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?![\w-])`,
+      String.raw`(?<=(?<![\w.@-])(?:[@\w-]+\.)*(?:request|trace)[._-]?id\s*=\s*)(?!(?:true|false|null)(?![\w.:-]))\w[\w.:-]*`
+    ].join("|"),
+    field: {
+      name: /(?:^|\.)(?:request|trace)[._-]?id$/i,
+      value: /^(?!(?:true|false|null)$)\w[\w.:-]*$/i
+    }
+  },
+  key: {
+    enabled: true,
+    className: "log-key",
+    colors: { dark: "#91a7b3", light: "#526b78" },
+    pattern: String.raw`(?<![\w.@-])[@a-z_][\w.@-]*(?=\s*=)`
+  },
+  literal: {
+    enabled: true,
+    className: "log-literal",
+    colors: { dark: "#b197fc", light: "#7042a6" },
+    pattern: String.raw`(?<![\w.-])(?:true|false|null)(?![\w.-])`
+  },
+  number: {
+    enabled: true,
+    className: "log-number",
+    colors: { dark: "#e5b567", light: "#906016" },
+    pattern: String.raw`(?<![\w.-])[-+]?(?:\d+(?:\.\d+)?|\.\d+)(?:e[-+]?\d+)?(?:[ \t]*(?:ns|us|ms|s|m|h|d))?(?![\w.-])`
+  }
+};
 
 /**
- * Apply all highlighting patterns to already-escaped HTML text.
+ * Publish rule colors as CSS variables; call again after changing `colors` to restyle without re-rendering.
  */
-function applyHighlighting(escapedText) {
-  let result = escapedText;
-  for (const { pattern, className } of HIGHLIGHT_PATTERNS) {
-    // Reset lastIndex for global regexes
-    pattern.lastIndex = 0;
-    result = result.replace(pattern, `<span class="${className}">$1</span>`);
+function applyHighlightColors(root = globalThis.document?.documentElement) {
+  if (!root) return;
+  for (const [type, { colors }] of Object.entries(SYNTAX_HIGHLIGHTS)) {
+    root.style.setProperty(`--hl-${type}-dark`, colors.dark);
+    root.style.setProperty(`--hl-${type}-light`, colors.light);
   }
-  return result;
+}
+
+applyHighlightColors();
+
+let compiledHighlights = null;
+
+function getHighlightRegex() {
+  const types = Object.keys(SYNTAX_HIGHLIGHTS).filter(type => SYNTAX_HIGHLIGHTS[type].enabled);
+  const key = types.join();
+  // Recompile only when the set of enabled rules changes.
+  if (compiledHighlights?.key !== key) {
+    const source = types.map(type => `(?<${type}>${SYNTAX_HIGHLIGHTS[type].pattern})`).join("|");
+    compiledHighlights = { key, regex: source ? new RegExp(source, "gi") : null };
+  }
+  return compiledHighlights.regex;
+}
+
+function wrapToken(rule, escapedValue) {
+  let content = escapedValue;
+  for (const innerType of rule.inner || []) {
+    const inner = SYNTAX_HIGHLIGHTS[innerType];
+    if (!inner?.enabled) continue;
+    content = content.replace(new RegExp(inner.pattern, "gi"), `<span class="${inner.className}">$&</span>`);
+  }
+  return `<span class="${rule.className}">${content}</span>`;
+}
+
+/**
+ * Highlight raw text, escaping each fragment before adding spans.
+ */
+function applyHighlighting(text, fieldName = "") {
+  const fieldRule = fieldName && Object.values(SYNTAX_HIGHLIGHTS).find(rule =>
+    rule.enabled && rule.field?.name.test(fieldName) && rule.field.value.test(text));
+  if (fieldRule) return wrapToken(fieldRule, esc(text));
+
+  const regex = getHighlightRegex();
+  if (!regex) return esc(text);
+  let html = "";
+  let offset = 0;
+  // Match raw text only, so generated markup is never re-tokenized.
+  for (const match of text.matchAll(regex)) {
+    html += esc(text.slice(offset, match.index));
+    const [type, value] = Object.entries(match.groups).find(([, group]) => group !== undefined);
+    html += wrapToken(SYNTAX_HIGHLIGHTS[type], esc(value));
+    offset = match.index + match[0].length;
+  }
+  return html + esc(text.slice(offset));
 }
 
 // Elasticsearch metadata fields (not log data)

@@ -245,7 +245,7 @@ function isHiddenOutputField(field, outputSettings) {
 }
 
 function matchLeaf(node, hit, outputSettings) {
-  const fields = hit.fields || {};
+  const fields = getLogFields(hit);
   const term   = String(node.term ?? "").toLowerCase();
   const field  = node.field;
 

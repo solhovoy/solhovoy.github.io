@@ -9,6 +9,7 @@ A browser-based tool for formatting and filtering raw JSON log hits exported fro
 - **Date and time range** — an Elastic-inspired, standalone absolute range picker automatically initializes from exact `@timestamp` bounds, including milliseconds; changes apply with the main **Apply** button
 - **Saved filters** — save frequently used filters, export/import them as JSON; persisted in `localStorage`
 - **Sort toggle** — switch between ascending and descending timestamp order; persisted in `localStorage`
+- **Syntax colors** — highlight URLs, `key=value` keys, `true`/`false`/`null`, numbers and durations (`150 ms`, `2.5s`), and quoted strings in messages and field columns. Single- and double-quoted strings (including the quotes) use `#E6DA6A` in the dark theme and `#766A00` in the light theme, with URLs retaining their own color even inside strings. Raw JSON and plain-text copies stay unchanged. Each token type is a rule in `SYNTAX_HIGHLIGHTS` (`scripts/formatter.js`) with an `enabled` flag and per-theme `colors` (published as `--hl-<type>-dark`/`--hl-<type>-light` CSS variables); UUID and request/trace ID highlighting (`identifier`) is currently disabled
 - **Highlight** — matched search terms are highlighted in the output
 - **Copy to clipboard** — copy the formatted (filtered) output as plain text
 - **Settings** — centered Settings dialog with live formatted-output preview, explicit Save/Cancel controls, and JSON export/import

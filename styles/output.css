@@ -332,7 +332,7 @@ body.is-resizing-fields {
   user-select: none;
 }
 
-/* log level colours */
+/* log colours */
 #output .ts { color: #74c0fc; }
 #output .meta { color: #868e96; }
 #output .host { color: #868e96; }
@@ -341,7 +341,19 @@ body.is-resizing-fields {
 :root.light #output .msg { color: #212529; }
 :root.light #output .ts { color: var(--accent); }
 :root.light #output .cls { color: #9c0dc0; font-weight: 500; }
-#output .url { color: #3d87c1; }
+/* Syntax colors come from SYNTAX_HIGHLIGHTS (scripts/formatter.js) via --hl-<type>-dark/light. */
+#output .url { color: var(--hl-url-dark); }
+#output .log-key { color: var(--hl-key-dark); }
+#output .log-literal { color: var(--hl-literal-dark); }
+#output .log-number { color: var(--hl-number-dark); }
+#output .log-identifier { color: var(--hl-identifier-dark); }
+#output .log-string { color: var(--hl-string-dark); }
+:root.light #output .url { color: var(--hl-url-light); }
+:root.light #output .log-key { color: var(--hl-key-light); }
+:root.light #output .log-literal { color: var(--hl-literal-light); }
+:root.light #output .log-number { color: var(--hl-number-light); }
+:root.light #output .log-identifier { color: var(--hl-identifier-light); }
+:root.light #output .log-string { color: var(--hl-string-light); }
 #output .search-match,
 .field-name .search-match {
   color: black;
