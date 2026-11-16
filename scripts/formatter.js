@@ -290,8 +290,8 @@ function extractExtraFields(fields, className, message = "") {
  * Check if a field key=value pattern already exists in the message.
  */
 function isFieldInMessage(key, message) {
-  // Check for key= pattern (after start, whitespace, or comma to handle kv-parsed fields)
-  const pattern = new RegExp(`(?:^|[\\s,])${escapeRegex(key)}=`, "i");
+  // key= not glued to a longer key, so nested values like "Resp{key=" or "[key=" also count.
+  const pattern = new RegExp(`(?<![\\w.@-])${escapeRegex(key)}=`, "i");
   return pattern.test(message);
 }
 

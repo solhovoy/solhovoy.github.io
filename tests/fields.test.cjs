@@ -147,6 +147,20 @@ test("keeps URLs as single tokens and escapes raw text before adding markup", ()
   );
 });
 
+test("does not repeat extra fields already present inside nested message values", () => {
+  const record = {
+    "@timestamp": timestamp,
+    c: "Svc",
+    event_action_original: "Received response=Resp{normalPrefs={a:[x]}, fallback={b:[]}}",
+    normalPrefs: "a: x",
+    fallback: "b:",
+    response: "Resp",
+    prefs: "kept"
+  };
+  const result = formatLogs(JSON.stringify(record), "asc", { hideEmptyMetadata: true });
+  assert.match(result.plain, /fallback=\{b:\[\]\}\} prefs=kept$/);
+});
+
 test("prefers event_action_original from ignored_field_values over the kv-parsed copy", () => {
   const hit = {
     _id: "1",
