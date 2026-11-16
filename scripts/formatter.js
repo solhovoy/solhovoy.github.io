@@ -287,11 +287,12 @@ function extractExtraFields(fields, className, message = "") {
 }
 
 /**
- * Check if a field key=value pattern already exists in the message.
+ * Check if a field already exists in the message as key=value or as a JSON key ("key": value).
  */
 function isFieldInMessage(key, message) {
+  const k = escapeRegex(key);
   // key= not glued to a longer key, so nested values like "Resp{key=" or "[key=" also count.
-  const pattern = new RegExp(`(?<![\\w.@-])${escapeRegex(key)}=`, "i");
+  const pattern = new RegExp(`(?<![\\w.@-])${k}=|"${k}"\\s*:`, "i");
   return pattern.test(message);
 }
 
@@ -390,12 +391,12 @@ const SYNTAX_HIGHLIGHTS = {
     colors: { dark: "#b197fc", light: "#7042a6" },
     pattern: String.raw`(?<![\w.-])(?:true|false)(?![\w.-])`
   },
-  // number (integer or floating-point)
+  // number (integer, floating-point or dotted version like 2.0.2.0)
   number: {
     enabled: true,
     className: "log-number",
     colors: { dark: "#e5b567", light: "#906016" },
-    pattern: String.raw`(?<![\w.-])[-+]?(?:\d+(?:\.\d+)?|\.\d+)(?:e[-+]?\d+)?(?:[ \t]*(?:ns|us|ms|s|m|h|d))?(?![\w.-])`
+    pattern: String.raw`(?<![\w.-])[-+]?(?:\d+(?:\.\d+)*|\.\d+)(?:e[-+]?\d+)?(?:[ \t]*(?:ns|us|ms|s|m|h|d))?(?![\w.-])`
   }
 };
 

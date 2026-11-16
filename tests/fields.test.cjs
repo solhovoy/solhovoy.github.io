@@ -21,7 +21,7 @@ function withHighlights(overrides, fn) {
   }
 }
 
-test("highlights keys, literals, numbers and durations without matching inside words or versions", () => {
+test("highlights keys, literals, numbers, versions and durations without matching inside words", () => {
   const cases = [
     ["nested.ready=true disabled=false optional=null",
       '<span class="log-key">nested.ready</span>=<span class="log-literal">true</span> ' +
@@ -33,8 +33,10 @@ test("highlights keys, literals, numbers and durations without matching inside w
       '<span class="log-key">ratio</span>=<span class="log-number">-2.5</span> ' +
       '<span class="log-key">elapsed</span>=<span class="log-number">2.5s</span>'],
     ["(.5) +2e-3", '(<span class="log-number">.5</span>) <span class="log-number">+2e-3</span>'],
-    ["trueish false_positive null-value user123 192.168.1.1 2026-11-16 1.2.3",
-      "trueish false_positive null-value user123 192.168.1.1 2026-11-16 1.2.3"]
+    ["versionInfoSw=2.0.2.0 v1.2.3",
+      '<span class="log-key">versionInfoSw</span>=<span class="log-number">2.0.2.0</span> v1.2.3'],
+    ["trueish false_positive null-value user123 2026-11-16 1.2.3.",
+      "trueish false_positive null-value user123 2026-11-16 1.2.3."]
   ];
   for (const [input, expected] of cases) assert.equal(applyHighlighting(input), expected);
 });
@@ -159,6 +161,20 @@ test("does not repeat extra fields already present inside nested message values"
   };
   const result = formatLogs(JSON.stringify(record), "asc", { hideEmptyMetadata: true });
   assert.match(result.plain, /fallback=\{b:\[\]\}\} prefs=kept$/);
+});
+
+test("does not repeat extra fields that are JSON keys inside the message", () => {
+  const record = {
+    "@timestamp": timestamp,
+    c: "Svc",
+    event_action_original: 'ARS Request: {"types":["A","B"],"profile":"X:2","info":{"map":"m:0"}}',
+    types: "A  B",
+    profile: "X:2",
+    map: "m:0",
+    "profile2": "kept"
+  };
+  const result = formatLogs(JSON.stringify(record), "asc", { hideEmptyMetadata: true });
+  assert.match(result.plain, /"map":"m:0"\}\} profile2=kept$/);
 });
 
 test("prefers event_action_original from ignored_field_values over the kv-parsed copy", () => {
