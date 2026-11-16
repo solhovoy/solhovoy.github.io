@@ -247,7 +247,8 @@ body.is-resizing-fields {
 .fields-list { list-style: none; margin: 6px 0 14px; }
 .fields-list[hidden] + h3,
 .fields-list[hidden] + .fields-section-header { margin-top: 14px; }
-#fields-selected { position: relative; }
+#fields-selected,
+#fields-pinned { position: relative; }
 .field-option {
   width: 100%;
   justify-content: space-between;
@@ -260,7 +261,8 @@ body.is-resizing-fields {
 .field-option:hover { background: var(--bg-input); color: var(--accent); }
 /* Red on hover in Selected fields signals that clicking removes the field. */
 #fields-selected .field-option:hover { color: var(--error); }
-#fields-selected .field-option.is-dragging { color: var(--accent); background: var(--bg-input); }
+#fields-selected .field-option.is-dragging,
+#fields-pinned .field-option.is-dragging { color: var(--accent); background: var(--bg-input); }
 :root.light .field-option:hover { background: rgba(0, 0, 0, 0.05); }
 .field-name { overflow-wrap: anywhere; min-width: 0; }
 .field-item { display: flex; align-items: stretch; }

@@ -101,3 +101,40 @@ test("empty selection restores the standard formatter without changing sort or s
   assert.match(reset.plains[0], /c=Second/);
   assert.match(reset.plains[1], /c=First hello/);
 });
+
+test("reorders pinned fields around visible neighbours, persists order, and leaves selection unchanged", () => {
+  const stored = new Map();
+  let drag;
+  const context = vm.createContext({
+    localStorage: {
+      getItem: key => stored.get(key) ?? null,
+      setItem: (key, value) => stored.set(key, value)
+    },
+    startReorderDrag: (event, button, options) => { drag = options; }
+  });
+  for (const file of ["constants.js", "storage.js", "fields-controller.js"]) {
+    vm.runInContext(fs.readFileSync(path.join(__dirname, "../scripts", file), "utf8"), context);
+  }
+  const controller = vm.runInContext("Object.create(FieldsController.prototype)", context);
+  controller.pinnedFields = ["hidden.first", "trace.id", "hidden.middle", "trace.name", "hidden.last"];
+  controller.selectedFields = new Set(["trace.name", "trace.id"]);
+  controller.pinnedList = {};
+  controller.render = () => {};
+  controller.onChange = () => assert.fail("Reordering pins must not change selected columns");
+  const visible = ["trace.id", "trace.name"];
+  const reorder = (key, from, to) => {
+    controller.startFieldDrag({}, key, {}, visible, "pinned");
+    assert.equal(drag.indicatorParent, controller.pinnedList);
+    drag.onDrop(from, to);
+    assert.deepEqual(JSON.parse(stored.get("elkPinnedFields")), [...controller.pinnedFields]);
+    assert.deepEqual([...controller.selectedFields], ["trace.name", "trace.id"]);
+  };
+  reorder("trace.id", 0, 1);
+  assert.deepEqual([...controller.pinnedFields],
+    ["hidden.first", "hidden.middle", "trace.name", "trace.id", "hidden.last"]);
+  visible.reverse();
+  reorder("trace.id", 1, 0);
+  assert.deepEqual([...controller.pinnedFields],
+    ["hidden.first", "hidden.middle", "trace.id", "trace.name", "hidden.last"]);
+  assert.deepEqual([...vm.runInContext("getPinnedFields()", context)], [...controller.pinnedFields]);
+});

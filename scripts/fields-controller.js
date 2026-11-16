@@ -159,21 +159,24 @@ class FieldsController {
     this.onChange();
   }
 
-  startSelectedDrag(event, key, button, visibleKeys) {
+  startFieldDrag(event, key, button, visibleKeys, mode) {
+    const selected = mode === "selected";
+    const list = selected ? this.selectedList : this.pinnedList;
     startReorderDrag(event, button, {
       axis: "y",
-      getItems: () => [...this.selectedList.querySelectorAll(".field-option")],
-      indicatorParent: this.selectedList,
+      getItems: () => [...list.querySelectorAll(".field-option")],
+      indicatorParent: list,
       label: key,
       onDrop: (from, to) => {
         // The list may be filtered by search, so place the field next to its visible neighbour.
         const visible = visibleKeys.filter(visibleKey => visibleKey !== key);
-        const order = this.getSelectedFields().filter(selectedKey => selectedKey !== key);
+        const order = (selected ? this.getSelectedFields() : this.pinnedFields).filter(fieldKey => fieldKey !== key);
         const position = to < visible.length
           ? order.indexOf(visible[to])
           : order.indexOf(visible[visible.length - 1]) + 1;
         order.splice(position, 0, key);
-        this.setSelectedOrder(order);
+        if (selected) this.setSelectedOrder(order);
+        else this.setPinnedFields(order);
       }
     });
   }
@@ -252,9 +255,9 @@ class FieldsController {
       action.setAttribute("aria-hidden", "true");
       button.append(name, action);
       button.setAttribute("aria-label", button.title);
-      if (selected && fields.length > 1) {
+      if ((selected || mode === "pinned") && fields.length > 1) {
         button.title += "\nDrag to reorder";
-        button.addEventListener("pointerdown", event => this.startSelectedDrag(event, key, button, fields));
+        button.addEventListener("pointerdown", event => this.startFieldDrag(event, key, button, fields, mode));
       }
       button.addEventListener("click", () => {
         if (mode === "pinned" && this.selectedFields.has(key)) return;

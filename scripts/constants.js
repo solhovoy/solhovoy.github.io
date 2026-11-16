@@ -26,7 +26,7 @@ const FIELD_COLUMN_AUTOSCROLL_SPEED = 300;
 // Pointer movement (px) before a press on a column header or selected field becomes a reorder drag.
 const REORDER_DRAG_THRESHOLD = 4;
 // Field names hidden from the fields panel; "*" matches any characters.
-const FIELDS_PANEL_HIDDEN_PATTERNS = ["@timestamp", "kv_obj.*", "event_action_before_kv_parsing", "event.size"];
+const FIELDS_PANEL_HIDDEN_PATTERNS = ["@timestamp", "kv_obj.*", "event_action_length*", "event_action_before_kv_parsing", "event.size"];
 
 const MSG_COPIED = "Copied to clipboard";
 const MSG_FILTER_SAVED = "Filter saved";
