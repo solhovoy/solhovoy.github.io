@@ -525,9 +525,8 @@ body.is-reordering * {
 .log-line.is-columns .col {
   min-width: 0;
   padding: 0 8px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
 /* ── Log entry with raw JSON toggle ── */
