@@ -354,7 +354,7 @@ const SYNTAX_HIGHLIGHTS = {
     // A closing quote directly followed by a word char, "{" or "[" is treated as an opening one, which keeps
     // pairs aligned in unescaped embedded JSON (a="{"b":1}" c="{"d":2}") and skips apostrophes (Men's).
     pattern: String.raw`"(?:\\[^\r\n]|[^"\\\r\n])*"(?![\w{[])|(?<!\w)'(?:\\[^\r\n]|[^'\\\r\n])*'(?![\w{[])`,
-    inner: ["url"]
+    inner: ["url", "literal", "number"]
   },
   // URLs
   url: {
@@ -366,7 +366,7 @@ const SYNTAX_HIGHLIGHTS = {
   },
   // UUIDs and request/trace IDs (requestId, trace_id, request.id, ...).
   identifier: {
-    enabled: false,
+    enabled: true,
     className: "log-identifier",
     colors: { dark: "#63c3b4", light: "#0b7265" },
     pattern: [
