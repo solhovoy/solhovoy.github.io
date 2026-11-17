@@ -5,6 +5,7 @@ class PreferencesController {
     this.sortColumn = document.getElementById("bar-col-sort");
     this.sortOrder = localStorage.getItem("elkSortOrder") || "asc";
     this.theme = localStorage.getItem(LS_KEY_THEME) || "dark";
+    this.showMinimap = localStorage.getItem(LS_KEY_SHOW_MINIMAP) !== "false";
     this.outputSettings = getOutputSettings();
     if (!this.outputSettings.shownFields) this.setShownFields(this.getShownFields());
     this.highlightSelectedRows = this.outputSettings.highlightSelectedRows === true;
@@ -23,6 +24,10 @@ class PreferencesController {
 
   getTheme() {
     return this.theme;
+  }
+
+  getShowMinimap() {
+    return this.showMinimap;
   }
 
   getHighlightSelectedRows() {
@@ -81,6 +86,11 @@ class PreferencesController {
     this.theme = theme;
     localStorage.setItem(LS_KEY_THEME, this.theme);
     this.applyTheme();
+  }
+
+  setShowMinimap(enabled) {
+    this.showMinimap = Boolean(enabled);
+    localStorage.setItem(LS_KEY_SHOW_MINIMAP, String(this.showMinimap));
   }
 
   setHighlightSelectedRows(enabled) {

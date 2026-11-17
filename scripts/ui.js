@@ -80,6 +80,7 @@ function renderHits(hits, totalCount = hits.length) {
     plainText = "";
     plainLines = [];
     outputController.reset();
+    outputMinimap.refresh();
     setLinenumWidth(0);
     setStatus(result.error, "err");
     return;
@@ -106,9 +107,11 @@ function renderHits(hits, totalCount = hits.length) {
 
 btnFormat.addEventListener("click", doFormat);
 const inputController = new InputController({ onFormat: doFormat });
+const outputMinimap = new OutputMinimap({ scroller: document.getElementById("output-wrap"), content: outputEl });
 const outputController = new OutputController({
   getPlainText: () => plainText,
   getPlainLines: () => plainLines,
+  onSelectionChange: () => outputMinimap.refresh(),
   onReorderColumns: order => fieldsController.setSelectedOrder(order),
   onColumnSortChange: () => {
     if (parsedData.length) applyFilter({ flash: false });
@@ -121,6 +124,7 @@ const preferencesController = new PreferencesController({
     if (parsedData.length) applyFilter({ flash: false });
   }
 });
+outputMinimap.setEnabled(preferencesController.getShowMinimap());
 const fieldsController = new FieldsController({
   onChange: () => {
     if (parsedData.length) applyFilter({ flash: false });
@@ -130,6 +134,7 @@ const settingsController = new SettingsController({
   popupManager,
   preferencesController,
   outputController,
+  outputMinimap,
   fieldsController,
   onOutputSettingsChange: () => {
     if (parsedData.length) applyFilter({ flash: false });
@@ -178,6 +183,7 @@ function applyFilter({ flash = true } = {}) {
     outputController.setFieldColumns([]);
     outputEl.innerHTML = `<div class="no-filter-results">No entries match the filter / date range</div>`;
     outputController.showOutputControls(false);
+    outputMinimap.refresh();
     setStatus(`✓ 0 of ${parsedData.length} entries formatted`, "ok");
     if (flash) flashOutput();
     return true;
@@ -187,6 +193,7 @@ function applyFilter({ flash = true } = {}) {
   highlightSearchTerms(result.patterns);
   // Highlight marks add padding, so re-measure auto column widths.
   if (result.patterns?.length || result.fieldPatterns?.length) outputController.fitColumnsToContent();
+  outputMinimap.refresh();
   if (flash) flashOutput();
   return true;
 }
@@ -287,6 +294,7 @@ btnClear.addEventListener("click", () => {
   fieldsController.clear();
   outputController.setFieldColumns([]);
   outputController.reset();
+  outputMinimap.refresh();
   setLinenumWidth(0);
   searchController.setValue("");
   dateRangeFilter.clear({ resetAvailableRange: true });

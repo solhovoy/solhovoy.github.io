@@ -204,6 +204,10 @@
       </div>
       <div id="output"></div>
       </div>
+      <div id="output-minimap" title="Click or drag to scroll" aria-hidden="true" hidden>
+        <canvas></canvas>
+        <div class="minimap-viewport" hidden></div>
+      </div>
     </div>
   </div>
 
@@ -246,6 +250,13 @@
               <span class="theme-switch-icon" aria-hidden="true"></span>
               <span class="theme-switch-label"></span>
             </button>
+          </fieldset>
+          <fieldset class="settings-field settings-output-group">
+            <legend>Minimap</legend>
+            <label class="settings-checkbox">
+              <input id="settings-show-minimap" type="checkbox" />
+              <span>Show minimap</span>
+            </label>
           </fieldset>
         </section>
         <section class="settings-panel" data-settings-panel="output" hidden>
@@ -370,6 +381,7 @@
 <script src="scripts/input-controller.js"></script>
 <script src="scripts/search-ui-controller.js"></script>
 <script src="scripts/output-controller.js"></script>
+<script src="scripts/minimap.js"></script>
 <script src="scripts/fields-controller.js"></script>
 <script src="scripts/preferences-controller.js"></script>
 <script src="scripts/popup-manager.js"></script>

@@ -1,5 +1,6 @@
 class OutputController {
-  constructor({ getPlainText, getPlainLines, onReorderColumns, onColumnSortChange }) {
+  constructor({ getPlainText, getPlainLines, onReorderColumns, onColumnSortChange, onSelectionChange }) {
+    this.onSelectionChange = onSelectionChange;
     this.getPlainText = getPlainText;
     this.getPlainLines = getPlainLines;
     this.onReorderColumns = onReorderColumns;
@@ -291,6 +292,7 @@ class OutputController {
     }
     this.syncSelectedRowHighlights();
     this.updateCopySelected();
+    this.onSelectionChange?.();
   }
 
   setHighlightSelectedRows(enabled) {

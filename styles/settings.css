@@ -98,8 +98,7 @@
   color: var(--text-dim);
 }
 
-.settings-output-group + .settings-output-group,
-.settings-export-group + .settings-export-group {
+.settings-field + .settings-field {
   margin-top: 10px;
 }
 

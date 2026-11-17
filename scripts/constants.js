@@ -7,6 +7,7 @@ const LS_KEY_PINNED_FIELDS = "elkPinnedFields";
 const LS_KEY_OUTPUT_SETTINGS = "elkOutputSettings";
 const LS_KEY_EXPORT_SETTINGS = "elkExportSettings";
 const LS_KEY_THEME = "elkTheme";
+const LS_KEY_SHOW_MINIMAP = "elkShowMinimap";
 const LS_KEY_FIELDS_PANEL_OPEN = "elkFieldsPanelOpen";
 const LS_KEY_FIELDS_PANEL_WIDTH = "elkFieldsPanelWidth";
 // Keep in sync with the default #fields-panel flex-basis in styles/output.css.
@@ -25,6 +26,21 @@ const FIELD_COLUMN_AUTOSCROLL_EDGE = 40;
 const FIELD_COLUMN_AUTOSCROLL_SPEED = 300;
 // Pointer movement (px) before a press on a column header or selected field becomes a reorder drag.
 const REORDER_DRAG_THRESHOLD = 4;
+// Output minimap (scripts/minimap.js): px per output text line, max px per character (narrower when
+// the output is wide, so whole lines fit), side padding (px), width of each overview ruler (px; selected rows on the left,
+// ERROR/WARN on the right), text/selection opacity and the filled share of each line's height.
+const MINIMAP_LINE_HEIGHT = 3;
+const MINIMAP_CHAR_WIDTH = 1.2;
+const MINIMAP_PADDING = 4;
+const MINIMAP_SELECTION_RULER_WIDTH = 5;
+const MINIMAP_LEVEL_RULER_WIDTH = 5;
+const MINIMAP_TEXT_ALPHA = 0.7;
+const MINIMAP_SELECTED_ALPHA = 0.25;
+const MINIMAP_RULER_BG_ALPHA = 0.08;
+const MINIMAP_ROW_FILL = 0.67;
+// Min height (px) of the visible-area box and delay (ms) before re-measuring after the output resizes.
+const MINIMAP_MIN_VIEWPORT_HEIGHT = 12;
+const MINIMAP_RESIZE_DEBOUNCE = 120;
 // Field names hidden from the fields panel; "*" matches any characters.
 const FIELDS_PANEL_HIDDEN_PATTERNS = ["@timestamp", "kv_obj.*", "event_action_length*", "event_action_before_kv_parsing", "event.size"];
 

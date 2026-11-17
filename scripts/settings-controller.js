@@ -1,8 +1,9 @@
 class SettingsController {
-  constructor({ popupManager, preferencesController, outputController, fieldsController, onOutputSettingsChange }) {
+  constructor({ popupManager, preferencesController, outputController, outputMinimap, fieldsController, onOutputSettingsChange }) {
     this.popupManager = popupManager;
     this.preferencesController = preferencesController;
     this.outputController = outputController;
+    this.outputMinimap = outputMinimap;
     this.fieldsController = fieldsController;
     this.onOutputSettingsChange = onOutputSettingsChange;
     this.popup = document.getElementById("settings-modal");
@@ -16,6 +17,7 @@ class SettingsController {
     this.themeSwitch = document.getElementById("settings-theme-switch");
     this.themeSwitchIcon = this.themeSwitch.querySelector(".theme-switch-icon");
     this.themeSwitchLabel = this.themeSwitch.querySelector(".theme-switch-label");
+    this.showMinimapInput = document.getElementById("settings-show-minimap");
     this.highlightSelectedInput = document.getElementById("settings-highlight-selected");
     this.showRawElkInput = document.getElementById("settings-show-raw-elk");
     this.hideEmptyMetadataInput = document.getElementById("settings-hide-empty-metadata");
@@ -68,6 +70,7 @@ class SettingsController {
     this.exportInputs.forEach(input => {
       input.checked = exportSettings[input.dataset.settingsExport] !== false;
     });
+    this.showMinimapInput.checked = this.preferencesController.getShowMinimap();
     this.highlightSelectedInput.checked = this.preferencesController.getHighlightSelectedRows();
     this.showRawElkInput.checked = this.preferencesController.getShowRawElk();
     this.hideEmptyMetadataInput.checked = this.preferencesController.getHideEmptyMetadata();
@@ -135,7 +138,10 @@ class SettingsController {
       snapshot.fieldsPanelWidth = this.fieldsController.getWidth();
       snapshot.sortOrder = this.preferencesController.getSortOrder();
     }
-    if (included.general) snapshot.theme = this.preferencesController.getTheme();
+    if (included.general) {
+      snapshot.theme = this.preferencesController.getTheme();
+      snapshot.showMinimap = this.preferencesController.getShowMinimap();
+    }
     if (included.output) {
       const outputSettings = this.preferencesController.getOutputSettings();
       snapshot.outputSettings = {
@@ -220,6 +226,7 @@ class SettingsController {
 
     const currentOutputSettings = this.preferencesController.getOutputSettings();
     if ("theme" in snapshot) this.preferencesController.setTheme(snapshot.theme);
+    if ("showMinimap" in snapshot) this.showMinimapInput.checked = snapshot.showMinimap;
     if ("fieldsPanelOpen" in snapshot) this.fieldsController.setOpen(snapshot.fieldsPanelOpen);
     if ("fieldsPanelWidth" in snapshot) this.fieldsController.setWidth(snapshot.fieldsPanelWidth);
     if ("sortOrder" in snapshot) this.preferencesController.setSortOrder(snapshot.sortOrder);
@@ -241,10 +248,11 @@ class SettingsController {
   isValidSnapshot(snapshot) {
     if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) return false;
     if (![
-      "theme", "fieldsPanelOpen", "fieldsPanelWidth", "sortOrder",
+      "theme", "showMinimap", "fieldsPanelOpen", "fieldsPanelWidth", "sortOrder",
       "outputSettings", "savedFilters", "recentDateRanges", "pinnedFields"
     ].some(key => key in snapshot)) return false;
     if ("theme" in snapshot && snapshot.theme !== "dark" && snapshot.theme !== "light") return false;
+    if ("showMinimap" in snapshot && typeof snapshot.showMinimap !== "boolean") return false;
     if ("sortOrder" in snapshot && snapshot.sortOrder !== "asc" && snapshot.sortOrder !== "desc") return false;
     if ("fieldsPanelOpen" in snapshot && typeof snapshot.fieldsPanelOpen !== "boolean") return false;
     if ("fieldsPanelWidth" in snapshot
@@ -290,6 +298,8 @@ class SettingsController {
     setExportSettings(Object.fromEntries(
       this.exportInputs.map(input => [input.dataset.settingsExport, input.checked])
     ));
+    this.preferencesController.setShowMinimap(this.showMinimapInput.checked);
+    this.outputMinimap.setEnabled(this.showMinimapInput.checked);
     this.preferencesController.setHighlightSelectedRows(this.highlightSelectedInput.checked);
     this.preferencesController.setShowRawElk(this.showRawElkInput.checked);
     this.preferencesController.setHideEmptyMetadata(this.hideEmptyMetadataInput.checked);

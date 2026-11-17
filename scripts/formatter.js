@@ -190,7 +190,7 @@ function formatHit(hit, index, outputSettings = {}) {
       msgHtml + customHtml + extraHtml;
 
   const html =
-    `<div class="log-entry" data-index="${index}" data-selection-id="${selectionId}">` +
+    `<div class="log-entry" data-index="${index}" data-selection-id="${selectionId}"${lvlClass ? ` data-level="${level}"` : ""}>` +
     `<div class="log-line${selectedFields.length ? " is-columns" : ""}">` +
     `<span class="line-prefix">` +
     `<input type="checkbox" class="row-check" />` +
