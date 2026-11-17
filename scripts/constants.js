@@ -32,11 +32,11 @@ const REORDER_DRAG_THRESHOLD = 4;
 const MINIMAP_LINE_HEIGHT = 3;
 const MINIMAP_CHAR_WIDTH = 1.2;
 const MINIMAP_PADDING = 4;
-const MINIMAP_SELECTION_RULER_WIDTH = 5;
-const MINIMAP_LEVEL_RULER_WIDTH = 5;
+const MINIMAP_SELECTION_RULER_WIDTH = 3;
+const MINIMAP_LEVEL_RULER_WIDTH = 3;
 const MINIMAP_TEXT_ALPHA = 0.7;
 const MINIMAP_SELECTED_ALPHA = 0.25;
-const MINIMAP_RULER_BG_ALPHA = 0.08;
+const MINIMAP_RULER_BG_ALPHA = 0; //transparent background for minimap rulers
 const MINIMAP_ROW_FILL = 0.67;
 // Min height (px) of the visible-area box and delay (ms) before re-measuring after the output resizes.
 const MINIMAP_MIN_VIEWPORT_HEIGHT = 12;
