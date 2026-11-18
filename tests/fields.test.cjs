@@ -50,25 +50,25 @@ test("applyHighlightColors publishes per-theme rule colors as CSS variables", ()
   assert.deepEqual(Object.keys(props).length, Object.keys(SYNTAX_HIGHLIGHTS).length * 2);
 });
 
-test("identifier highlighting is off by default and can be enabled via SYNTAX_HIGHLIGHTS", () => {
+test("identifier highlighting is enabled by default and can be disabled via SYNTAX_HIGHLIGHTS", () => {
   const uuid = "550e8400-e29b-41d4-a716-446655440000";
   const traceId = "4bf92f3577b34da6a3ce929d0e0e4736";
   const input = `${uuid} requestId=req-123 context.trace_id="${traceId}" request.id=42 traceId=null`;
   assert.equal(applyHighlighting(input),
-    `${uuid} ` +
-    '<span class="log-key">requestId</span>=req-123 ' +
+    `<span class="log-identifier">${uuid}</span> ` +
+    '<span class="log-key">requestId</span>=<span class="log-identifier">req-123</span> ' +
     `<span class="log-key">context.trace_id</span>=<span class="log-string">"${traceId}"</span> ` +
-    '<span class="log-key">request.id</span>=<span class="log-number">42</span> ' +
+    '<span class="log-key">request.id</span>=<span class="log-identifier">42</span> ' +
     '<span class="log-key">traceId</span>=null');
-  assert.equal(applyHighlighting("req-123", "requestId"), "req-123");
-  withHighlights({ identifier: true }, () => {
+  assert.equal(applyHighlighting("req-123", "requestId"), '<span class="log-identifier">req-123</span>');
+  withHighlights({ identifier: false }, () => {
     assert.equal(applyHighlighting(input),
-      `<span class="log-identifier">${uuid}</span> ` +
-      '<span class="log-key">requestId</span>=<span class="log-identifier">req-123</span> ' +
+      `${uuid} ` +
+      '<span class="log-key">requestId</span>=req-123 ' +
       `<span class="log-key">context.trace_id</span>=<span class="log-string">"${traceId}"</span> ` +
-      '<span class="log-key">request.id</span>=<span class="log-identifier">42</span> ' +
+      '<span class="log-key">request.id</span>=<span class="log-number">42</span> ' +
       '<span class="log-key">traceId</span>=null');
-    assert.equal(applyHighlighting("req-123", "requestId"), '<span class="log-identifier">req-123</span>');
+    assert.equal(applyHighlighting("req-123", "requestId"), "req-123");
     assert.equal(applyHighlighting("null", "trace.id"), "null");
   });
 });
@@ -81,7 +81,7 @@ test("each highlight type can be disabled independently, falling back to the rem
     '<span class="log-key">name</span>="see <span class="url">https://example.test/1</span>"'));
   withHighlights({ url: false, key: false }, () => assert.equal(applyHighlighting(input),
     'count=<span class="log-number">42</span> ok=<span class="log-literal">true</span> ' +
-    'name=<span class="log-string">"see https://example.test/1"</span>'));
+    'name=<span class="log-string">"see https://example.test/<span class="log-number">1</span>"</span>'));
   withHighlights({ number: false, literal: false }, () => assert.doesNotMatch(applyHighlighting(input), /log-number|log-literal/));
   const all = Object.fromEntries(Object.keys(SYNTAX_HIGHLIGHTS).map(type => [type, false]));
   withHighlights(all, () => assert.equal(applyHighlighting('<a href="x">'), '&lt;a href="x"&gt;'));
@@ -98,7 +98,10 @@ test("highlights single- and double-quoted strings as whole tokens, including es
     "'550e8400-e29b-41d4-a716-446655440000'"
   ];
   for (const value of strings) {
-    assert.equal(applyHighlighting(value), `<span class="log-string">${value}</span>`);
+    const expected = value === '"ready=true count=42"'
+      ? '<span class="log-string">"ready=<span class="log-literal">true</span> count=<span class="log-number">42</span>"</span>'
+      : `<span class="log-string">${value}</span>`;
+    assert.equal(applyHighlighting(value), expected);
   }
   assert.equal(applyHighlighting("requestId='req-123'"),
     '<span class="log-key">requestId</span>=<span class="log-string">\'req-123\'</span>');
@@ -116,27 +119,38 @@ test("keeps quote pairs aligned in unescaped embedded JSON with apostrophes", ()
     `<span class="log-key">cfg</span>="{${s('"key"')}:${s(`"'"`)}}" ` +
     `<span class="log-key">json</span>="{${s(`"Men's"`)}:${s('"x"')}}" ` +
     `<span class="log-key">list</span>="[${s('"a"')}]" ` +
-    `<span class="log-key">on</span>=${s('"true"')}`);
+    `<span class="log-key">on</span>=${s('"<span class="log-literal">true</span>"')}`);
 });
 
-test("highlights URLs inside quoted strings without coloring quotes or other nested tokens", () => {
+test("highlights URLs inside quoted strings and other enabled nested tokens", () => {
   const url = "https://example.test/123?ready=true&requestId=req-123";
   const urlHtml = '<span class="url">https://example.test/123?ready=true&amp;requestId=req-123</span>';
   for (const quote of ["'", '"']) {
     assert.equal(applyHighlighting(`${quote}${url}${quote}`),
       `<span class="log-string">${quote}${urlHtml}${quote}</span>`);
     assert.equal(applyHighlighting(`${quote}before ${url} after true 42${quote}`),
-      `<span class="log-string">${quote}before ${urlHtml} after true 42${quote}</span>`);
+      `<span class="log-string">${quote}before ${urlHtml} after <span class="log-literal">true</span> <span class="log-number">42</span>${quote}</span>`);
   }
   assert.equal(applyHighlighting('"https://one.test/1 and wss://two.test/2"'),
     '<span class="log-string">"<span class="url">https://one.test/1</span> and ' +
     '<span class="url">wss://two.test/2</span>"</span>');
+  assert.equal(applyHighlighting(String.raw`"open \"https://example.test/1\" and 'http://example.test/2'"`),
+    String.raw`<span class="log-string">"open \"<span class="url">https://example.test/1</span>\" and '<span class="url">http://example.test/2</span>'"</span>`);
+});
+
+test("ends URLs at unpaired brackets but keeps {placeholder} segments and IPv6 hosts", () => {
   assert.equal(applyHighlighting("urls=[http://a.test/x],[http://b.test/y]} (see https://c.test/z)."),
     '<span class="log-key">urls</span>=[<span class="url">http://a.test/x</span>],[<span class="url">http://b.test/y</span>]} ' +
     '(see <span class="url">https://c.test/z</span>).');
   assert.equal(applyHighlighting("http://[::1]:8080/p"), '<span class="url">http://[::1]:8080/p</span>');
-  assert.equal(applyHighlighting(String.raw`"open \"https://example.test/1\" and 'http://example.test/2'"`),
-    String.raw`<span class="log-string">"open \"<span class="url">https://example.test/1</span>\" and '<span class="url">http://example.test/2</span>'"</span>`);
+  for (const url of ["https://x.test/a?trx={0}&codec=PCM&deviceId={1}", "https://x.test/s/{PARTNER}/{FOLDER}/s.xml"]) {
+    assert.equal(applyHighlighting(`{u=${url}}`).replace(/&amp;/g, "&"), `{<span class="log-key">u</span>=<span class="url">${url}</span>}`);
+  }
+});
+
+test("does not highlight numbers or literals inside a URL nested in a string", () => {
+  assert.equal(applyHighlighting('"see https://x.test/1?ok=true"'),
+    '<span class="log-string">"see <span class="url">https://x.test/1?ok=true</span>"</span>');
 });
 
 test("keeps URLs as single tokens and escapes raw text before adding markup", () => {
@@ -213,8 +227,8 @@ test("uses highlighting in messages, extra fields and columns without changing p
     "requestId=req-123 traceId=4bf92f3577b34da6a3ce929d0e0e4736");
   assert.match(result.html, /<span class="log-key">ready<\/span>=<span class="log-literal">true<\/span>/);
   assert.match(result.html, /<span class="log-key">duration<\/span>=<span class="log-number">150 ms<\/span>/);
-  assert.match(result.html, /<span class="log-key">requestId<\/span>=req-123/);
-  assert.doesNotMatch(result.html, /log-identifier/);
+  assert.match(result.html, /<span class="log-key">requestId<\/span>=<span class="log-identifier">req-123<\/span>/);
+  assert.match(result.html, /<span class="log-key">traceId<\/span>=<span class="log-identifier">4bf92f3577b34da6a3ce929d0e0e4736<\/span>/);
   const raw = result.html.match(/<pre class="raw-content">([\s\S]*?)<\/pre>/)[1];
   assert.equal(raw, JSON.stringify(record, null, 2));
   const columns = formatLogs(JSON.stringify(record), "asc", {
@@ -224,8 +238,8 @@ test("uses highlighting in messages, extra fields and columns without changing p
   assert.equal(columns.plain,
     "2026-11-12 10:00:00,123 requestId=req-123 traceId=4bf92f3577b34da6a3ce929d0e0e4736 " +
     "json_Service.duration=150 ms missing=null");
-  assert.match(columns.html, /data-field="requestId" title="req-123">req-123<\/span>/);
-  assert.match(columns.html, /data-field="traceId"[^>]*>4bf92f3577b34da6a3ce929d0e0e4736<\/span>/);
+  assert.match(columns.html, /data-field="requestId" title="req-123"><span class="log-identifier">req-123<\/span><\/span>/);
+  assert.match(columns.html, /data-field="traceId"[^>]*><span class="log-identifier">4bf92f3577b34da6a3ce929d0e0e4736<\/span><\/span>/);
   assert.match(columns.html, /data-field="missing" title="null">null<\/span>/);
 });
 

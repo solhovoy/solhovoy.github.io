@@ -361,8 +361,9 @@ const SYNTAX_HIGHLIGHTS = {
     enabled: true,
     className: "url",
     colors: { dark: "#3d87c1", light: "#3d87c1" },
-    // Brackets/braces end the URL (except an IPv6 host), and trailing punctuation is left out.
-    pattern: String.raw`[a-z][a-z0-9+.-]*:\/\/(?:\[[0-9a-f:.]+\](?:[^\s"'\\[\]{}]*[^\s"'\\[\]{}.,;:!?)])?|[^\s"'\\[\]{}]*[^\s"'\\[\]{}.,;:!?)])`
+    // Unpaired brackets/braces end the URL; an IPv6 host and {placeholder} segments are kept.
+    // Trailing punctuation is left out.
+    pattern: String.raw`[a-z][a-z0-9+.-]*:\/\/(?:\[[0-9a-f:.]+\](?:(?:[^\s"'\\[\]{}]|\{[^\s"'\\[\]{}]*\})*(?:[^\s"'\\[\]{}.,;:!?)]|\{[^\s"'\\[\]{}]*\}))?|(?:[^\s"'\\[\]{}]|\{[^\s"'\\[\]{}]*\})*(?:[^\s"'\\[\]{}.,;:!?)]|\{[^\s"'\\[\]{}]*\}))`
   },
   // UUIDs and request/trace IDs (requestId, trace_id, request.id, ...).
   identifier: {
@@ -414,26 +415,36 @@ function applyHighlightColors(root = globalThis.document?.documentElement) {
 
 applyHighlightColors();
 
-let compiledHighlights = null;
+const compiledHighlights = new Map();
 
-function getHighlightRegex() {
-  const types = Object.keys(SYNTAX_HIGHLIGHTS).filter(type => SYNTAX_HIGHLIGHTS[type].enabled);
+// Combined regex for the given enabled types; rule order in SYNTAX_HIGHLIGHTS is the priority order.
+function getHighlightRegex(allowed = null) {
+  const types = Object.keys(SYNTAX_HIGHLIGHTS)
+    .filter(type => SYNTAX_HIGHLIGHTS[type].enabled && (!allowed || allowed.includes(type)));
   const key = types.join();
-  // Recompile only when the set of enabled rules changes.
-  if (compiledHighlights?.key !== key) {
+  if (!compiledHighlights.has(key)) {
     const source = types.map(type => `(?<${type}>${SYNTAX_HIGHLIGHTS[type].pattern})`).join("|");
-    compiledHighlights = { key, regex: source ? new RegExp(source, "gi") : null };
+    compiledHighlights.set(key, source ? new RegExp(source, "gi") : null);
   }
-  return compiledHighlights.regex;
+  return compiledHighlights.get(key);
 }
 
-function wrapToken(rule, escapedValue) {
-  let content = escapedValue;
-  for (const innerType of rule.inner || []) {
-    const inner = SYNTAX_HIGHLIGHTS[innerType];
-    if (!inner?.enabled) continue;
-    content = content.replace(new RegExp(inner.pattern, "gi"), `<span class="${inner.className}">$&</span>`);
+// Tokenize raw text in one pass, escaping each fragment, so generated markup is never re-tokenized.
+function highlightTokens(text, regex) {
+  if (!regex) return esc(text);
+  let html = "";
+  let offset = 0;
+  for (const match of text.matchAll(regex)) {
+    html += esc(text.slice(offset, match.index));
+    const [type, value] = Object.entries(match.groups).find(([, group]) => group !== undefined);
+    html += wrapToken(SYNTAX_HIGHLIGHTS[type], value);
+    offset = match.index + match[0].length;
   }
+  return html + esc(text.slice(offset));
+}
+
+function wrapToken(rule, value) {
+  const content = rule.inner?.length ? highlightTokens(value, getHighlightRegex(rule.inner)) : esc(value);
   return `<span class="${rule.className}">${content}</span>`;
 }
 
@@ -443,20 +454,8 @@ function wrapToken(rule, escapedValue) {
 function applyHighlighting(text, fieldName = "") {
   const fieldRule = fieldName && Object.values(SYNTAX_HIGHLIGHTS).find(rule =>
     rule.enabled && rule.field?.name.test(fieldName) && rule.field.value.test(text));
-  if (fieldRule) return wrapToken(fieldRule, esc(text));
-
-  const regex = getHighlightRegex();
-  if (!regex) return esc(text);
-  let html = "";
-  let offset = 0;
-  // Match raw text only, so generated markup is never re-tokenized.
-  for (const match of text.matchAll(regex)) {
-    html += esc(text.slice(offset, match.index));
-    const [type, value] = Object.entries(match.groups).find(([, group]) => group !== undefined);
-    html += wrapToken(SYNTAX_HIGHLIGHTS[type], esc(value));
-    offset = match.index + match[0].length;
-  }
-  return html + esc(text.slice(offset));
+  if (fieldRule) return wrapToken(fieldRule, text);
+  return highlightTokens(text, getHighlightRegex());
 }
 
 // Elasticsearch metadata fields (not log data)

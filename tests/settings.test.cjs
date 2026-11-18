@@ -67,6 +67,7 @@ function createSettings(storage = new Map()) {
     preferencesController: preferences,
     fieldsController: fields,
     outputController: { setHighlightSelectedRows() {} },
+    outputMinimap: { setEnabled() {} },
     onOutputSettingsChange() {},
     popupManager: new PopupManager()
   });
@@ -101,6 +102,7 @@ test("exports exactly the selected sections, defaulting to all six, with UI stat
   const full = plain(settings.getSnapshot());
   assert.deepEqual(full, {
     theme: "light",
+    showMinimap: true,
     fieldsPanelOpen: true,
     fieldsPanelWidth: 375,
     sortOrder: "desc",
@@ -113,7 +115,7 @@ test("exports exactly the selected sections, defaulting to all six, with UI stat
     pinnedFields: ["c", "nested.code"]
   });
   const keys = [
-    ["fieldsPanelOpen", "fieldsPanelWidth", "sortOrder"], ["theme"], ["outputSettings"],
+    ["fieldsPanelOpen", "fieldsPanelWidth", "sortOrder"], ["theme", "showMinimap"], ["outputSettings"],
     ["savedFilters"], ["recentDateRanges"], ["pinnedFields"]
   ];
   const combinations = 2 ** sections.length;
