@@ -12,9 +12,10 @@
 const MINIMAP_LEVEL_RANK = { WARN: 1, ERROR: 2 };
 
 class OutputMinimap {
-  constructor({ scroller, content }) {
+  constructor({ scroller, content, onClose }) {
     this.scroller = scroller;
     this.content = content;
+    this.panel = document.getElementById("minimap-panel");
     this.root = document.getElementById("output-minimap");
     this.canvas = this.root.querySelector("canvas");
     this.viewport = this.root.querySelector(".minimap-viewport");
@@ -40,6 +41,10 @@ class OutputMinimap {
     this.root.style.setProperty("--minimap-selection-ruler-width", `${MINIMAP_SELECTION_RULER_WIDTH}px`);
     this.root.style.setProperty("--minimap-level-ruler-width", `${MINIMAP_LEVEL_RULER_WIDTH}px`);
     this.attach();
+    document.getElementById("minimap-close").addEventListener("click", () => {
+      this.setEnabled(false);
+      onClose?.();
+    });
   }
 
   /** Re-measure and redraw on the next frame; repeated calls within a frame are coalesced. */
@@ -88,7 +93,7 @@ class OutputMinimap {
     this.measureFrame = 0;
     this.drawFrame = 0;
     this.dragCleanup?.();
-    this.root.hidden = true;
+    this.panel.hidden = true;
     this.viewport.hidden = true;
     this.layout = null;
     this.layoutKey = "";
@@ -117,7 +122,7 @@ class OutputMinimap {
     this.entryRuns.clear();
     this.rulerCache = null;
     // Toggle first: showing the minimap narrows the output, which can change line wrapping.
-    this.root.hidden = entries.length === 0;
+    this.panel.hidden = entries.length === 0;
     if (!entries.length) {
       this.layout = null;
       this.layoutKey = this.getLayoutKey();
@@ -314,7 +319,7 @@ class OutputMinimap {
   // ── Painting ────────────────────────────────────────────────────────────
 
   scheduleDraw() {
-    if (!this.enabled || this.drawFrame || this.root.hidden || !this.layout) return;
+    if (!this.enabled || this.drawFrame || this.panel.hidden || !this.layout) return;
     this.drawFrame = requestAnimationFrame(() => {
       this.drawFrame = 0;
       this.draw();
@@ -322,7 +327,7 @@ class OutputMinimap {
   }
 
   draw() {
-    if (!this.enabled || !this.layout || this.root.hidden) return;
+    if (!this.enabled || !this.layout || this.panel.hidden) return;
     const dpr = window.devicePixelRatio || 1;
     const cssWidth = this.root.clientWidth;
     const width = Math.round(cssWidth * dpr);

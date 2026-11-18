@@ -204,10 +204,16 @@
       </div>
       <div id="output"></div>
       </div>
-      <div id="output-minimap" title="Click or drag to scroll" aria-hidden="true" hidden>
-        <canvas></canvas>
-        <div class="minimap-viewport" hidden></div>
-      </div>
+      <aside id="minimap-panel" aria-label="Minimap" hidden>
+        <div class="minimap-header">
+          <span class="minimap-title">Minimap</span>
+          <button id="minimap-close" class="filter-help-close" type="button" title="Hide minimap (turn it back on in Settings → General)" aria-label="Hide minimap">✕</button>
+        </div>
+        <div id="output-minimap" title="Click or drag to scroll" aria-hidden="true">
+          <canvas></canvas>
+          <div class="minimap-viewport" hidden></div>
+        </div>
+      </aside>
     </div>
   </div>
 

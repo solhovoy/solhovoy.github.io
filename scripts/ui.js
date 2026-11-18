@@ -107,7 +107,12 @@ function renderHits(hits, totalCount = hits.length) {
 
 btnFormat.addEventListener("click", doFormat);
 const inputController = new InputController({ onFormat: doFormat });
-const outputMinimap = new OutputMinimap({ scroller: document.getElementById("output-wrap"), content: outputEl });
+const outputMinimap = new OutputMinimap({
+  scroller: document.getElementById("output-wrap"),
+  content: outputEl,
+  // The close button turns the "Show minimap" setting off; it can be turned back on in Settings → General.
+  onClose: () => preferencesController.setShowMinimap(false)
+});
 const outputController = new OutputController({
   getPlainText: () => plainText,
   getPlainLines: () => plainLines,
