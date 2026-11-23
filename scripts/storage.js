@@ -91,14 +91,16 @@ function setHighlightSettings(settings) {
   const defaults = getDefaultHighlightSettings();
   const overrides = {};
   if (settings.enabled !== defaults.enabled) overrides.enabled = settings.enabled;
-  for (const [type, { enabled, colors }] of Object.entries(settings.types)) {
-    const base = defaults.types[type];
-    const override = {};
-    if (enabled !== base.enabled) override.enabled = enabled;
-    for (const theme of ["dark", "light"]) {
-      if (colors[theme] !== base.colors[theme]) (override.colors ??= {})[theme] = colors[theme];
+  for (const group of Object.keys(HIGHLIGHT_GROUPS)) {
+    for (const [id, { enabled, colors }] of Object.entries(settings[group])) {
+      const base = defaults[group][id];
+      const override = {};
+      if (enabled !== base.enabled) override.enabled = enabled;
+      for (const theme of ["dark", "light"]) {
+        if (colors[theme] !== base.colors[theme]) (override.colors ??= {})[theme] = colors[theme];
+      }
+      if (Object.keys(override).length) ((overrides[group] ??= {})[id] = override);
     }
-    if (Object.keys(override).length) (overrides.types ??= {})[type] = override;
   }
   if (Object.keys(overrides).length) {
     localStorage.setItem(LS_KEY_HIGHLIGHT_SETTINGS, JSON.stringify(overrides));

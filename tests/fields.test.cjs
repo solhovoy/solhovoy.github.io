@@ -11,6 +11,7 @@ vm.runInContext(
 );
 const { normalizeInput, getLogFields, formatLogs, applyHighlighting } = formatter;
 const SYNTAX_HIGHLIGHTS = vm.runInContext("SYNTAX_HIGHLIGHTS", formatter);
+const LOG_ELEMENTS = vm.runInContext("LOG_ELEMENTS", formatter);
 const timestamp = "2026-11-12T10:00:00.123Z";
 
 function withHighlights(overrides, fn) {
@@ -47,7 +48,20 @@ test("applyHighlightColors publishes per-theme rule colors as CSS variables", ()
   formatter.applyHighlightColors(root);
   assert.equal(props["--hl-string-dark"], "#e6da6a");
   assert.equal(props["--hl-string-light"], "#766a00");
-  assert.deepEqual(Object.keys(props).length, Object.keys(SYNTAX_HIGHLIGHTS).length * 2);
+  assert.deepEqual(Object.keys(props).length, (Object.keys(SYNTAX_HIGHLIGHTS).length + Object.keys(LOG_ELEMENTS).length) * 2);
+  assert.equal(props["--hl-ts-dark"], "#74c0fc");
+  assert.equal(props["--hl-warn-light"], "#e67700");
+});
+
+test("a disabled log element is published in the plain text color", () => {
+  const props = {};
+  const root = { style: { setProperty: (name, value) => { props[name] = value; } } };
+  formatter.applyHighlightColors(root, SYNTAX_HIGHLIGHTS, {
+    ts: { enabled: false, colors: { dark: "#111111", light: "#222222" } },
+    cls: { enabled: true, colors: { dark: "#111111", light: "#222222" } }
+  });
+  assert.deepEqual([props["--hl-ts-dark"], props["--hl-ts-light"]], ["#e9ecef", "#212529"]);
+  assert.deepEqual([props["--hl-cls-dark"], props["--hl-cls-light"]], ["#111111", "#222222"]);
 });
 
 test("identifier highlighting is enabled by default and can be disabled via SYNTAX_HIGHLIGHTS", () => {
@@ -103,6 +117,13 @@ test("applies saved highlight settings to the rules, and explicit type lists ove
     assert.equal(applyHighlighting(input, "", ["url"]), 'ok=true link="<span class="url">https://example.test</span>"');
     applyHighlightSettings({ ...getDefaultHighlightSettings(), enabled: false });
     assert.equal(applyHighlighting(input), input);
+    assert.equal(props["--hl-ts-dark"], "#e9ecef");
+    assert.equal(LOG_ELEMENTS.ts.enabled, false);
+    applyHighlightSettings(mergeHighlightSettings(getDefaultHighlightSettings(), {
+      elements: { ts: { enabled: false }, info: { colors: { dark: "#0F0" } } }
+    }));
+    assert.deepEqual([props["--hl-ts-dark"], props["--hl-info-dark"]], ["#e9ecef", "#00ff00"]);
+    assert.deepEqual([LOG_ELEMENTS.ts.enabled, LOG_ELEMENTS.cls.enabled], [false, true]);
   } finally {
     applyHighlightSettings(getDefaultHighlightSettings());
     delete formatter.document;

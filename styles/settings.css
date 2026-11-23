@@ -16,7 +16,7 @@
 .settings-dialog {
   position: relative;
   width: min(800px, 100%);
-  max-height: min(550px, 100%);
+  max-height: min(640px, 100%);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -46,11 +46,11 @@
 }
 
 .settings-content {
-  height: 400px;
+  height: 415px;
   min-height: 250px;
   display: grid;
   grid-template-columns: 156px minmax(0, 1fr);
-  flex: 0 1 400px;
+  flex: 0 1 415px;
 }
 
 .settings-nav {
@@ -191,15 +191,10 @@
   line-height: 1.4;
   vertical-align: top;
 }
-.settings-preview-ts { color: #74c0fc; }
-.settings-preview-meta { color: #868e96; }
-.settings-preview-host { color: #868e96; }
-.settings-preview-cls { color: #cc6de4; font-weight: 500; }
+.settings-preview-cls { font-weight: 500; }
 .settings-preview-message { color: #e9ecef; }
-.settings-preview-level { color: var(--info); font-weight: 700; }
+.settings-preview-level { font-weight: 700; }
 :root.light .settings-preview-message { color: #212529; }
-:root.light .settings-preview-ts { color: var(--accent); }
-:root.light .settings-preview-cls { color: #9c0dc0; }
 
 .settings-empty {
   color: var(--text-dim);
@@ -221,9 +216,13 @@
 }
 .settings-highlight-reset:hover { background: var(--bg-panel); }
 
+.settings-subtabs {
+  margin: 12px 0 8px;
+}
+
 .settings-highlight-rules {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-columns: 100px minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 3px 14px;
 }
@@ -239,7 +238,7 @@
 }
 
 .settings-highlight-sample {
-  justify-self: start;
+  justify-self: stretch;
   max-width: 100%;
   overflow: hidden;
   padding: 0 6px;

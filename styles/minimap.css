@@ -40,8 +40,8 @@
 .minimap-header .filter-help-close { flex-shrink: 0; }
 /* Ruler colors are read by scripts/minimap.js; text colors come from the rendered tokens. */
 #output-minimap {
-  --minimap-warn: var(--warn);
-  --minimap-error: var(--error);
+  --minimap-warn: var(--hl-warn-dark);
+  --minimap-error: var(--hl-error-dark);
   --minimap-selected: var(--selected-row-border);
   --minimap-ruler-bg: var(--text);
   position: relative;
@@ -105,4 +105,9 @@ body.is-dragging-minimap * {
   /* No room for the title in the narrow panel. */
   .minimap-title { display: none; }
   .minimap-header { justify-content: center; padding: 0; }
+}
+
+:root.light #output-minimap {
+  --minimap-warn: var(--hl-warn-light);
+  --minimap-error: var(--hl-error-light);
 }

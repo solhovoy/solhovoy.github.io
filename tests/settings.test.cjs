@@ -212,6 +212,21 @@ test("imports legacy settings snapshots and merges partial output visibility wit
   });
 });
 
+test("saves element settings sparsely and publishes plain colors when an element or the master switch is off", () => {
+  const { settings, context, storage } = createSettings(seed());
+  settings.importSettings(JSON.stringify({ highlightSettings: { enabled: true, elements: { ts: { colors: { dark: "#F00" } }, cls: { enabled: false } } } }));
+  const saved = JSON.parse(storage.get("elkHighlightSettings"));
+  assert.deepEqual(saved.elements, { ts: { colors: { dark: "#ff0000" } }, cls: { enabled: false } });
+  const style = context.document.documentElement.style;
+  assert.equal(style["--hl-ts-dark"], "#ff0000");
+  assert.equal(style["--hl-cls-dark"], "#e9ecef");
+  settings.open();
+  settings.highlightControls.ts.toggle.checked = false;
+  settings.highlightControls.ts.toggle.dispatch("change");
+  assert.equal(settings.popup.style["--hl-ts-dark"], "#e9ecef");
+  assert.equal(settings.highlightDraft.elements.ts.enabled, false);
+});
+
 test("merges partial highlighting imports over the saved settings and applies them to the output rules", () => {
   const { settings, context, storage } = createSettings(seed());
   const before = plain(settings.getSnapshot());
@@ -295,6 +310,33 @@ test("edits highlighting as a dialog-scoped draft: Cancel discards it, Save stor
   assert.ok(Object.values(rules).every(rule => rule.enabled));
 });
 
+test("Apply saves without closing, and Cancel discards only subsequent edits", () => {
+  const { settings, preferences, storage, context } = createSettings();
+  settings.toggleTheme();
+  const appliedTheme = preferences.getTheme();
+  settings.setHighlightColor("string", "dark", "#123456");
+  settings.showRawElkInput.checked = false;
+  settings.applyButton.dispatch("click");
+  assert.equal(settings.popup.hidden, false);
+  assert.equal(context.document.documentElement.style["--hl-string-dark"], "#123456");
+  assert.equal(preferences.getShowRawElk(), false);
+  assert.equal(storage.get("elkTheme"), appliedTheme);
+
+  settings.toggleTheme();
+  settings.setHighlightColor("string", "dark", "#abcdef");
+  settings.showRawElkInput.checked = true;
+  settings.cancel();
+  assert.equal(settings.popup.hidden, true);
+  assert.equal(preferences.getTheme(), appliedTheme);
+  assert.equal(preferences.getShowRawElk(), false);
+  assert.equal(context.document.documentElement.style["--hl-string-dark"], "#123456");
+  settings.popupManager.toggle("settings");
+  assert.equal(settings.highlightDraft.types.string.colors.dark, "#123456");
+  assert.equal(settings.showRawElkInput.checked, false);
+  settings.saveButton.dispatch("click");
+  assert.equal(settings.popup.hidden, true);
+});
+
 test("restores and persists both timestamp sort orders, refreshes the label and output, and preserves the sort toggle", () => {
   const { settings, preferences, storage } = createSettings();
   const renderedOrders = [];
@@ -334,7 +376,8 @@ test("rejects malformed sections before making any changes", () => {
   const invalidHighlights = [
     null, [], { enabled: "yes" }, { types: [] }, { colors: {} }, { types: { unknown: {} } },
     { types: { string: null } }, { types: { string: { enabled: 1 } } }, { types: { string: { pattern: "x" } } },
-    { types: { string: { colors: { dark: "red" } } } }, { types: { string: { colors: { dim: "#fff" } } } }
+    { types: { string: { colors: { dark: "red" } } } }, { types: { string: { colors: { dim: "#fff" } } } },
+    { elements: [] }, { elements: { unknown: {} } }, { elements: { ts: { colors: { dark: "red" } } } }
   ];
   for (const highlightSettings of invalidHighlights) {
     settings.importSettings(JSON.stringify({ highlightSettings }));

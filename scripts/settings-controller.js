@@ -10,6 +10,7 @@ class SettingsController {
     this.trigger = document.getElementById("settings-toggle");
     this.closeButton = document.getElementById("settings-close");
     this.cancelButton = document.getElementById("settings-cancel");
+    this.applyButton = document.getElementById("settings-apply");
     this.saveButton = document.getElementById("settings-save");
     this.exportButton = document.getElementById("settings-export");
     this.exportInputs = [...document.querySelectorAll("[data-settings-export]")];
@@ -35,7 +36,12 @@ class SettingsController {
     this.highlightEnabledInput = document.getElementById("settings-highlight-enabled");
     this.highlightResetButton = document.getElementById("settings-highlight-reset");
     this.highlightDraft = this.preferencesController.getHighlightSettings();
-    this.highlightControls = this.createHighlightControls(document.getElementById("settings-highlight-rules"));
+    this.highlightControls = {
+      ...this.createHighlightControls(document.getElementById("settings-highlight-rules"), "types", ["Token", "Sample", "Dark theme", "Light theme"]),
+      ...this.createHighlightControls(document.getElementById("settings-highlight-elements"), "elements", ["Element", "Sample", "Dark theme", "Light theme"])
+    };
+    this.highlightTabs = [...document.querySelectorAll("[data-settings-subtab]")];
+    this.highlightTabPanels = [...document.querySelectorAll("[data-settings-subpanel]")];
     this.categoryButtons = [...document.querySelectorAll("[data-settings-category]")];
     this.panels = [...document.querySelectorAll("[data-settings-panel]")];
     this.activeCategory = "general";
@@ -54,6 +60,7 @@ class SettingsController {
     this.trigger.addEventListener("click", () => this.popupManager.toggle("settings"));
     this.closeButton.addEventListener("click", () => this.cancel());
     this.cancelButton.addEventListener("click", () => this.cancel());
+    this.applyButton.addEventListener("click", () => this.save({ closeDialog: false }));
     this.saveButton.addEventListener("click", () => this.save());
     this.exportButton.addEventListener("click", event => this.export(event));
     this.popup.addEventListener("dragenter", event => this.handleDragEnter(event));
@@ -63,6 +70,7 @@ class SettingsController {
     this.popup.querySelector("[data-settings-cancel]").addEventListener("click", () => this.cancel());
     this.categoryButtons.forEach(button => button.addEventListener("click", () => this.selectCategory(button.dataset.settingsCategory)));
     this.themeSwitch.addEventListener("click", () => this.toggleTheme());
+    this.highlightTabs.forEach(tab => tab.addEventListener("click", () => this.selectHighlightTab(tab.dataset.settingsSubtab)));
     this.highlightSelectedInput.addEventListener("change", () => this.renderOutputPreview());
     this.showRawElkInput.addEventListener("change", () => this.renderOutputPreview());
     this.hideEmptyMetadataInput.addEventListener("change", () => this.renderOutputPreview());
@@ -97,6 +105,7 @@ class SettingsController {
     this.renderOutputPreview();
     this.renderThemeSwitch();
     this.selectCategory("general");
+    this.selectHighlightTab("elements");
     requestAnimationFrame(() => this.closeButton.focus());
   }
 
@@ -128,15 +137,14 @@ class SettingsController {
     });
   }
 
-  // One row per SYNTAX_HIGHLIGHTS rule: toggle, sample, and a color picker with a hex field per theme.
-  createHighlightControls(container) {
+  // One row per rule of a settings group: toggle, sample, and a color picker with a hex field per theme.
+  createHighlightControls(container, group, headings) {
     const create = (tag, props) => Object.assign(document.createElement(tag), props);
-    container.append(...["Token", "Sample", "Dark theme", "Light theme"].map(textContent =>
-      create("span", { className: "settings-highlight-head", textContent })));
-    return Object.fromEntries(Object.entries(SYNTAX_HIGHLIGHTS).map(([type, { label: name }]) => {
+    container.append(...headings.map(textContent => create("span", { className: "settings-highlight-head", textContent })));
+    return Object.fromEntries(Object.entries(HIGHLIGHT_GROUPS[group]).map(([id, { label: name }]) => {
       const toggle = create("input", { type: "checkbox" });
       toggle.addEventListener("change", () => {
-        this.highlightDraft.types[type].enabled = toggle.checked;
+        this.highlightDraft[group][id].enabled = toggle.checked;
         this.renderHighlightSettings();
       });
       const label = create("label", { className: "settings-checkbox" });
@@ -148,11 +156,11 @@ class SettingsController {
         const hex = create("input", { type: "text", className: "settings-color-hex", spellcheck: false });
         picker.setAttribute("aria-label", `${name} color, ${theme} theme`);
         hex.setAttribute("aria-label", `${name} hex color, ${theme} theme`);
-        picker.addEventListener("input", () => this.setHighlightColor(type, theme, picker.value));
+        picker.addEventListener("input", () => this.setHighlightColor(id, theme, picker.value));
         hex.addEventListener("input", () => {
           const color = normalizeHighlightColor(hex.value);
           hex.setAttribute("aria-invalid", String(!color));
-          if (color) this.setHighlightColor(type, theme, color, hex);
+          if (color) this.setHighlightColor(id, theme, color, hex);
         });
         // Committing the field normalizes it or restores the last valid color.
         hex.addEventListener("change", () => this.renderHighlightSettings());
@@ -162,37 +170,53 @@ class SettingsController {
         return cell;
       });
       container.append(label, sample, ...cells);
-      return [type, { toggle, sample, colors }];
+      return [id, { group, toggle, sample, colors }];
     }));
   }
 
-  setHighlightColor(type, theme, color, editing = null) {
-    this.highlightDraft.types[type].colors[theme] = color;
+  setHighlightColor(id, theme, color, editing = null) {
+    this.highlightDraft[this.highlightControls[id].group][id].colors[theme] = color;
     this.renderHighlightSettings(editing);
+  }
+
+  selectHighlightTab(name) {
+    this.highlightTabs.forEach(tab => {
+      const selected = tab.dataset.settingsSubtab === name;
+      tab.setAttribute("aria-selected", String(selected));
+    });
+    this.highlightTabPanels.forEach(panel => {
+      panel.hidden = panel.dataset.settingsSubpanel !== name;
+    });
   }
 
   // `editing` is a hex field being typed in; its text is left as is.
   renderHighlightSettings(editing = null) {
-    const { enabled, types } = this.highlightDraft;
+    const draft = this.highlightDraft;
+    const { enabled, types } = draft;
     this.highlightEnabledInput.checked = enabled;
-    for (const [type, { toggle, sample, colors }] of Object.entries(this.highlightControls)) {
-      const active = enabled && types[type].enabled;
-      toggle.checked = types[type].enabled;
+    for (const [id, { group, toggle, sample, colors }] of Object.entries(this.highlightControls)) {
+      const state = draft[group][id];
+      const active = enabled && state.enabled;
+      toggle.checked = state.enabled;
       toggle.disabled = !enabled;
-      sample.innerHTML = applyHighlighting(SYNTAX_HIGHLIGHTS[type].sample, "", active ? [type] : []);
+      sample.innerHTML = group === "types"
+        ? applyHighlighting(SYNTAX_HIGHLIGHTS[id].sample, "", active ? [id] : [])
+        : `<span class="${LOG_ELEMENTS[id].className}">${esc(LOG_ELEMENTS[id].sample)}</span>`;
       for (const [theme, { picker, hex }] of Object.entries(colors)) {
-        picker.value = types[type].colors[theme];
+        picker.value = state.colors[theme];
         picker.disabled = !active;
         hex.disabled = !active;
         if (hex === editing) continue;
-        hex.value = types[type].colors[theme];
+        hex.value = state.colors[theme];
         hex.setAttribute("aria-invalid", "false");
       }
     }
     const activeTypes = enabled ? Object.keys(types).filter(type => types[type].enabled) : [];
     this.previewMessage.innerHTML = applyHighlighting(this.previewMessageText, "", activeTypes);
     // Unsaved colors are scoped to the dialog; the output keeps the saved ones until Save.
-    applyHighlightColors(this.popup, types);
+    const elements = Object.fromEntries(Object.entries(draft.elements).map(([id, element]) =>
+      [id, { ...element, enabled: enabled && element.enabled }]));
+    applyHighlightColors(this.popup, types, elements);
   }
 
   selectCategory(category) {
@@ -386,7 +410,7 @@ class SettingsController {
     });
   }
 
-  save({ showToast: shouldShowToast = true } = {}) {
+  save({ showToast: shouldShowToast = true, closeDialog = true } = {}) {
     setExportSettings(Object.fromEntries(
       this.exportInputs.map(input => [input.dataset.settingsExport, input.checked])
     ));
@@ -402,8 +426,9 @@ class SettingsController {
     this.preferencesController.setHighlightSettings(this.highlightDraft);
     this.outputController.setHighlightSelectedRows(this.highlightSelectedInput.checked);
     this.onOutputSettingsChange();
-    this.saved = true;
+    this.originalTheme = this.preferencesController.getTheme();
+    this.saved = closeDialog;
     if (shouldShowToast) showToast(TOAST_TITLE_SAVED, { description: MSG_SETTINGS_SAVED });
-    this.popupManager.close("settings", { blurTrigger: true });
+    if (closeDialog) this.popupManager.close("settings", { blurTrigger: true });
   }
 }

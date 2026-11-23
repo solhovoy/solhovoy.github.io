@@ -3,10 +3,12 @@
  */
 
 const LEVEL_CLASS = {
+  FATAL: "lvl-fatal",
   ERROR: "lvl-error",
   WARN:  "lvl-warn",
   INFO:  "lvl-info",
   DEBUG: "lvl-debug",
+  TRACE: "lvl-trace",
 };
 
 function unwrap(value) {
@@ -139,7 +141,7 @@ function formatHit(hit, index, outputSettings = {}) {
     { key: "a", value: `a=${actor}`, className: "meta meta-a", empty: isEmptyMetadataValue(fields["a"]) },
     { key: "r", value: `r=${r}`, className: "meta meta-r", empty: isEmptyMetadataValue(fields["r"]) },
     { key: "p", value: `p=${p}`, className: "meta meta-p", empty: isEmptyMetadataValue(fields["p"]) },
-    { key: "h", value: `h=${hostname}`, className: "host", empty: isEmptyMetadataValue(fields["host.hostname"]) }
+    { key: "h", value: `h=${hostname}`, className: "meta meta-h", empty: isEmptyMetadataValue(fields["host.hostname"]) }
   ].filter(field => shownFields[field.key] && (!outputSettings.hideEmptyMetadata || !field.empty));
 
   // ── plain text ────────────────────────────────────────────────────────────
@@ -418,35 +420,114 @@ const SYNTAX_HIGHLIGHTS = {
 };
 
 /**
- * Publish rule colors as CSS variables on `root`; call again after changing `colors` to restyle without re-rendering.
- * `types` maps each type to its { colors } (e.g. unsaved settings scoped to a preview element).
+ * Colored parts of a formatted log line (as opposed to the tokens inside messages above).
+ * Same shape as SYNTAX_HIGHLIGHTS; a disabled element is drawn in the plain text color rather than removed.
+ *   className — classes of the rendered span; the color comes from --hl-<id>-dark / --hl-<id>-light
  */
-function applyHighlightColors(root = globalThis.document?.documentElement, types = SYNTAX_HIGHLIGHTS) {
-  if (!root) return;
-  for (const [type, { colors }] of Object.entries(types)) {
-    root.style.setProperty(`--hl-${type}-dark`, colors.dark);
-    root.style.setProperty(`--hl-${type}-light`, colors.light);
+const LOG_ELEMENTS = {
+  ts: {
+    enabled: true,
+    label: "Timestamp",
+    sample: "2026-06-09 13:01:58,256",
+    className: "ts",
+    colors: { dark: "#74c0fc", light: "#1971c2" }
+  },
+  meta: {
+    enabled: true,
+    label: "Metadata",
+    sample: "t=x33 a=ui@4322 r=fd324d h=example.com",
+    className: "meta",
+    colors: { dark: "#868e96", light: "#868e96" }
+  },
+  cls: {
+    enabled: true,
+    label: "Class",
+    sample: "c=Utils",
+    className: "cls",
+    colors: { dark: "#cc6de4", light: "#9c0dc0" }
+  },
+  fatal: {
+    enabled: true,
+    label: "FATAL",
+    sample: "FATAL",
+    className: "level lvl-fatal",
+    colors: { dark: "#ff6b6b", light: "#c92a2a" }
+  },
+  error: {
+    enabled: true,
+    label: "ERROR",
+    sample: "ERROR",
+    className: "level lvl-error",
+    colors: { dark: "#fa5252", light: "#e03131" }
+  },
+  warn: {
+    enabled: true,
+    label: "WARN",
+    sample: "WARN",
+    className: "level lvl-warn",
+    colors: { dark: "#fab005", light: "#e67700" }
+  },
+  info: {
+    enabled: true,
+    label: "INFO",
+    sample: "INFO",
+    className: "level lvl-info",
+    colors: { dark: "#51cf66", light: "#2f9e44" }
+  },
+  debug: {
+    enabled: true,
+    label: "DEBUG",
+    sample: "DEBUG",
+    className: "level lvl-debug",
+    colors: { dark: "#868e96", light: "#868e96" }
+  },
+  trace: {
+    enabled: true,
+    label: "TRACE",
+    sample: "TRACE",
+    className: "level lvl-trace",
+    colors: { dark: "#868e96", light: "#868e96" }
   }
+};
+
+// Message text color; keep in sync with `#output .msg` in styles/output.css.
+const PLAIN_TEXT_COLORS = { dark: "#e9ecef", light: "#212529" };
+
+/**
+ * Publish rule colors as CSS variables on `root`; call again after changing `colors` to restyle without re-rendering.
+ * `types` and `elements` map each id to its { enabled, colors } (e.g. unsaved settings scoped to a preview element).
+ */
+function applyHighlightColors(root = globalThis.document?.documentElement, types = SYNTAX_HIGHLIGHTS, elements = LOG_ELEMENTS) {
+  if (!root) return;
+  const publish = (id, { dark, light }) => {
+    root.style.setProperty(`--hl-${id}-dark`, dark);
+    root.style.setProperty(`--hl-${id}-light`, light);
+  };
+  for (const [type, { colors }] of Object.entries(types)) publish(type, colors);
+  for (const [id, { enabled, colors }] of Object.entries(elements)) publish(id, enabled ? colors : PLAIN_TEXT_COLORS);
 }
 
 applyHighlightColors();
 
 const isPlainObject = value => Boolean(value) && typeof value === "object" && !Array.isArray(value);
 
+// Each settings group maps ids to the rules they configure.
+const HIGHLIGHT_GROUPS = { types: SYNTAX_HIGHLIGHTS, elements: LOG_ELEMENTS };
+
+const cloneHighlightGroup = group => Object.fromEntries(Object.entries(group).map(([id, { enabled, colors }]) =>
+  [id, { enabled, colors: { dark: colors.dark, light: colors.light } }]));
+
 /**
- * Highlight settings: { enabled, types: { <type>: { enabled, colors: { dark, light } } } }.
- * `enabled` is the master switch; turning it off keeps the per-type flags and colors.
+ * Highlight settings:
+ *   { enabled, types: { <type>: { enabled, colors: { dark, light } } }, elements: { <element>: same } }.
+ * `enabled` is the master switch; turning it off keeps the per-rule flags and colors.
  */
-function cloneHighlightSettings({ enabled, types }) {
-  return {
-    enabled,
-    types: Object.fromEntries(Object.entries(types).map(([type, { enabled, colors }]) =>
-      [type, { enabled, colors: { dark: colors.dark, light: colors.light } }]))
-  };
+function cloneHighlightSettings({ enabled, types, elements }) {
+  return { enabled, types: cloneHighlightGroup(types), elements: cloneHighlightGroup(elements) };
 }
 
 // Code defaults, captured before any user settings are applied.
-const DEFAULT_HIGHLIGHT_SETTINGS = cloneHighlightSettings({ enabled: true, types: SYNTAX_HIGHLIGHTS });
+const DEFAULT_HIGHLIGHT_SETTINGS = cloneHighlightSettings({ enabled: true, types: SYNTAX_HIGHLIGHTS, elements: LOG_ELEMENTS });
 
 function getDefaultHighlightSettings() {
   return cloneHighlightSettings(DEFAULT_HIGHLIGHT_SETTINGS);
@@ -459,19 +540,21 @@ function normalizeHighlightColor(value) {
   return `#${hex.length === 3 ? [...hex].map(char => char + char).join("") : hex}`.toLowerCase();
 }
 
-// Strict check for imported (possibly partial) settings: known keys and types only, valid colors.
+// Strict check for imported (possibly partial) settings: known keys and ids only, valid colors.
 function isValidHighlightSettings(value) {
-  if (!isPlainObject(value) || Object.keys(value).some(key => key !== "enabled" && key !== "types")) return false;
+  if (!isPlainObject(value) || Object.keys(value).some(key => key !== "enabled" && !Object.hasOwn(HIGHLIGHT_GROUPS, key))) return false;
   if ("enabled" in value && typeof value.enabled !== "boolean") return false;
-  if (!("types" in value)) return true;
-  if (!isPlainObject(value.types)) return false;
-  return Object.entries(value.types).every(([type, settings]) => {
-    if (!Object.hasOwn(SYNTAX_HIGHLIGHTS, type) || !isPlainObject(settings)) return false;
-    if (Object.keys(settings).some(key => key !== "enabled" && key !== "colors")) return false;
-    if ("enabled" in settings && typeof settings.enabled !== "boolean") return false;
-    if (!("colors" in settings)) return true;
-    return isPlainObject(settings.colors) && Object.entries(settings.colors).every(([theme, color]) =>
-      (theme === "dark" || theme === "light") && normalizeHighlightColor(color) !== null);
+  return Object.entries(HIGHLIGHT_GROUPS).every(([group, rules]) => {
+    if (!(group in value)) return true;
+    if (!isPlainObject(value[group])) return false;
+    return Object.entries(value[group]).every(([id, settings]) => {
+      if (!Object.hasOwn(rules, id) || !isPlainObject(settings)) return false;
+      if (Object.keys(settings).some(key => key !== "enabled" && key !== "colors")) return false;
+      if ("enabled" in settings && typeof settings.enabled !== "boolean") return false;
+      if (!("colors" in settings)) return true;
+      return isPlainObject(settings.colors) && Object.entries(settings.colors).every(([theme, color]) =>
+        (theme === "dark" || theme === "light") && normalizeHighlightColor(color) !== null);
+    });
   });
 }
 
@@ -480,14 +563,16 @@ function mergeHighlightSettings(base, patch) {
   const settings = cloneHighlightSettings(base);
   if (!isPlainObject(patch)) return settings;
   if (typeof patch.enabled === "boolean") settings.enabled = patch.enabled;
-  if (!isPlainObject(patch.types)) return settings;
-  for (const [type, value] of Object.entries(patch.types)) {
-    if (!Object.hasOwn(settings.types, type) || !isPlainObject(value)) continue;
-    const target = settings.types[type];
-    if (typeof value.enabled === "boolean") target.enabled = value.enabled;
-    for (const theme of ["dark", "light"]) {
-      const color = normalizeHighlightColor(value.colors?.[theme]);
-      if (color) target.colors[theme] = color;
+  for (const group of Object.keys(HIGHLIGHT_GROUPS)) {
+    if (!isPlainObject(patch[group])) continue;
+    for (const [id, value] of Object.entries(patch[group])) {
+      if (!Object.hasOwn(settings[group], id) || !isPlainObject(value)) continue;
+      const target = settings[group][id];
+      if (typeof value.enabled === "boolean") target.enabled = value.enabled;
+      for (const theme of ["dark", "light"]) {
+        const color = normalizeHighlightColor(value.colors?.[theme]);
+        if (color) target.colors[theme] = color;
+      }
     }
   }
   return settings;
@@ -497,10 +582,12 @@ function mergeHighlightSettings(base, patch) {
  * Apply complete settings to the rules and republish their colors; re-render to update existing output.
  */
 function applyHighlightSettings(settings) {
-  for (const [type, rule] of Object.entries(SYNTAX_HIGHLIGHTS)) {
-    const { enabled, colors } = settings.types[type];
-    rule.enabled = settings.enabled && enabled;
-    rule.colors = { dark: colors.dark, light: colors.light };
+  for (const [group, rules] of Object.entries(HIGHLIGHT_GROUPS)) {
+    for (const [id, rule] of Object.entries(rules)) {
+      const { enabled, colors } = settings[group][id];
+      rule.enabled = settings.enabled && enabled;
+      rule.colors = { dark: colors.dark, light: colors.light };
+    }
   }
   applyHighlightColors();
 }

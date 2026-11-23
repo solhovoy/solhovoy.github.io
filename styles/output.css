@@ -333,28 +333,42 @@ body.is-resizing-fields {
 }
 
 /* log colours */
-#output .ts { color: #74c0fc; }
-#output .meta { color: #868e96; }
-#output .host { color: #868e96; }
-#output .cls { color: #cc6de4; font-weight: 500; }
+#output .cls,
+.settings-highlight-sample .cls { font-weight: 500; }
 #output .msg { color: #e9ecef; }
 :root.light #output .msg { color: #212529; }
-:root.light #output .ts { color: var(--accent); }
-:root.light #output .cls { color: #9c0dc0; font-weight: 500; }
-/* Syntax colors come from SYNTAX_HIGHLIGHTS (scripts/formatter.js) via --hl-<type>-dark/light;
-   Settings samples and the output preview use unsaved colors set on the dialog. */
-:is(#output, .settings-highlight-sample, .settings-preview-message) .url { color: var(--hl-url-dark); }
-:is(#output, .settings-highlight-sample, .settings-preview-message) .log-key { color: var(--hl-key-dark); }
-:is(#output, .settings-highlight-sample, .settings-preview-message) .log-literal { color: var(--hl-literal-dark); }
-:is(#output, .settings-highlight-sample, .settings-preview-message) .log-number { color: var(--hl-number-dark); }
-:is(#output, .settings-highlight-sample, .settings-preview-message) .log-identifier { color: var(--hl-identifier-dark); }
-:is(#output, .settings-highlight-sample, .settings-preview-message) .log-string { color: var(--hl-string-dark); }
-:root.light :is(#output, .settings-highlight-sample, .settings-preview-message) .url { color: var(--hl-url-light); }
-:root.light :is(#output, .settings-highlight-sample, .settings-preview-message) .log-key { color: var(--hl-key-light); }
-:root.light :is(#output, .settings-highlight-sample, .settings-preview-message) .log-literal { color: var(--hl-literal-light); }
-:root.light :is(#output, .settings-highlight-sample, .settings-preview-message) .log-number { color: var(--hl-number-light); }
-:root.light :is(#output, .settings-highlight-sample, .settings-preview-message) .log-identifier { color: var(--hl-identifier-light); }
-:root.light :is(#output, .settings-highlight-sample, .settings-preview-message) .log-string { color: var(--hl-string-light); }
+/* Token and log-element colors come from SYNTAX_HIGHLIGHTS and LOG_ELEMENTS (scripts/formatter.js) via
+   --hl-<id>-dark/light; Settings samples and the output preview use unsaved colors set on the dialog. */
+:is(#output, .settings-highlight-sample, .settings-preview-entry) .url { color: var(--hl-url-dark); }
+:is(#output, .settings-highlight-sample, .settings-preview-entry) .log-key { color: var(--hl-key-dark); }
+:is(#output, .settings-highlight-sample, .settings-preview-entry) .log-literal { color: var(--hl-literal-dark); }
+:is(#output, .settings-highlight-sample, .settings-preview-entry) .log-number { color: var(--hl-number-dark); }
+:is(#output, .settings-highlight-sample, .settings-preview-entry) .log-identifier { color: var(--hl-identifier-dark); }
+:is(#output, .settings-highlight-sample, .settings-preview-entry) .log-string { color: var(--hl-string-dark); }
+:is(#output, .settings-highlight-sample, .settings-preview-entry) .ts { color: var(--hl-ts-dark); }
+:is(#output, .settings-highlight-sample, .settings-preview-entry) .meta { color: var(--hl-meta-dark); }
+:is(#output, .settings-highlight-sample, .settings-preview-entry) .cls { color: var(--hl-cls-dark); }
+:is(#output, .settings-highlight-sample, .settings-preview-entry) .lvl-fatal { color: var(--hl-fatal-dark); }
+:is(#output, .settings-highlight-sample, .settings-preview-entry) .lvl-error { color: var(--hl-error-dark); }
+:is(#output, .settings-highlight-sample, .settings-preview-entry) .lvl-warn { color: var(--hl-warn-dark); }
+:is(#output, .settings-highlight-sample, .settings-preview-entry) .lvl-info { color: var(--hl-info-dark); }
+:is(#output, .settings-highlight-sample, .settings-preview-entry) .lvl-debug { color: var(--hl-debug-dark); }
+:is(#output, .settings-highlight-sample, .settings-preview-entry) .lvl-trace { color: var(--hl-trace-dark); }
+:root.light :is(#output, .settings-highlight-sample, .settings-preview-entry) .url { color: var(--hl-url-light); }
+:root.light :is(#output, .settings-highlight-sample, .settings-preview-entry) .log-key { color: var(--hl-key-light); }
+:root.light :is(#output, .settings-highlight-sample, .settings-preview-entry) .log-literal { color: var(--hl-literal-light); }
+:root.light :is(#output, .settings-highlight-sample, .settings-preview-entry) .log-number { color: var(--hl-number-light); }
+:root.light :is(#output, .settings-highlight-sample, .settings-preview-entry) .log-identifier { color: var(--hl-identifier-light); }
+:root.light :is(#output, .settings-highlight-sample, .settings-preview-entry) .log-string { color: var(--hl-string-light); }
+:root.light :is(#output, .settings-highlight-sample, .settings-preview-entry) .ts { color: var(--hl-ts-light); }
+:root.light :is(#output, .settings-highlight-sample, .settings-preview-entry) .meta { color: var(--hl-meta-light); }
+:root.light :is(#output, .settings-highlight-sample, .settings-preview-entry) .cls { color: var(--hl-cls-light); }
+:root.light :is(#output, .settings-highlight-sample, .settings-preview-entry) .lvl-fatal { color: var(--hl-fatal-light); }
+:root.light :is(#output, .settings-highlight-sample, .settings-preview-entry) .lvl-error { color: var(--hl-error-light); }
+:root.light :is(#output, .settings-highlight-sample, .settings-preview-entry) .lvl-warn { color: var(--hl-warn-light); }
+:root.light :is(#output, .settings-highlight-sample, .settings-preview-entry) .lvl-info { color: var(--hl-info-light); }
+:root.light :is(#output, .settings-highlight-sample, .settings-preview-entry) .lvl-debug { color: var(--hl-debug-light); }
+:root.light :is(#output, .settings-highlight-sample, .settings-preview-entry) .lvl-trace { color: var(--hl-trace-light); }
 #output .search-match,
 .field-name .search-match {
   color: black;
@@ -366,11 +380,8 @@ body.is-resizing-fields {
 /* A match split across text nodes (e.g. "url=" + highlighted URL) renders as one seamless mark. */
 #output .search-match.cont-start { border-top-left-radius: 0; border-bottom-left-radius: 0; padding-left: 0; }
 #output .search-match.cont-end { border-top-right-radius: 0; border-bottom-right-radius: 0; padding-right: 0; }
-#output .level { font-weight: 700; }
-#output .lvl-info { color: var(--info); }
-#output .lvl-warn { color: var(--warn); }
-#output .lvl-error { color: var(--error); }
-#output .lvl-debug { color: var(--debug); }
+#output .level,
+.settings-highlight-sample .level { font-weight: 700; }
 
 /* ── Select-all header bar ── */
 #output-select-bar {

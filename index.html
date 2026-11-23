@@ -318,11 +318,18 @@
               <button id="settings-highlight-reset" class="btn-generic settings-highlight-reset" type="button">Reset to defaults</button>
             </div>
           </fieldset>
-          <fieldset class="settings-field">
-            <legend>Token types</legend>
+          <div class="tabs settings-subtabs" role="tablist" aria-label="Highlighting categories">
+            <button class="tab" type="button" role="tab" aria-selected="true" data-settings-subtab="elements">Log elements</button>
+            <button class="tab" type="button" role="tab" aria-selected="false" data-settings-subtab="tokens">Message tokens</button>
+          </div>
+          <div role="tabpanel" data-settings-subpanel="elements">
+            <!-- Rows are generated from LOG_ELEMENTS by SettingsController. -->
+            <div id="settings-highlight-elements" class="settings-highlight-rules"></div>
+          </div>
+          <div role="tabpanel" data-settings-subpanel="tokens" hidden>
             <!-- Rows are generated from SYNTAX_HIGHLIGHTS by SettingsController. -->
             <div id="settings-highlight-rules" class="settings-highlight-rules"></div>
-          </fieldset>
+          </div>
         </section>
         <section class="settings-panel" data-settings-panel="export" hidden>
           <h3>Export Settings</h3>
@@ -373,16 +380,16 @@
             <span class="settings-preview-toggle">▶</span>
           </span>
           <span class="settings-preview-body">
-            <span class="settings-preview-ts">2026-06-09 13:01:58,256</span>
-            <span class="settings-preview-meta settings-preview-t">t=x33</span>
-            <span class="settings-preview-meta settings-preview-a">a=ui@4322</span>
-            <span class="settings-preview-meta settings-preview-r">r=fd324d</span>
-            <span class="settings-preview-meta settings-preview-p settings-preview-empty">p=?</span>
-            <span class="settings-preview-host">h=example.com</span>
-            <span class="settings-preview-level">INFO</span>
-            <span class="settings-preview-cls">c=Utils</span>
+            <span class="settings-preview-ts ts">2026-06-09 13:01:58,256</span>
+            <span class="settings-preview-meta settings-preview-t meta">t=x33</span>
+            <span class="settings-preview-meta settings-preview-a meta">a=ui@4322</span>
+            <span class="settings-preview-meta settings-preview-r meta">r=fd324d</span>
+            <span class="settings-preview-meta settings-preview-p settings-preview-empty meta">p=?</span>
+            <span class="settings-preview-host meta">h=example.com</span>
+            <span class="settings-preview-level level lvl-info">INFO</span>
+            <span class="settings-preview-cls cls">c=Utils</span>
             <!-- Raw text; SettingsController highlights it with the unsaved Highlighting settings. -->
-            <span id="settings-preview-message" class="settings-preview-message">HTTP call action="request" url=https://example.com success=true retries=3 requestId=b91e42ef-933a-4e5f-97f9-9c39f7b52cc7</span>
+            <span id="settings-preview-message" class="settings-preview-message">HTTP call method="GET" url=https://example.com success=true retries=3 requestId=b91e42ef-933a-4e5f-97f9-9c39f7b52cc7</span>
           </span>
         </div>
       </div>
@@ -392,6 +399,7 @@
     </div>
     <div class="settings-actions">
       <button id="settings-cancel" class="btn-generic" type="button">Cancel</button>
+      <button id="settings-apply" class="btn-generic" type="button">Apply</button>
       <button id="settings-save" class="btn-generic settings-save" type="button">Save</button>
     </div>
   </section>

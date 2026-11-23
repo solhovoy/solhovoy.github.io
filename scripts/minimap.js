@@ -425,7 +425,7 @@ class OutputMinimap {
     ctx.fillRect(levelLeft, 0, levelWidth, height);
     ctx.globalAlpha = 1;
     paintLane(ctx, selections, 0, selectionWidth, [null, cssColor("--minimap-selected")]);
-    paintLane(ctx, levels, levelLeft, levelWidth, [null, cssColor("--minimap-warn"), cssColor("--minimap-error")]);
+    paintLane(ctx, levels, levelLeft, levelWidth, [null, ...["warn", "error"].map(id => LOG_ELEMENTS[id].enabled ? cssColor(`--minimap-${id}`) : null)]);
   }
 
   updateViewport(metrics = this.getMetrics()) {
