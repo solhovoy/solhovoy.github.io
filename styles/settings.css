@@ -213,6 +213,14 @@
   gap: 12px;
 }
 
+/* Same background as the header buttons (.filter-help-close). */
+.settings-highlight-reset {
+  border-radius: 4px;
+  background: var(--bg-input);
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.settings-highlight-reset:hover { background: var(--bg-panel); }
+
 .settings-highlight-rules {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto auto;
