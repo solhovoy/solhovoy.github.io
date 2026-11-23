@@ -88,6 +88,28 @@ test("each highlight type can be disabled independently, falling back to the rem
   assert.match(applyHighlighting(input), /log-string.*class="url"/);
 });
 
+test("applies saved highlight settings to the rules, and explicit type lists override them", () => {
+  const { applyHighlightSettings, getDefaultHighlightSettings, mergeHighlightSettings } = formatter;
+  const props = {};
+  formatter.document = { documentElement: { style: { setProperty: (name, value) => { props[name] = value; } } } };
+  const input = `ok=true link="https://example.test"`;
+  try {
+    applyHighlightSettings(mergeHighlightSettings(getDefaultHighlightSettings(), {
+      types: { key: { enabled: false }, url: { colors: { dark: "#ABC" } } }
+    }));
+    assert.equal(props["--hl-url-dark"], "#aabbcc");
+    assert.equal(applyHighlighting(input), 'ok=<span class="log-literal">true</span> ' +
+      'link=<span class="log-string">"<span class="url">https://example.test</span>"</span>');
+    assert.equal(applyHighlighting(input, "", ["url"]), 'ok=true link="<span class="url">https://example.test</span>"');
+    applyHighlightSettings({ ...getDefaultHighlightSettings(), enabled: false });
+    assert.equal(applyHighlighting(input), input);
+  } finally {
+    applyHighlightSettings(getDefaultHighlightSettings());
+    delete formatter.document;
+  }
+  assert.match(applyHighlighting(input), /log-key/);
+});
+
 test("highlights single- and double-quoted strings as whole tokens, including escaped quotes", () => {
   const strings = [
     '""', "''",

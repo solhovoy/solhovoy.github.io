@@ -65,7 +65,8 @@ class OutputMinimap {
     this.root.addEventListener("pointerdown", this.onPointerDown);
     this.root.addEventListener("wheel", this.onWheel, { passive: false });
     [this.scroller, this.content, this.root].forEach(element => this.resizeObserver.observe(element));
-    this.themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    // Token colors change with the theme class and with root CSS variables (Settings → Highlighting).
+    this.themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "style"] });
   }
 
   detach() {

@@ -9,9 +9,11 @@ class PreferencesController {
     this.outputSettings = getOutputSettings();
     if (!this.outputSettings.shownFields) this.setShownFields(this.getShownFields());
     this.highlightSelectedRows = this.outputSettings.highlightSelectedRows === true;
+    this.highlightSettings = getHighlightSettings();
 
     this.applySortLabel();
     this.applyTheme();
+    applyHighlightSettings(this.highlightSettings);
     this.sortColumn.addEventListener("click", () => {
       if (!interceptSortClick()) this.toggleSort();
     });
@@ -53,6 +55,10 @@ class PreferencesController {
       ...this.outputSettings,
       shownFields: this.getShownFields()
     };
+  }
+
+  getHighlightSettings() {
+    return cloneHighlightSettings(this.highlightSettings);
   }
 
   applySortLabel() {
@@ -115,6 +121,12 @@ class PreferencesController {
   setOutputSettings(settings) {
     this.outputSettings = { ...this.outputSettings, ...settings };
     setOutputSettings(this.outputSettings);
+  }
+
+  setHighlightSettings(settings) {
+    this.highlightSettings = cloneHighlightSettings(settings);
+    setHighlightSettings(this.highlightSettings);
+    applyHighlightSettings(this.highlightSettings);
   }
 
   makeCollapsible(buttonId, panelId, isInput) {

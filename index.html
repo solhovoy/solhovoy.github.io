@@ -245,6 +245,7 @@
       <nav class="settings-nav" aria-label="Settings categories">
         <button class="settings-category is-active" type="button" data-settings-category="general" aria-current="page">General</button>
         <button class="settings-category" type="button" data-settings-category="output">Output</button>
+        <button class="settings-category" type="button" data-settings-category="highlighting">Highlighting</button>
         <button class="settings-category" type="button" data-settings-category="export">Export</button>
       </nav>
       <div class="settings-panels">
@@ -309,6 +310,24 @@
             </label>
           </fieldset>
         </section>
+        <section class="settings-panel" data-settings-panel="highlighting" hidden>
+          <h3>Highlighting Settings</h3>
+          <fieldset class="settings-field">
+            <legend>Syntax highlighting</legend>
+            <div class="settings-highlight-master">
+              <label class="settings-checkbox">
+                <input id="settings-highlight-enabled" type="checkbox" />
+                <span>Highlight tokens in messages and field columns</span>
+              </label>
+              <button id="settings-highlight-reset" class="btn-generic" type="button">Reset to defaults</button>
+            </div>
+          </fieldset>
+          <fieldset class="settings-field">
+            <legend>Token types</legend>
+            <!-- Rows are generated from SYNTAX_HIGHLIGHTS by SettingsController. -->
+            <div id="settings-highlight-rules" class="settings-highlight-rules"></div>
+          </fieldset>
+        </section>
         <section class="settings-panel" data-settings-panel="export" hidden>
           <h3>Export Settings</h3>
           <fieldset class="settings-field settings-export-group">
@@ -324,6 +343,10 @@
             <label class="settings-checkbox">
               <input type="checkbox" data-settings-export="output" checked />
               <span>Output Settings</span>
+            </label>
+            <label class="settings-checkbox">
+              <input type="checkbox" data-settings-export="highlighting" checked />
+              <span>Highlighting Settings</span>
             </label>
           </fieldset>
           <fieldset class="settings-field settings-export-group">
@@ -345,21 +368,26 @@
       </div>
     </div>
     <div id="settings-output-preview-row" class="settings-output-preview-row">
-      <div class="settings-preview-title">Formatted Output Preview:</div>
+      <div class="settings-preview-title">Output Preview:</div>
       <div class="settings-output-preview" aria-label="Output preview">
         <div id="settings-preview-entry" class="settings-preview-entry">
-          <input class="row-check" type="checkbox" checked disabled />
-          <span class="settings-preview-line-num">1</span>
-          <span class="settings-preview-toggle">▶</span>
-          <span class="settings-preview-ts">2026-06-09 13:01:58,256</span>
-          <span class="settings-preview-meta settings-preview-t">t=x33</span>
-          <span class="settings-preview-meta settings-preview-a">a=ui@4322</span>
-          <span class="settings-preview-meta settings-preview-r">r=fd324d</span>
-          <span class="settings-preview-meta settings-preview-p settings-preview-empty">p=?</span>
-          <span class="settings-preview-host">h=example.com</span>
-          <span class="settings-preview-level">INFO</span>
-          <span class="settings-preview-cls">c=Utils</span>
-          <span class="settings-preview-message">Hello world</span>
+          <span class="settings-preview-prefix">
+            <input class="row-check" type="checkbox" checked disabled />
+            <span class="settings-preview-line-num">1</span>
+            <span class="settings-preview-toggle">▶</span>
+          </span>
+          <span class="settings-preview-body">
+            <span class="settings-preview-ts">2026-06-09 13:01:58,256</span>
+            <span class="settings-preview-meta settings-preview-t">t=x33</span>
+            <span class="settings-preview-meta settings-preview-a">a=ui@4322</span>
+            <span class="settings-preview-meta settings-preview-r">r=fd324d</span>
+            <span class="settings-preview-meta settings-preview-p settings-preview-empty">p=?</span>
+            <span class="settings-preview-host">h=example.com</span>
+            <span class="settings-preview-level">INFO</span>
+            <span class="settings-preview-cls">c=Utils</span>
+            <!-- Raw text; SettingsController highlights it with the unsaved Highlighting settings. -->
+            <span id="settings-preview-message" class="settings-preview-message">HTTP call action="request" url=https://example.com success=true retries=3 requestId=b91e42ef-933a-4e5f-97f9-9c39f7b52cc7</span>
+          </span>
         </div>
       </div>
     </div>

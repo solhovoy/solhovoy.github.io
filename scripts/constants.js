@@ -8,6 +8,8 @@ const LS_KEY_OUTPUT_SETTINGS = "elkOutputSettings";
 const LS_KEY_EXPORT_SETTINGS = "elkExportSettings";
 const LS_KEY_THEME = "elkTheme";
 const LS_KEY_SHOW_MINIMAP = "elkShowMinimap";
+// Only overrides of the SYNTAX_HIGHLIGHTS defaults (scripts/formatter.js) are stored.
+const LS_KEY_HIGHLIGHT_SETTINGS = "elkHighlightSettings";
 const LS_KEY_FIELDS_PANEL_OPEN = "elkFieldsPanelOpen";
 const LS_KEY_FIELDS_PANEL_WIDTH = "elkFieldsPanelWidth";
 // Keep in sync with the default #fields-panel flex-basis in styles/output.css.
@@ -48,6 +50,7 @@ const MSG_COPIED = "Copied to clipboard";
 const MSG_FILTER_SAVED = "Filter saved";
 const MSG_SETTINGS_SAVED = "Settings saved";
 const MSG_SETTINGS_IMPORT_BAD_FORMAT = "Expected a settings snapshot";
+const MSG_SETTINGS_IMPORT_BAD_HIGHLIGHT = "Invalid highlighting settings: use known token types and hex colors like #e6da6a";
 const MSG_SETTINGS_IMPORTED = "Settings imported";
 const MSG_FILTER_DUP = "Filter already exists";
 const MSG_NOTHING_SAVE = "Nothing to save";

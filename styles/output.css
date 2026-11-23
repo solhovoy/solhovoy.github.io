@@ -341,19 +341,20 @@ body.is-resizing-fields {
 :root.light #output .msg { color: #212529; }
 :root.light #output .ts { color: var(--accent); }
 :root.light #output .cls { color: #9c0dc0; font-weight: 500; }
-/* Syntax colors come from SYNTAX_HIGHLIGHTS (scripts/formatter.js) via --hl-<type>-dark/light. */
-#output .url { color: var(--hl-url-dark); }
-#output .log-key { color: var(--hl-key-dark); }
-#output .log-literal { color: var(--hl-literal-dark); }
-#output .log-number { color: var(--hl-number-dark); }
-#output .log-identifier { color: var(--hl-identifier-dark); }
-#output .log-string { color: var(--hl-string-dark); }
-:root.light #output .url { color: var(--hl-url-light); }
-:root.light #output .log-key { color: var(--hl-key-light); }
-:root.light #output .log-literal { color: var(--hl-literal-light); }
-:root.light #output .log-number { color: var(--hl-number-light); }
-:root.light #output .log-identifier { color: var(--hl-identifier-light); }
-:root.light #output .log-string { color: var(--hl-string-light); }
+/* Syntax colors come from SYNTAX_HIGHLIGHTS (scripts/formatter.js) via --hl-<type>-dark/light;
+   Settings samples and the output preview use unsaved colors set on the dialog. */
+:is(#output, .settings-highlight-sample, .settings-preview-message) .url { color: var(--hl-url-dark); }
+:is(#output, .settings-highlight-sample, .settings-preview-message) .log-key { color: var(--hl-key-dark); }
+:is(#output, .settings-highlight-sample, .settings-preview-message) .log-literal { color: var(--hl-literal-dark); }
+:is(#output, .settings-highlight-sample, .settings-preview-message) .log-number { color: var(--hl-number-dark); }
+:is(#output, .settings-highlight-sample, .settings-preview-message) .log-identifier { color: var(--hl-identifier-dark); }
+:is(#output, .settings-highlight-sample, .settings-preview-message) .log-string { color: var(--hl-string-dark); }
+:root.light :is(#output, .settings-highlight-sample, .settings-preview-message) .url { color: var(--hl-url-light); }
+:root.light :is(#output, .settings-highlight-sample, .settings-preview-message) .log-key { color: var(--hl-key-light); }
+:root.light :is(#output, .settings-highlight-sample, .settings-preview-message) .log-literal { color: var(--hl-literal-light); }
+:root.light :is(#output, .settings-highlight-sample, .settings-preview-message) .log-number { color: var(--hl-number-light); }
+:root.light :is(#output, .settings-highlight-sample, .settings-preview-message) .log-identifier { color: var(--hl-identifier-light); }
+:root.light :is(#output, .settings-highlight-sample, .settings-preview-message) .log-string { color: var(--hl-string-light); }
 #output .search-match,
 .field-name .search-match {
   color: black;

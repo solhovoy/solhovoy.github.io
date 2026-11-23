@@ -30,6 +30,12 @@ class SettingsController {
     };
     this.previewRow = document.getElementById("settings-output-preview-row");
     this.previewEntry = document.getElementById("settings-preview-entry");
+    this.previewMessage = document.getElementById("settings-preview-message");
+    this.previewMessageText = this.previewMessage.textContent;
+    this.highlightEnabledInput = document.getElementById("settings-highlight-enabled");
+    this.highlightResetButton = document.getElementById("settings-highlight-reset");
+    this.highlightDraft = this.preferencesController.getHighlightSettings();
+    this.highlightControls = this.createHighlightControls(document.getElementById("settings-highlight-rules"));
     this.categoryButtons = [...document.querySelectorAll("[data-settings-category]")];
     this.panels = [...document.querySelectorAll("[data-settings-panel]")];
     this.activeCategory = "general";
@@ -61,6 +67,14 @@ class SettingsController {
     this.showRawElkInput.addEventListener("change", () => this.renderOutputPreview());
     this.hideEmptyMetadataInput.addEventListener("change", () => this.renderOutputPreview());
     Object.values(this.shownFieldInputs).forEach(input => input.addEventListener("change", () => this.renderOutputPreview()));
+    this.highlightEnabledInput.addEventListener("change", () => {
+      this.highlightDraft.enabled = this.highlightEnabledInput.checked;
+      this.renderHighlightSettings();
+    });
+    this.highlightResetButton.addEventListener("click", () => {
+      this.highlightDraft = getDefaultHighlightSettings();
+      this.renderHighlightSettings();
+    });
   }
 
   open() {
@@ -78,6 +92,8 @@ class SettingsController {
     Object.entries(this.shownFieldInputs).forEach(([key, input]) => {
       input.checked = shownFields[key];
     });
+    this.highlightDraft = this.preferencesController.getHighlightSettings();
+    this.renderHighlightSettings();
     this.renderOutputPreview();
     this.renderThemeSwitch();
     this.selectCategory("general");
@@ -110,6 +126,73 @@ class SettingsController {
     Object.entries(this.shownFieldInputs).forEach(([key, input]) => {
       this.previewEntry.classList.toggle(`is-${key}-hidden`, !input.checked);
     });
+  }
+
+  // One row per SYNTAX_HIGHLIGHTS rule: toggle, sample, and a color picker with a hex field per theme.
+  createHighlightControls(container) {
+    const create = (tag, props) => Object.assign(document.createElement(tag), props);
+    container.append(...["Token", "Sample", "Dark theme", "Light theme"].map(textContent =>
+      create("span", { className: "settings-highlight-head", textContent })));
+    return Object.fromEntries(Object.entries(SYNTAX_HIGHLIGHTS).map(([type, { label: name }]) => {
+      const toggle = create("input", { type: "checkbox" });
+      toggle.addEventListener("change", () => {
+        this.highlightDraft.types[type].enabled = toggle.checked;
+        this.renderHighlightSettings();
+      });
+      const label = create("label", { className: "settings-checkbox" });
+      label.append(toggle, create("span", { textContent: name }));
+      const sample = create("span", { className: "settings-highlight-sample" });
+      const colors = {};
+      const cells = ["dark", "light"].map(theme => {
+        const picker = create("input", { type: "color" });
+        const hex = create("input", { type: "text", className: "settings-color-hex", spellcheck: false });
+        picker.setAttribute("aria-label", `${name} color, ${theme} theme`);
+        hex.setAttribute("aria-label", `${name} hex color, ${theme} theme`);
+        picker.addEventListener("input", () => this.setHighlightColor(type, theme, picker.value));
+        hex.addEventListener("input", () => {
+          const color = normalizeHighlightColor(hex.value);
+          hex.setAttribute("aria-invalid", String(!color));
+          if (color) this.setHighlightColor(type, theme, color, hex);
+        });
+        // Committing the field normalizes it or restores the last valid color.
+        hex.addEventListener("change", () => this.renderHighlightSettings());
+        colors[theme] = { picker, hex };
+        const cell = create("span", { className: "settings-color" });
+        cell.append(picker, hex);
+        return cell;
+      });
+      container.append(label, sample, ...cells);
+      return [type, { toggle, sample, colors }];
+    }));
+  }
+
+  setHighlightColor(type, theme, color, editing = null) {
+    this.highlightDraft.types[type].colors[theme] = color;
+    this.renderHighlightSettings(editing);
+  }
+
+  // `editing` is a hex field being typed in; its text is left as is.
+  renderHighlightSettings(editing = null) {
+    const { enabled, types } = this.highlightDraft;
+    this.highlightEnabledInput.checked = enabled;
+    for (const [type, { toggle, sample, colors }] of Object.entries(this.highlightControls)) {
+      const active = enabled && types[type].enabled;
+      toggle.checked = types[type].enabled;
+      toggle.disabled = !enabled;
+      sample.innerHTML = applyHighlighting(SYNTAX_HIGHLIGHTS[type].sample, "", active ? [type] : []);
+      for (const [theme, { picker, hex }] of Object.entries(colors)) {
+        picker.value = types[type].colors[theme];
+        picker.disabled = !active;
+        hex.disabled = !active;
+        if (hex === editing) continue;
+        hex.value = types[type].colors[theme];
+        hex.setAttribute("aria-invalid", "false");
+      }
+    }
+    const activeTypes = enabled ? Object.keys(types).filter(type => types[type].enabled) : [];
+    this.previewMessage.innerHTML = applyHighlighting(this.previewMessageText, "", activeTypes);
+    // Unsaved colors are scoped to the dialog; the output keeps the saved ones until Save.
+    applyHighlightColors(this.popup, types);
   }
 
   selectCategory(category) {
@@ -151,6 +234,7 @@ class SettingsController {
         shownFields: { ...this.preferencesController.getShownFields() }
       };
     }
+    if (included.highlighting) snapshot.highlightSettings = this.preferencesController.getHighlightSettings();
     if (included.savedFilters) snapshot.savedFilters = getSavedFilters();
     if (included.recentDateRanges) snapshot.recentDateRanges = getRecentDateRanges();
     if (included.pinnedFields) snapshot.pinnedFields = getPinnedFields();
@@ -217,8 +301,10 @@ class SettingsController {
       return;
     }
     if (!this.isValidSnapshot(snapshot)) {
+      const badHighlight = snapshot?.highlightSettings !== undefined
+        && !isValidHighlightSettings(snapshot.highlightSettings);
       showToast(TOAST_TITLE_IMPORT_FAILED, {
-        description: MSG_SETTINGS_IMPORT_BAD_FORMAT,
+        description: badHighlight ? MSG_SETTINGS_IMPORT_BAD_HIGHLIGHT : MSG_SETTINGS_IMPORT_BAD_FORMAT,
         category: TOAST_CATEGORY_ERROR
       });
       return;
@@ -239,6 +325,11 @@ class SettingsController {
     }
     if ("pinnedFields" in snapshot) this.fieldsController.setPinnedFields(snapshot.pinnedFields);
     this.setOutputControls({ ...currentOutputSettings, ...snapshot.outputSettings });
+    this.highlightDraft = mergeHighlightSettings(
+      this.preferencesController.getHighlightSettings(),
+      snapshot.highlightSettings
+    );
+    this.renderHighlightSettings();
     this.renderThemeSwitch();
     this.renderOutputPreview();
     this.save({ showToast: false });
@@ -249,10 +340,11 @@ class SettingsController {
     if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) return false;
     if (![
       "theme", "showMinimap", "fieldsPanelOpen", "fieldsPanelWidth", "sortOrder",
-      "outputSettings", "savedFilters", "recentDateRanges", "pinnedFields"
+      "outputSettings", "highlightSettings", "savedFilters", "recentDateRanges", "pinnedFields"
     ].some(key => key in snapshot)) return false;
     if ("theme" in snapshot && snapshot.theme !== "dark" && snapshot.theme !== "light") return false;
     if ("showMinimap" in snapshot && typeof snapshot.showMinimap !== "boolean") return false;
+    if ("highlightSettings" in snapshot && !isValidHighlightSettings(snapshot.highlightSettings)) return false;
     if ("sortOrder" in snapshot && snapshot.sortOrder !== "asc" && snapshot.sortOrder !== "desc") return false;
     if ("fieldsPanelOpen" in snapshot && typeof snapshot.fieldsPanelOpen !== "boolean") return false;
     if ("fieldsPanelWidth" in snapshot
@@ -307,6 +399,7 @@ class SettingsController {
       Object.entries(this.shownFieldInputs).map(([key, input]) => [key, input.checked])
     );
     this.preferencesController.setShownFields(shownFields);
+    this.preferencesController.setHighlightSettings(this.highlightDraft);
     this.outputController.setHighlightSelectedRows(this.highlightSelectedInput.checked);
     this.onOutputSettingsChange();
     this.saved = true;

@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 
-const sections = ["uiState", "general", "output", "savedFilters", "recentDateRanges", "pinnedFields"];
+const sections = ["uiState", "general", "output", "highlighting", "savedFilters", "recentDateRanges", "pinnedFields"];
 const plain = value => JSON.parse(JSON.stringify(value));
 
 function createSettings(storage = new Map()) {
@@ -12,11 +12,15 @@ function createSettings(storage = new Map()) {
   const node = () => ({
     checked: false,
     dataset: {},
-    style: { setProperty() {} },
+    attributes: {},
+    listeners: {},
+    style: { setProperty(name, value) { this[name] = value; } },
     classList: { add() {}, remove() {}, toggle() {} },
-    addEventListener() {},
-    setAttribute() {},
+    addEventListener(type, listener) { (this.listeners[type] ??= []).push(listener); },
+    dispatch(type) { (this.listeners[type] ?? []).forEach(listener => listener({ target: this })); },
+    setAttribute(name, value) { this.attributes[name] = String(value); },
     toggleAttribute() {},
+    append(...children) { this.children = [...(this.children ?? []), ...children]; },
     replaceChildren(...children) { this.children = children; },
     focus() {},
     blur() {},
@@ -24,6 +28,7 @@ function createSettings(storage = new Map()) {
     querySelector: () => node()
   });
   const exportInputs = sections.map(key => ({ ...node(), dataset: { settingsExport: key } }));
+  elements.set("settings-preview-message", { ...node(), textContent: `ok=true n=1` });
   const toasts = [];
   const downloads = [];
   const context = vm.createContext({
@@ -47,7 +52,7 @@ function createSettings(storage = new Map()) {
     Blob,
     URL: { createObjectURL: blob => { downloads.push(blob); return "blob:test"; }, revokeObjectURL() {} }
   });
-  for (const file of ["constants", "storage", "preferences-controller", "fields-controller", "popup-manager", "settings-controller"]) {
+  for (const file of ["formatter", "constants", "storage", "preferences-controller", "fields-controller", "popup-manager", "settings-controller"]) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, `../scripts/${file}.js`), "utf8"), context);
   }
   const { PreferencesController, FieldsController, PopupManager, SettingsController } = vm.runInContext(
@@ -92,12 +97,26 @@ function seed() {
     ["elkRecentDateRanges", JSON.stringify([
       { start: "2026-11-12T10:00:00.123Z", end: "2026-11-12T11:00:00.456Z" }
     ])],
-    ["elkPinnedFields", JSON.stringify(["c", "nested.code"])]
+    ["elkPinnedFields", JSON.stringify(["c", "nested.code"])],
+    // Stored as overrides of the defaults; the unknown type and invalid color are ignored.
+    ["elkHighlightSettings", JSON.stringify({
+      enabled: false,
+      types: { string: { colors: { dark: "#FF0000", light: "red" } }, number: { enabled: false }, unknown: {} }
+    })]
   ]);
 }
 
-test("exports exactly the selected sections, defaulting to all six, with UI state independent of general settings", async () => {
-  const { settings, downloads, toasts } = createSettings(seed());
+// Defaults with the overrides stored by seed().
+function seededHighlightSettings(context) {
+  const settings = plain(context.getDefaultHighlightSettings());
+  settings.enabled = false;
+  settings.types.string.colors.dark = "#ff0000";
+  settings.types.number.enabled = false;
+  return settings;
+}
+
+test("exports exactly the selected sections, defaulting to all seven, with UI state independent of general settings", async () => {
+  const { settings, context, downloads, toasts } = createSettings(seed());
   assert.ok(settings.exportInputs.every(input => input.checked));
   const full = plain(settings.getSnapshot());
   assert.deepEqual(full, {
@@ -110,13 +129,14 @@ test("exports exactly the selected sections, defaulting to all six, with UI stat
       highlightSelectedRows: true, showRawElk: false, hideEmptyMetadata: true,
       shownFields: { t: false, a: true, r: false, p: true, h: false }
     },
+    highlightSettings: seededHighlightSettings(context),
     savedFilters: ['c:"Service"', "error AND NOT timeout"],
     recentDateRanges: [{ start: "2026-11-12T10:00:00.123Z", end: "2026-11-12T11:00:00.456Z" }],
     pinnedFields: ["c", "nested.code"]
   });
   const keys = [
     ["fieldsPanelOpen", "fieldsPanelWidth", "sortOrder"], ["theme", "showMinimap"], ["outputSettings"],
-    ["savedFilters"], ["recentDateRanges"], ["pinnedFields"]
+    ["highlightSettings"], ["savedFilters"], ["recentDateRanges"], ["pinnedFields"]
   ];
   const combinations = 2 ** sections.length;
   for (let mask = 1; mask < combinations; mask++) {
@@ -192,6 +212,89 @@ test("imports legacy settings snapshots and merges partial output visibility wit
   });
 });
 
+test("merges partial highlighting imports over the saved settings and applies them to the output rules", () => {
+  const { settings, context, storage } = createSettings(seed());
+  const before = plain(settings.getSnapshot());
+  settings.importSettings(JSON.stringify({ highlightSettings: { enabled: true, types: { url: { colors: { light: "ABC" } } } } }));
+  const expected = seededHighlightSettings(context);
+  expected.enabled = true;
+  expected.types.url.colors.light = "#aabbcc";
+  assert.deepEqual(plain(settings.getSnapshot()), { ...before, highlightSettings: expected });
+  assert.deepEqual(JSON.parse(storage.get("elkHighlightSettings")), {
+    types: { string: { colors: { dark: "#ff0000" } }, url: { colors: { light: "#aabbcc" } }, number: { enabled: false } }
+  });
+  const rules = vm.runInContext("SYNTAX_HIGHLIGHTS", context);
+  assert.deepEqual(
+    Object.fromEntries(Object.entries(rules).map(([type, rule]) => [type, rule.enabled])),
+    { string: true, url: true, identifier: true, key: true, literal: true, number: false }
+  );
+  assert.equal(rules.url.colors.light, "#aabbcc");
+  assert.equal(context.document.documentElement.style["--hl-url-light"], "#aabbcc");
+});
+
+test("edits highlighting as a dialog-scoped draft: Cancel discards it, Save stores only overrides, Reset restores defaults", () => {
+  const { settings, context, storage } = createSettings();
+  const rules = vm.runInContext("SYNTAX_HIGHLIGHTS", context);
+  const root = context.document.documentElement;
+  const { string, number } = settings.highlightControls;
+  const edit = () => {
+    string.colors.dark.hex.value = " #ABC";
+    string.colors.dark.hex.dispatch("input");
+    assert.equal(string.colors.dark.picker.value, "#aabbcc");
+    assert.equal(string.colors.dark.hex.value, " #ABC");
+    string.colors.dark.hex.dispatch("change");
+    assert.equal(string.colors.dark.hex.value, "#aabbcc");
+    string.colors.light.hex.value = "#12345";
+    string.colors.light.hex.dispatch("input");
+    assert.equal(string.colors.light.hex.attributes["aria-invalid"], "true");
+    string.colors.light.hex.dispatch("change");
+    assert.equal(string.colors.light.hex.value, "#766a00");
+    assert.equal(string.colors.light.hex.attributes["aria-invalid"], "false");
+    number.colors.light.picker.value = "#00ff00";
+    number.colors.light.picker.dispatch("input");
+    assert.equal(number.colors.light.hex.value, "#00ff00");
+    number.toggle.checked = false;
+    number.toggle.dispatch("change");
+    assert.equal(number.sample.innerHTML, "42 1.5s 2.0.2.0");
+    assert.equal(settings.previewMessage.innerHTML,
+      `<span class="log-key">ok</span>=<span class="log-literal">true</span> <span class="log-key">n</span>=1`);
+    assert.equal(number.colors.dark.picker.disabled, true);
+    assert.equal(string.toggle.disabled, false);
+  };
+
+  assert.equal(string.sample.innerHTML, `<span class="log-string">"double"</span> <span class="log-string">'single'</span>`);
+  edit();
+  assert.equal(settings.popup.style["--hl-string-dark"], "#aabbcc");
+  assert.equal(root.style["--hl-string-dark"], "#e6da6a");
+  assert.equal(rules.number.enabled, true);
+  settings.cancel();
+  settings.popupManager.toggle("settings");
+  assert.equal(string.colors.dark.hex.value, "#e6da6a");
+  assert.equal(number.toggle.checked, true);
+
+  edit();
+  settings.highlightEnabledInput.checked = false;
+  settings.highlightEnabledInput.dispatch("change");
+  assert.equal(string.toggle.disabled, true);
+  assert.equal(string.sample.innerHTML, `"double" 'single'`);
+  assert.equal(settings.previewMessage.innerHTML, "ok=true n=1");
+  settings.save();
+  assert.deepEqual(JSON.parse(storage.get("elkHighlightSettings")), {
+    enabled: false,
+    types: { string: { colors: { dark: "#aabbcc" } }, number: { enabled: false, colors: { light: "#00ff00" } } }
+  });
+  assert.equal(root.style["--hl-string-dark"], "#aabbcc");
+  assert.ok(Object.values(rules).every(rule => !rule.enabled));
+
+  settings.popupManager.toggle("settings");
+  settings.highlightResetButton.dispatch("click");
+  assert.equal(string.colors.dark.hex.value, "#e6da6a");
+  settings.save();
+  assert.equal(storage.has("elkHighlightSettings"), false);
+  assert.equal(root.style["--hl-string-dark"], "#e6da6a");
+  assert.ok(Object.values(rules).every(rule => rule.enabled));
+});
+
 test("restores and persists both timestamp sort orders, refreshes the label and output, and preserves the sort toggle", () => {
   const { settings, preferences, storage } = createSettings();
   const renderedOrders = [];
@@ -213,7 +316,7 @@ test("restores and persists both timestamp sort orders, refreshes the label and 
 });
 
 test("rejects malformed sections before making any changes", () => {
-  const { settings, storage, toasts } = createSettings(seed());
+  const { settings, context, storage, toasts } = createSettings(seed());
   const before = [...storage];
   const invalid = [
     null, [], {}, { unknown: true }, { theme: "blue" },
@@ -228,6 +331,20 @@ test("rejects malformed sections before making any changes", () => {
     { outputSettings: { shownFields: { unknown: true } } },
     { fieldsPanelOpen: "true" }, { fieldsPanelWidth: -1 }
   ];
+  const invalidHighlights = [
+    null, [], { enabled: "yes" }, { types: [] }, { colors: {} }, { types: { unknown: {} } },
+    { types: { string: null } }, { types: { string: { enabled: 1 } } }, { types: { string: { pattern: "x" } } },
+    { types: { string: { colors: { dark: "red" } } } }, { types: { string: { colors: { dim: "#fff" } } } }
+  ];
+  for (const highlightSettings of invalidHighlights) {
+    settings.importSettings(JSON.stringify({ highlightSettings }));
+    assert.deepEqual([...storage], before);
+    assert.match(toasts.at(-1)[1].description, /highlighting settings/);
+  }
+  settings.importSettings('{"highlightSettings":{"types":{"__proto__":{"enabled":true}}}}');
+  assert.deepEqual([...storage], before);
+  assert.match(toasts.at(-1)[1].description, /highlighting settings/);
+  assert.equal(vm.runInContext("({}).enabled", context), undefined);
   for (const snapshot of invalid) {
     settings.importSettings(JSON.stringify(snapshot));
     assert.deepEqual([...storage], before);

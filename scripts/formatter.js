@@ -338,8 +338,11 @@ function esc(str) {
 }
 
 /**
- * Syntax highlighting for formatted output. Set `enabled` to turn a token type on/off.
+ * Syntax highlighting for formatted output. `enabled` and `colors` are the defaults; Settings → Highlighting
+ * can override them per browser (see applyHighlightSettings).
  * Rules are listed by priority: when several match at the same position, the earlier wins.
+ *   label   — name shown in Settings → Highlighting
+ *   sample  — text previewed next to the label in Settings
  *   colors  — text color per theme, exposed as CSS variables --hl-<type>-dark / --hl-<type>-light
  *   pattern — regex source (case-insensitive, no named groups)
  *   inner   — rule types still highlighted inside this token (e.g. URLs inside strings)
@@ -349,6 +352,8 @@ const SYNTAX_HIGHLIGHTS = {
   // strings (quoted text)
   string: {
     enabled: true,
+    label: "Strings",
+    sample: `"double" 'single'`,
     className: "log-string",
     colors: { dark: "#e6da6a", light: "#766a00" },
     // A closing quote directly followed by a word char, "{" or "[" is treated as an opening one, which keeps
@@ -359,6 +364,8 @@ const SYNTAX_HIGHLIGHTS = {
   // URLs
   url: {
     enabled: true,
+    label: "URLs",
+    sample: "https://example.com",
     className: "url",
     colors: { dark: "#3d87c1", light: "#3d87c1" },
     // Unpaired brackets/braces end the URL; an IPv6 host and {placeholder} segments are kept.
@@ -368,6 +375,8 @@ const SYNTAX_HIGHLIGHTS = {
   // UUIDs and request/trace IDs (requestId, trace_id, request.id, ...).
   identifier: {
     enabled: true,
+    label: "Identifiers", 
+    sample: "b91e42ef-933a-4e5f-97f9-9c39f7b52cc7",
     className: "log-identifier",
     colors: { dark: "#63c3b4", light: "#0b7265" },
     pattern: [
@@ -382,6 +391,8 @@ const SYNTAX_HIGHLIGHTS = {
   // keys (e.g., variable names before assignment)
   key: {
     enabled: true,
+    label: "Keys",
+    sample: "key=logEvent106",
     className: "log-key",
     colors: { dark: "#91a7b3", light: "#526b78" },
     pattern: String.raw`(?<![\w.@-])[@a-z_][\w.@-]*(?=\s*=)`
@@ -389,6 +400,8 @@ const SYNTAX_HIGHLIGHTS = {
   // booleans (true/false)
   literal: {
     enabled: true,
+    label: "Booleans",
+    sample: "true false",
     className: "log-literal",
     colors: { dark: "#b197fc", light: "#7042a6" },
     pattern: String.raw`(?<![\w.-])(?:true|false)(?![\w.-])`
@@ -396,6 +409,8 @@ const SYNTAX_HIGHLIGHTS = {
   // number (integer, floating-point or dotted version like 2.0.2.0)
   number: {
     enabled: true,
+    label: "Numbers",
+    sample: "42 1.5s 2.0.2.0",
     className: "log-number",
     colors: { dark: "#e5b567", light: "#906016" },
     pattern: String.raw`(?<![\w.-])[-+]?(?:\d+(?:\.\d+)*|\.\d+)(?:e[-+]?\d+)?(?:[ \t]*(?:ns|us|ms|s|m|h|d))?(?![\w.-])`
@@ -403,11 +418,12 @@ const SYNTAX_HIGHLIGHTS = {
 };
 
 /**
- * Publish rule colors as CSS variables; call again after changing `colors` to restyle without re-rendering.
+ * Publish rule colors as CSS variables on `root`; call again after changing `colors` to restyle without re-rendering.
+ * `types` maps each type to its { colors } (e.g. unsaved settings scoped to a preview element).
  */
-function applyHighlightColors(root = globalThis.document?.documentElement) {
+function applyHighlightColors(root = globalThis.document?.documentElement, types = SYNTAX_HIGHLIGHTS) {
   if (!root) return;
-  for (const [type, { colors }] of Object.entries(SYNTAX_HIGHLIGHTS)) {
+  for (const [type, { colors }] of Object.entries(types)) {
     root.style.setProperty(`--hl-${type}-dark`, colors.dark);
     root.style.setProperty(`--hl-${type}-light`, colors.light);
   }
@@ -415,47 +431,131 @@ function applyHighlightColors(root = globalThis.document?.documentElement) {
 
 applyHighlightColors();
 
+const isPlainObject = value => Boolean(value) && typeof value === "object" && !Array.isArray(value);
+
+/**
+ * Highlight settings: { enabled, types: { <type>: { enabled, colors: { dark, light } } } }.
+ * `enabled` is the master switch; turning it off keeps the per-type flags and colors.
+ */
+function cloneHighlightSettings({ enabled, types }) {
+  return {
+    enabled,
+    types: Object.fromEntries(Object.entries(types).map(([type, { enabled, colors }]) =>
+      [type, { enabled, colors: { dark: colors.dark, light: colors.light } }]))
+  };
+}
+
+// Code defaults, captured before any user settings are applied.
+const DEFAULT_HIGHLIGHT_SETTINGS = cloneHighlightSettings({ enabled: true, types: SYNTAX_HIGHLIGHTS });
+
+function getDefaultHighlightSettings() {
+  return cloneHighlightSettings(DEFAULT_HIGHLIGHT_SETTINGS);
+}
+
+// "#rgb" or "#rrggbb" in any case, "#" optional → "#rrggbb"; anything else → null.
+function normalizeHighlightColor(value) {
+  const hex = typeof value === "string" && value.trim().match(/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i)?.[1];
+  if (!hex) return null;
+  return `#${hex.length === 3 ? [...hex].map(char => char + char).join("") : hex}`.toLowerCase();
+}
+
+// Strict check for imported (possibly partial) settings: known keys and types only, valid colors.
+function isValidHighlightSettings(value) {
+  if (!isPlainObject(value) || Object.keys(value).some(key => key !== "enabled" && key !== "types")) return false;
+  if ("enabled" in value && typeof value.enabled !== "boolean") return false;
+  if (!("types" in value)) return true;
+  if (!isPlainObject(value.types)) return false;
+  return Object.entries(value.types).every(([type, settings]) => {
+    if (!Object.hasOwn(SYNTAX_HIGHLIGHTS, type) || !isPlainObject(settings)) return false;
+    if (Object.keys(settings).some(key => key !== "enabled" && key !== "colors")) return false;
+    if ("enabled" in settings && typeof settings.enabled !== "boolean") return false;
+    if (!("colors" in settings)) return true;
+    return isPlainObject(settings.colors) && Object.entries(settings.colors).every(([theme, color]) =>
+      (theme === "dark" || theme === "light") && normalizeHighlightColor(color) !== null);
+  });
+}
+
+// Deep-merge partial settings over complete ones; unknown or invalid parts are ignored.
+function mergeHighlightSettings(base, patch) {
+  const settings = cloneHighlightSettings(base);
+  if (!isPlainObject(patch)) return settings;
+  if (typeof patch.enabled === "boolean") settings.enabled = patch.enabled;
+  if (!isPlainObject(patch.types)) return settings;
+  for (const [type, value] of Object.entries(patch.types)) {
+    if (!Object.hasOwn(settings.types, type) || !isPlainObject(value)) continue;
+    const target = settings.types[type];
+    if (typeof value.enabled === "boolean") target.enabled = value.enabled;
+    for (const theme of ["dark", "light"]) {
+      const color = normalizeHighlightColor(value.colors?.[theme]);
+      if (color) target.colors[theme] = color;
+    }
+  }
+  return settings;
+}
+
+/**
+ * Apply complete settings to the rules and republish their colors; re-render to update existing output.
+ */
+function applyHighlightSettings(settings) {
+  for (const [type, rule] of Object.entries(SYNTAX_HIGHLIGHTS)) {
+    const { enabled, colors } = settings.types[type];
+    rule.enabled = settings.enabled && enabled;
+    rule.colors = { dark: colors.dark, light: colors.light };
+  }
+  applyHighlightColors();
+}
+
 const compiledHighlights = new Map();
 
-// Combined regex for the given enabled types; rule order in SYNTAX_HIGHLIGHTS is the priority order.
-function getHighlightRegex(allowed = null) {
-  const types = Object.keys(SYNTAX_HIGHLIGHTS)
-    .filter(type => SYNTAX_HIGHLIGHTS[type].enabled && (!allowed || allowed.includes(type)));
-  const key = types.join();
+function getEnabledHighlightTypes() {
+  return Object.keys(SYNTAX_HIGHLIGHTS).filter(type => SYNTAX_HIGHLIGHTS[type].enabled);
+}
+
+// Combined regex for the given types; rule order in SYNTAX_HIGHLIGHTS is the priority order.
+function getHighlightRegex(types) {
+  const ordered = Object.keys(SYNTAX_HIGHLIGHTS).filter(type => types.includes(type));
+  const key = ordered.join();
   if (!compiledHighlights.has(key)) {
-    const source = types.map(type => `(?<${type}>${SYNTAX_HIGHLIGHTS[type].pattern})`).join("|");
+    const source = ordered.map(type => `(?<${type}>${SYNTAX_HIGHLIGHTS[type].pattern})`).join("|");
     compiledHighlights.set(key, source ? new RegExp(source, "gi") : null);
   }
   return compiledHighlights.get(key);
 }
 
 // Tokenize raw text in one pass, escaping each fragment, so generated markup is never re-tokenized.
-function highlightTokens(text, regex) {
+// `types` are matched at this level; `enabled` limits the inner types highlighted inside tokens.
+function highlightTokens(text, types, enabled) {
+  const regex = getHighlightRegex(types);
   if (!regex) return esc(text);
   let html = "";
   let offset = 0;
   for (const match of text.matchAll(regex)) {
     html += esc(text.slice(offset, match.index));
     const [type, value] = Object.entries(match.groups).find(([, group]) => group !== undefined);
-    html += wrapToken(SYNTAX_HIGHLIGHTS[type], value);
+    html += wrapToken(type, value, enabled);
     offset = match.index + match[0].length;
   }
   return html + esc(text.slice(offset));
 }
 
-function wrapToken(rule, value) {
-  const content = rule.inner?.length ? highlightTokens(value, getHighlightRegex(rule.inner)) : esc(value);
-  return `<span class="${rule.className}">${content}</span>`;
+function wrapToken(type, value, enabled) {
+  const { className, inner = [] } = SYNTAX_HIGHLIGHTS[type];
+  const nested = inner.filter(innerType => enabled.includes(innerType));
+  const content = nested.length ? highlightTokens(value, nested, enabled) : esc(value);
+  return `<span class="${className}">${content}</span>`;
 }
 
 /**
  * Highlight raw text, escaping each fragment before adding spans.
+ * `enabled` overrides the enabled rule types, e.g. to preview unsaved settings.
  */
-function applyHighlighting(text, fieldName = "") {
-  const fieldRule = fieldName && Object.values(SYNTAX_HIGHLIGHTS).find(rule =>
-    rule.enabled && rule.field?.name.test(fieldName) && rule.field.value.test(text));
-  if (fieldRule) return wrapToken(fieldRule, text);
-  return highlightTokens(text, getHighlightRegex());
+function applyHighlighting(text, fieldName = "", enabled = getEnabledHighlightTypes()) {
+  const fieldType = fieldName && Object.keys(SYNTAX_HIGHLIGHTS).find(type => {
+    const { field } = SYNTAX_HIGHLIGHTS[type];
+    return enabled.includes(type) && field?.name.test(fieldName) && field.value.test(text);
+  });
+  if (fieldType) return wrapToken(fieldType, text, enabled);
+  return highlightTokens(text, enabled, enabled);
 }
 
 // Elasticsearch metadata fields (not log data)

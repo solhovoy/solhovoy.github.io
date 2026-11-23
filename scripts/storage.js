@@ -74,3 +74,35 @@ function getExportSettings() {
 function setExportSettings(settings) {
   localStorage.setItem(LS_KEY_EXPORT_SETTINGS, JSON.stringify(settings));
 }
+
+function getHighlightSettings() {
+  try {
+    return mergeHighlightSettings(
+      getDefaultHighlightSettings(),
+      JSON.parse(localStorage.getItem(LS_KEY_HIGHLIGHT_SETTINGS))
+    );
+  } catch {
+    return getDefaultHighlightSettings();
+  }
+}
+
+// Stores only the differences from the defaults, so untouched values follow future default changes.
+function setHighlightSettings(settings) {
+  const defaults = getDefaultHighlightSettings();
+  const overrides = {};
+  if (settings.enabled !== defaults.enabled) overrides.enabled = settings.enabled;
+  for (const [type, { enabled, colors }] of Object.entries(settings.types)) {
+    const base = defaults.types[type];
+    const override = {};
+    if (enabled !== base.enabled) override.enabled = enabled;
+    for (const theme of ["dark", "light"]) {
+      if (colors[theme] !== base.colors[theme]) (override.colors ??= {})[theme] = colors[theme];
+    }
+    if (Object.keys(override).length) (overrides.types ??= {})[type] = override;
+  }
+  if (Object.keys(overrides).length) {
+    localStorage.setItem(LS_KEY_HIGHLIGHT_SETTINGS, JSON.stringify(overrides));
+  } else {
+    localStorage.removeItem(LS_KEY_HIGHLIGHT_SETTINGS);
+  }
+}
