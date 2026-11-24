@@ -340,6 +340,7 @@ body.is-resizing-fields {
 /* Token and log-element colors come from SYNTAX_HIGHLIGHTS and LOG_ELEMENTS (scripts/formatter.js) via
    --hl-<id>-dark/light; Settings samples and the output preview use unsaved colors set on the dialog. */
 :is(#output, .settings-highlight-sample, .settings-preview-entry) .url { color: var(--hl-url-dark); }
+:is(#output, .settings-highlight-sample, .settings-preview-entry) .log-custom { color: var(--hl-custom-dark); }
 :is(#output, .settings-highlight-sample, .settings-preview-entry) .log-key { color: var(--hl-key-dark); }
 :is(#output, .settings-highlight-sample, .settings-preview-entry) .log-literal { color: var(--hl-literal-dark); }
 :is(#output, .settings-highlight-sample, .settings-preview-entry) .log-number { color: var(--hl-number-dark); }
@@ -355,6 +356,7 @@ body.is-resizing-fields {
 :is(#output, .settings-highlight-sample, .settings-preview-entry) .lvl-debug { color: var(--hl-debug-dark); }
 :is(#output, .settings-highlight-sample, .settings-preview-entry) .lvl-trace { color: var(--hl-trace-dark); }
 :root.light :is(#output, .settings-highlight-sample, .settings-preview-entry) .url { color: var(--hl-url-light); }
+:root.light :is(#output, .settings-highlight-sample, .settings-preview-entry) .log-custom { color: var(--hl-custom-light); }
 :root.light :is(#output, .settings-highlight-sample, .settings-preview-entry) .log-key { color: var(--hl-key-light); }
 :root.light :is(#output, .settings-highlight-sample, .settings-preview-entry) .log-literal { color: var(--hl-literal-light); }
 :root.light :is(#output, .settings-highlight-sample, .settings-preview-entry) .log-number { color: var(--hl-number-light); }

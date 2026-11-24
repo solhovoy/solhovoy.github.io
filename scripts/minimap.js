@@ -207,7 +207,8 @@ class OutputMinimap {
   // ── Tokens ──────────────────────────────────────────────────────────────
 
   styleFor(element) {
-    const key = element.className;
+    // Custom rules share one class and differ only by their inline color variables.
+    const key = `${element.className}|${element.getAttribute("style") ?? ""}`;
     let style = this.styleCache.get(key);
     if (style === undefined) {
       const css = getComputedStyle(element);

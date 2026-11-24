@@ -41,8 +41,10 @@ class PopupManager {
   }
 
   closeOnOutsideClick(event) {
+    // The path is captured at dispatch, so clicks on controls that a handler already removed still count as inside.
+    const path = event.composedPath?.() ?? [event.target];
     this.popups.forEach((entry, name) => {
-      if (!entry.popup.hidden && !entry.popup.contains(event.target) && !entry.trigger.contains(event.target)) {
+      if (!entry.popup.hidden && !path.includes(entry.popup) && !path.includes(entry.trigger)) {
         this.close(name);
       }
     });

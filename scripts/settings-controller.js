@@ -40,6 +40,11 @@ class SettingsController {
       ...this.createHighlightControls(document.getElementById("settings-highlight-rules"), "types", ["Token", "Sample", "Dark theme", "Light theme"]),
       ...this.createHighlightControls(document.getElementById("settings-highlight-elements"), "elements", ["Element", "Sample", "Dark theme", "Light theme"])
     };
+    this.customList = document.getElementById("settings-highlight-custom");
+    this.customEmpty = document.getElementById("settings-highlight-custom-empty");
+    this.customAddButton = document.getElementById("settings-highlight-custom-add");
+    this.customRows = [];
+    this.draggedRuleIndex = null;
     this.highlightTabs = [...document.querySelectorAll("[data-settings-subtab]")];
     this.highlightTabPanels = [...document.querySelectorAll("[data-settings-subpanel]")];
     this.categoryButtons = [...document.querySelectorAll("[data-settings-category]")];
@@ -79,8 +84,11 @@ class SettingsController {
       this.highlightDraft.enabled = this.highlightEnabledInput.checked;
       this.renderHighlightSettings();
     });
+    this.customAddButton.addEventListener("click", () => this.addCustomRule());
     this.highlightResetButton.addEventListener("click", () => {
-      this.highlightDraft = getDefaultHighlightSettings();
+      // Custom rules are the user's own, so they survive a reset of the built-in colors and toggles.
+      const { custom } = this.highlightDraft;
+      this.highlightDraft = { ...getDefaultHighlightSettings(), custom };
       this.renderHighlightSettings();
     });
   }
@@ -101,6 +109,7 @@ class SettingsController {
       input.checked = shownFields[key];
     });
     this.highlightDraft = this.preferencesController.getHighlightSettings();
+    this.renderCustomRules();
     this.renderHighlightSettings();
     this.renderOutputPreview();
     this.renderThemeSwitch();
@@ -179,6 +188,151 @@ class SettingsController {
     this.renderHighlightSettings(editing);
   }
 
+  addCustomRule() {
+    const { custom } = this.highlightDraft;
+    if (custom.length >= MAX_CUSTOM_HIGHLIGHTS) return;
+    custom.push({ enabled: true, pattern: "", caseSensitive: false, continue: false, colors: { ...DEFAULT_CUSTOM_COLORS } });
+    this.renderCustomRules();
+    this.renderHighlightSettings();
+    this.customRows.at(-1).input.focus();
+  }
+
+  moveCustomRule(from, to, focusHandle = false) {
+    const { custom } = this.highlightDraft;
+    if (to < 0 || to >= custom.length || to === from) return;
+    custom.splice(to, 0, ...custom.splice(from, 1));
+    this.renderCustomRules();
+    this.renderHighlightSettings();
+    if (focusHandle) this.customRows[to].handle.focus();
+  }
+
+  // Rebuilds the rows from the draft; only needed when rules are added, removed, moved or replaced.
+  renderCustomRules() {
+    const { custom } = this.highlightDraft;
+    this.customRows = custom.map((rule, index) => this.createCustomRow(rule, index));
+    this.customList.replaceChildren(...this.customRows.map(({ row }) => row));
+    this.customEmpty.hidden = custom.length > 0;
+    this.customAddButton.disabled = custom.length >= MAX_CUSTOM_HIGHLIGHTS;
+  }
+
+  createCustomRow(rule, index) {
+    const create = (tag, props) => Object.assign(document.createElement(tag), props);
+    const row = create("div", { className: "settings-custom-row" });
+    const handle = create("button", { type: "button", className: "settings-custom-handle", textContent: "⋮⋮", draggable: true });
+    handle.title = "Drag to reorder (or press ↑/↓)";
+    handle.setAttribute("aria-label", `Reorder rule ${index + 1}`);
+    handle.addEventListener("dragstart", event => {
+      this.draggedRuleIndex = index;
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", rule.pattern);
+      event.dataTransfer.setDragImage?.(row, 0, 0);
+      row.classList.add("dragging");
+    });
+    handle.addEventListener("dragend", () => this.clearRuleDrag());
+    handle.addEventListener("keydown", event => {
+      if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+      event.preventDefault();
+      this.moveCustomRule(index, index + (event.key === "ArrowUp" ? -1 : 1), true);
+    });
+    row.addEventListener("dragover", event => {
+      if (this.draggedRuleIndex === null) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const after = event.clientY > row.getBoundingClientRect().top + row.offsetHeight / 2;
+      this.clearRuleDropMarks();
+      row.classList.add(after ? "drop-after" : "drop-before");
+    });
+    row.addEventListener("drop", event => {
+      if (this.draggedRuleIndex === null) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const destination = index + (row.classList.contains("drop-after") ? 1 : 0);
+      const from = this.draggedRuleIndex;
+      this.clearRuleDrag();
+      this.moveCustomRule(from, from < destination ? destination - 1 : destination);
+    });
+
+    const toggle = create("input", { type: "checkbox", checked: rule.enabled });
+    toggle.setAttribute("aria-label", `Enable rule ${index + 1}`);
+    toggle.addEventListener("change", () => {
+      rule.enabled = toggle.checked;
+      this.renderHighlightSettings();
+    });
+    const input = create("input", { type: "text", className: "settings-custom-pattern", value: rule.pattern, spellcheck: false, placeholder: "Regular expression" });
+    input.setAttribute("aria-label", `Regular expression of rule ${index + 1}`);
+    input.addEventListener("input", () => {
+      rule.pattern = input.value;
+      this.renderHighlightSettings();
+    });
+    const caseInput = create("input", { type: "checkbox", checked: rule.caseSensitive });
+    caseInput.title = "Case sensitive";
+    caseInput.setAttribute("aria-label", `Case sensitive, rule ${index + 1}`);
+    caseInput.addEventListener("change", () => {
+      rule.caseSensitive = caseInput.checked;
+      this.renderHighlightSettings();
+    });
+    const continueInput = create("input", { type: "checkbox", checked: rule.continue === true });
+    continueInput.title = "Continue: apply the rules below inside the match";
+    continueInput.setAttribute("aria-label", `Continue with next rules, rule ${index + 1}`);
+    continueInput.addEventListener("change", () => {
+      rule.continue = continueInput.checked;
+      this.renderHighlightSettings();
+    });
+    const pickers = {};
+    const hexes = {};
+    const colors = ["dark", "light"].map(theme => {
+      const label = `Rule ${index + 1} color, ${theme} theme`;
+      const picker = create("input", { type: "color", value: rule.colors[theme] });
+      const hex = create("input", { type: "text", className: "settings-color-hex", spellcheck: false, value: rule.colors[theme] });
+      picker.setAttribute("aria-label", label);
+      hex.setAttribute("aria-label", `${label}, hex`);
+      picker.addEventListener("input", () => {
+        rule.colors[theme] = picker.value;
+        hex.value = picker.value;
+        hex.setAttribute("aria-invalid", "false");
+        this.renderHighlightSettings();
+      });
+      hex.addEventListener("input", () => {
+        const color = normalizeHighlightColor(hex.value);
+        hex.setAttribute("aria-invalid", String(!color));
+        if (!color) return;
+        rule.colors[theme] = color;
+        picker.value = color;
+        this.renderHighlightSettings();
+      });
+      // Committing the field normalizes it or restores the last valid color.
+      hex.addEventListener("change", () => {
+        hex.value = rule.colors[theme];
+        hex.setAttribute("aria-invalid", "false");
+      });
+      pickers[theme] = picker;
+      hexes[theme] = hex;
+      const cell = create("span", { className: "settings-color" });
+      cell.append(picker, hex);
+      return cell;
+    });
+    const remove = create("button", { type: "button", className: "settings-custom-remove", textContent: "✕" });
+    remove.title = "Delete rule";
+    remove.setAttribute("aria-label", `Delete rule ${index + 1}`);
+    remove.addEventListener("click", () => {
+      this.highlightDraft.custom.splice(index, 1);
+      this.renderCustomRules();
+      this.renderHighlightSettings();
+    });
+    row.append(handle, toggle, input, caseInput, continueInput, ...colors, remove);
+    return { row, handle, rule, toggle, input, caseInput, continueInput, pickers, hexes, remove };
+  }
+
+  clearRuleDropMarks() {
+    this.customRows.forEach(({ row }) => row.classList.remove("drop-before", "drop-after"));
+  }
+
+  clearRuleDrag() {
+    this.clearRuleDropMarks();
+    this.customRows.forEach(({ row }) => row.classList.remove("dragging"));
+    this.draggedRuleIndex = null;
+  }
+
   selectHighlightTab(name) {
     this.highlightTabs.forEach(tab => {
       const selected = tab.dataset.settingsSubtab === name;
@@ -194,13 +348,21 @@ class SettingsController {
     const draft = this.highlightDraft;
     const { enabled, types } = draft;
     this.highlightEnabledInput.checked = enabled;
+    for (const { rule, toggle, input, caseInput, continueInput, pickers, hexes } of this.customRows) {
+      const active = enabled && rule.enabled;
+      toggle.disabled = !enabled;
+      caseInput.disabled = !active;
+      continueInput.disabled = !active;
+      [...Object.values(pickers), ...Object.values(hexes)].forEach(control => { control.disabled = !active; });
+      input.setAttribute("aria-invalid", String(rule.pattern !== "" && !compileCustomHighlight(rule.pattern, rule.caseSensitive)));
+    }
     for (const [id, { group, toggle, sample, colors }] of Object.entries(this.highlightControls)) {
       const state = draft[group][id];
       const active = enabled && state.enabled;
       toggle.checked = state.enabled;
       toggle.disabled = !enabled;
       sample.innerHTML = group === "types"
-        ? applyHighlighting(SYNTAX_HIGHLIGHTS[id].sample, "", active ? [id] : [])
+        ? applyHighlighting(SYNTAX_HIGHLIGHTS[id].sample, "", active ? [id] : [], [])
         : `<span class="${LOG_ELEMENTS[id].className}">${esc(LOG_ELEMENTS[id].sample)}</span>`;
       for (const [theme, { picker, hex }] of Object.entries(colors)) {
         picker.value = state.colors[theme];
@@ -212,7 +374,10 @@ class SettingsController {
       }
     }
     const activeTypes = enabled ? Object.keys(types).filter(type => types[type].enabled) : [];
-    this.previewMessage.innerHTML = applyHighlighting(this.previewMessageText, "", activeTypes);
+    const activeCustom = enabled
+      ? draft.custom.filter(rule => rule.enabled && compileCustomHighlight(rule.pattern, rule.caseSensitive))
+      : [];
+    this.previewMessage.innerHTML = applyHighlighting(this.previewMessageText, "", activeTypes, activeCustom);
     // Unsaved colors are scoped to the dialog; the output keeps the saved ones until Save.
     const elements = Object.fromEntries(Object.entries(draft.elements).map(([id, element]) =>
       [id, { ...element, enabled: enabled && element.enabled }]));
@@ -283,18 +448,21 @@ class SettingsController {
   }
 
   handleDragEnter(event) {
+    if (this.draggedRuleIndex !== null) return;
     event.preventDefault();
     this.dragCounter++;
     this.dropOverlay.hidden = false;
   }
 
   handleDragLeave(event) {
+    if (this.draggedRuleIndex !== null) return;
     if (event.currentTarget.contains(event.relatedTarget)) return;
     this.dragCounter = 0;
     this.dropOverlay.hidden = true;
   }
 
   handleDragOver(event) {
+    if (this.draggedRuleIndex !== null) return;
     event.preventDefault();
   }
 
@@ -353,6 +521,7 @@ class SettingsController {
       this.preferencesController.getHighlightSettings(),
       snapshot.highlightSettings
     );
+    this.renderCustomRules();
     this.renderHighlightSettings();
     this.renderThemeSwitch();
     this.renderOutputPreview();
@@ -411,6 +580,21 @@ class SettingsController {
   }
 
   save({ showToast: shouldShowToast = true, closeDialog = true } = {}) {
+    const { custom } = this.highlightDraft;
+    const filled = custom.filter(rule => rule.pattern !== "");
+    if (filled.length !== custom.length) {
+      this.highlightDraft.custom = filled;
+      this.renderCustomRules();
+      this.renderHighlightSettings();
+    }
+    const invalid = this.customRows.find(({ rule }) => !compileCustomHighlight(rule.pattern, rule.caseSensitive));
+    if (invalid) {
+      this.selectCategory("highlighting");
+      this.selectHighlightTab("custom");
+      invalid.input.focus();
+      showToast(TOAST_TITLE_INVALID_RULE, { description: MSG_INVALID_CUSTOM_RULE, category: TOAST_CATEGORY_ERROR });
+      return;
+    }
     setExportSettings(Object.fromEntries(
       this.exportInputs.map(input => [input.dataset.settingsExport, input.checked])
     ));

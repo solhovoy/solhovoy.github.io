@@ -50,7 +50,8 @@ const MSG_COPIED = "Copied to clipboard";
 const MSG_FILTER_SAVED = "Filter saved";
 const MSG_SETTINGS_SAVED = "Settings saved";
 const MSG_SETTINGS_IMPORT_BAD_FORMAT = "Expected a settings snapshot";
-const MSG_SETTINGS_IMPORT_BAD_HIGHLIGHT = "Invalid highlighting settings: use known token types and hex colors like #e6da6a";
+const MSG_SETTINGS_IMPORT_BAD_HIGHLIGHT = "Invalid highlighting settings: use known token types, hex colors like #e6da6a and valid custom regexes (up to 20, 200 characters, no empty matches)";
+const MSG_INVALID_CUSTOM_RULE = "Fix or delete the highlighted custom rule: it must be a valid regex that does not match an empty string (max 200 characters)";
 const MSG_SETTINGS_IMPORTED = "Settings imported";
 const MSG_FILTER_DUP = "Filter already exists";
 const MSG_NOTHING_SAVE = "Nothing to save";
@@ -70,6 +71,7 @@ const TOAST_CATEGORY_INFO = "info";
 
 const TOAST_TITLE_COPIED = "Copied";
 const TOAST_TITLE_SAVED = "Saved";
+const TOAST_TITLE_INVALID_RULE = "Invalid custom rule";
 const TOAST_TITLE_DUP = "Cannot save";
 const TOAST_TITLE_NOTHING_SAVE = "Cannot save";
 const TOAST_TITLE_NOTHING_EXPORT = "Cannot export";

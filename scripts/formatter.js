@@ -522,9 +522,60 @@ const cloneHighlightGroup = group => Object.fromEntries(Object.entries(group).ma
  *   { enabled, types: { <type>: { enabled, colors: { dark, light } } }, elements: { <element>: same } }.
  * `enabled` is the master switch; turning it off keeps the per-rule flags and colors.
  */
-function cloneHighlightSettings({ enabled, types, elements }) {
-  return { enabled, types: cloneHighlightGroup(types), elements: cloneHighlightGroup(elements) };
+function cloneHighlightSettings({ enabled, types, elements, custom = [] }) {
+  return {
+    enabled,
+    types: cloneHighlightGroup(types),
+    elements: cloneHighlightGroup(elements),
+    custom: custom.map(({ enabled, pattern, caseSensitive, continue: cont, colors }) =>
+      ({ enabled, pattern, caseSensitive, continue: cont, colors: { dark: colors.dark, light: colors.light } }))
+  };
 }
+
+// User rules ({ enabled, pattern, caseSensitive, continue, colors }) are regexes tried before the built-in types.
+// With `continue`, the rules below it (and the built-in types) also apply inside its matches.
+const MAX_CUSTOM_HIGHLIGHTS = 20;
+const MAX_CUSTOM_PATTERN_LENGTH = 200;
+const DEFAULT_CUSTOM_COLORS = { dark: "#ff922b", light: "#d9480f" };
+const compiledCustomHighlights = new Map();
+
+// Global regex for a custom rule, or null when the pattern is too long, invalid, or matches the empty string.
+function compileCustomHighlight(pattern, caseSensitive) {
+  if (typeof pattern !== "string" || !pattern || pattern.length > MAX_CUSTOM_PATTERN_LENGTH) return null;
+  const flags = caseSensitive ? "g" : "gi";
+  const key = `${flags}/${pattern}`;
+  if (!compiledCustomHighlights.has(key)) {
+    let regex = null;
+    try {
+      regex = new RegExp(pattern, flags);
+      if (new RegExp(pattern).test("")) regex = null;
+    } catch {
+      regex = null;
+    }
+    compiledCustomHighlights.set(key, regex);
+  }
+  return compiledCustomHighlights.get(key);
+}
+
+const isValidCustomHighlight = rule => isPlainObject(rule)
+  && Object.keys(rule).every(key => ["enabled", "pattern", "caseSensitive", "continue", "colors"].includes(key))
+  && (!("enabled" in rule) || typeof rule.enabled === "boolean")
+  && (!("caseSensitive" in rule) || typeof rule.caseSensitive === "boolean")
+  && (!("continue" in rule) || typeof rule.continue === "boolean")
+  && compileCustomHighlight(rule.pattern, rule.caseSensitive === true) !== null
+  && (!("colors" in rule) || (isPlainObject(rule.colors) && Object.entries(rule.colors).every(([theme, color]) =>
+    (theme === "dark" || theme === "light") && normalizeHighlightColor(color) !== null)));
+
+const sanitizeCustomHighlight = rule => ({
+  enabled: rule.enabled !== false,
+  pattern: rule.pattern,
+  caseSensitive: rule.caseSensitive === true,
+  continue: rule.continue === true,
+  colors: {
+    dark: normalizeHighlightColor(rule.colors?.dark) ?? DEFAULT_CUSTOM_COLORS.dark,
+    light: normalizeHighlightColor(rule.colors?.light) ?? DEFAULT_CUSTOM_COLORS.light
+  }
+});
 
 // Code defaults, captured before any user settings are applied.
 const DEFAULT_HIGHLIGHT_SETTINGS = cloneHighlightSettings({ enabled: true, types: SYNTAX_HIGHLIGHTS, elements: LOG_ELEMENTS });
@@ -542,8 +593,10 @@ function normalizeHighlightColor(value) {
 
 // Strict check for imported (possibly partial) settings: known keys and ids only, valid colors.
 function isValidHighlightSettings(value) {
-  if (!isPlainObject(value) || Object.keys(value).some(key => key !== "enabled" && !Object.hasOwn(HIGHLIGHT_GROUPS, key))) return false;
+  if (!isPlainObject(value) || Object.keys(value).some(key => key !== "enabled" && key !== "custom" && !Object.hasOwn(HIGHLIGHT_GROUPS, key))) return false;
   if ("enabled" in value && typeof value.enabled !== "boolean") return false;
+  if ("custom" in value && !(Array.isArray(value.custom) && value.custom.length <= MAX_CUSTOM_HIGHLIGHTS
+    && value.custom.every(isValidCustomHighlight))) return false;
   return Object.entries(HIGHLIGHT_GROUPS).every(([group, rules]) => {
     if (!(group in value)) return true;
     if (!isPlainObject(value[group])) return false;
@@ -563,6 +616,9 @@ function mergeHighlightSettings(base, patch) {
   const settings = cloneHighlightSettings(base);
   if (!isPlainObject(patch)) return settings;
   if (typeof patch.enabled === "boolean") settings.enabled = patch.enabled;
+  if (Array.isArray(patch.custom)) {
+    settings.custom = patch.custom.filter(isValidCustomHighlight).slice(0, MAX_CUSTOM_HIGHLIGHTS).map(sanitizeCustomHighlight);
+  }
   for (const group of Object.keys(HIGHLIGHT_GROUPS)) {
     if (!isPlainObject(patch[group])) continue;
     for (const [id, value] of Object.entries(patch[group])) {
@@ -589,8 +645,17 @@ function applyHighlightSettings(settings) {
       rule.colors = { dark: colors.dark, light: colors.light };
     }
   }
+  CUSTOM_HIGHLIGHTS.length = 0;
+  if (settings.enabled) {
+    CUSTOM_HIGHLIGHTS.push(...(settings.custom ?? []).filter(rule => rule.enabled && compileCustomHighlight(rule.pattern, rule.caseSensitive)));
+  }
   applyHighlightColors();
 }
+
+// Effective custom rules (master switch and own flag already applied).
+const CUSTOM_HIGHLIGHTS = [];
+
+const getEnabledCustomRules = () => CUSTOM_HIGHLIGHTS;
 
 const compiledHighlights = new Map();
 
@@ -611,38 +676,68 @@ function getHighlightRegex(types) {
 
 // Tokenize raw text in one pass, escaping each fragment, so generated markup is never re-tokenized.
 // `types` are matched at this level; `enabled` limits the inner types highlighted inside tokens.
-function highlightTokens(text, types, enabled) {
-  const regex = getHighlightRegex(types);
-  if (!regex) return esc(text);
+// `custom` rules win over built-in types at the same position and apply at every nesting level;
+// inside a match only the rules after it are applied, and only when it has `continue`.
+function highlightTokens(text, types, enabled, custom = []) {
+  const sources = custom.map((rule, i) => ({ rule, rest: custom.slice(i + 1), regex: compileCustomHighlight(rule.pattern, rule.caseSensitive) }));
+  sources.push({ rule: null, regex: getHighlightRegex(types) });
+  const active = sources.filter(source => source.regex);
+  if (!active.length) return esc(text);
+  const matches = active.map(() => undefined);
   let html = "";
   let offset = 0;
-  for (const match of text.matchAll(regex)) {
-    html += esc(text.slice(offset, match.index));
-    const [type, value] = Object.entries(match.groups).find(([, group]) => group !== undefined);
-    html += wrapToken(type, value, enabled);
-    offset = match.index + match[0].length;
+  for (;;) {
+    let best = null;
+    let bestIndex = -1;
+    active.forEach(({ regex }, i) => {
+      let match = matches[i];
+      if (match === undefined || (match && match.index < offset)) {
+        regex.lastIndex = offset;
+        match = regex.exec(text);
+        while (match && !match[0]) {
+          regex.lastIndex = match.index + 1;
+          match = regex.exec(text);
+        }
+        matches[i] = match;
+      }
+      if (match && (!best || match.index < best.index)) {
+        best = match;
+        bestIndex = i;
+      }
+    });
+    if (!best) break;
+    html += esc(text.slice(offset, best.index));
+    const { rule, rest } = active[bestIndex];
+    if (rule) {
+      const content = rule.continue ? highlightTokens(best[0], types, enabled, rest) : esc(best[0]);
+      html += `<span class="log-custom" style="--hl-custom-dark:${rule.colors.dark};--hl-custom-light:${rule.colors.light}">${content}</span>`;
+    } else {
+      const [type, value] = Object.entries(best.groups).find(([, group]) => group !== undefined);
+      html += wrapToken(type, value, enabled, custom);
+    }
+    offset = best.index + best[0].length;
   }
   return html + esc(text.slice(offset));
 }
 
-function wrapToken(type, value, enabled) {
+function wrapToken(type, value, enabled, custom = []) {
   const { className, inner = [] } = SYNTAX_HIGHLIGHTS[type];
   const nested = inner.filter(innerType => enabled.includes(innerType));
-  const content = nested.length ? highlightTokens(value, nested, enabled) : esc(value);
+  const content = nested.length || custom.length ? highlightTokens(value, nested, enabled, custom) : esc(value);
   return `<span class="${className}">${content}</span>`;
 }
 
 /**
  * Highlight raw text, escaping each fragment before adding spans.
- * `enabled` overrides the enabled rule types, e.g. to preview unsaved settings.
+ * `enabled` and `custom` override the enabled rules, e.g. to preview unsaved settings.
  */
-function applyHighlighting(text, fieldName = "", enabled = getEnabledHighlightTypes()) {
+function applyHighlighting(text, fieldName = "", enabled = getEnabledHighlightTypes(), custom = getEnabledCustomRules()) {
   const fieldType = fieldName && Object.keys(SYNTAX_HIGHLIGHTS).find(type => {
     const { field } = SYNTAX_HIGHLIGHTS[type];
     return enabled.includes(type) && field?.name.test(fieldName) && field.value.test(text);
   });
-  if (fieldType) return wrapToken(fieldType, text, enabled);
-  return highlightTokens(text, enabled, enabled);
+  if (fieldType) return wrapToken(fieldType, text, enabled, custom);
+  return highlightTokens(text, enabled, enabled, custom);
 }
 
 // Elasticsearch metadata fields (not log data)

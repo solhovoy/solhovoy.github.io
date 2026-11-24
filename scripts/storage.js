@@ -102,6 +102,7 @@ function setHighlightSettings(settings) {
       if (Object.keys(override).length) ((overrides[group] ??= {})[id] = override);
     }
   }
+  if (settings.custom?.length) overrides.custom = settings.custom;
   if (Object.keys(overrides).length) {
     localStorage.setItem(LS_KEY_HIGHLIGHT_SETTINGS, JSON.stringify(overrides));
   } else {

@@ -321,6 +321,7 @@
           <div class="tabs settings-subtabs" role="tablist" aria-label="Highlighting categories">
             <button class="tab" type="button" role="tab" aria-selected="true" data-settings-subtab="elements">Log elements</button>
             <button class="tab" type="button" role="tab" aria-selected="false" data-settings-subtab="tokens">Message tokens</button>
+            <button class="tab" type="button" role="tab" aria-selected="false" data-settings-subtab="custom">Custom</button>
           </div>
           <div role="tabpanel" data-settings-subpanel="elements">
             <!-- Rows are generated from LOG_ELEMENTS by SettingsController. -->
@@ -329,6 +330,15 @@
           <div role="tabpanel" data-settings-subpanel="tokens" hidden>
             <!-- Rows are generated from SYNTAX_HIGHLIGHTS by SettingsController. -->
             <div id="settings-highlight-rules" class="settings-highlight-rules"></div>
+          </div>
+          <div role="tabpanel" data-settings-subpanel="custom" hidden>
+            <!-- Rows are generated from the custom rules of the unsaved settings by SettingsController. -->
+            <div class="settings-custom-head settings-highlight-head" aria-hidden="true">
+              <span></span><span></span><span>Regular expression</span><span title="Case sensitive">Aa</span><span title="Continue: apply the rules below inside the match">⤵</span><span>Dark theme</span><span>Light theme</span><span></span>
+            </div>
+            <div id="settings-highlight-custom" class="settings-custom-list"></div>
+            <p id="settings-highlight-custom-empty" class="settings-empty">No custom rules yet. Rules take priority over the built-in ones and apply to any text.</p>
+            <button id="settings-highlight-custom-add" class="btn-generic settings-highlight-reset settings-custom-add" type="button">Add rule</button>
           </div>
         </section>
         <section class="settings-panel" data-settings-panel="export" hidden>

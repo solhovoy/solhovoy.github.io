@@ -42,6 +42,25 @@ test("highlights keys, literals, numbers, versions and durations without matchin
   for (const [input, expected] of cases) assert.equal(applyHighlighting(input), expected);
 });
 
+test("custom rules win over built-in tokens, apply inside them, respect case, and skip invalid or empty-matching patterns", () => {
+  const span = (text, dark = "#ff922b", light = "#d9480f") =>
+    `<span class="log-custom" style="--hl-custom-dark:${dark};--hl-custom-light:${light}">${text}</span>`;
+  const colors = { dark: "#ff922b", light: "#d9480f" };
+  const rule = (pattern, caseSensitive = false) => ({ pattern, caseSensitive, colors });
+  const all = Object.keys(SYNTAX_HIGHLIGHTS);
+  assert.equal(applyHighlighting("a ERR-12 b", "", all, [rule("err-\\d+")]), `a ${span("ERR-12")} b`);
+  assert.equal(applyHighlighting("a ERR-12 b", "", all, [rule("err-\\d+", true)]), "a ERR-12 b");
+  assert.equal(applyHighlighting("n=42 and 7", "", all, [rule("\\d+")]),
+    `<span class="log-key">n</span>=${span("42")} and ${span("7")}`);
+  assert.equal(applyHighlighting('"a<b>"', "", all, [rule("b")]), `<span class="log-string">"a&lt;${span("b")}&gt;"</span>`);
+  assert.equal(applyHighlighting("x", "", all, [rule("["), rule("a*"), rule("x")]), span("x"));
+  assert.equal(applyHighlighting("ab", "", [], [rule("a"), rule("ab")]), span("a") + "b");
+  assert.equal(formatter.isValidHighlightSettings({ custom: [{ pattern: "a*" }] }), false);
+  assert.equal(formatter.isValidHighlightSettings({ custom: [{ pattern: "a+", colors: { dark: "#fff" } }] }), true);
+  const merged = formatter.mergeHighlightSettings(formatter.getDefaultHighlightSettings(), { custom: [{ pattern: "x" }, { pattern: "(" }] });
+  assert.deepEqual(JSON.parse(JSON.stringify(merged.custom)), [{ enabled: true, pattern: "x", caseSensitive: false, continue: false, colors }]);
+});
+
 test("applyHighlightColors publishes per-theme rule colors as CSS variables", () => {
   const props = {};
   const root = { style: { setProperty: (name, value) => { props[name] = value; } } };
@@ -411,4 +430,15 @@ test("reorders pinned fields around visible neighbours, persists order, and leav
   assert.deepEqual([...controller.pinnedFields],
     ["hidden.first", "hidden.middle", "trace.id", "trace.name", "hidden.last"]);
   assert.deepEqual([...vm.runInContext("getPinnedFields()", context)], [...controller.pinnedFields]);
+});
+
+test("custom rules with continue apply the following rules inside their matches", () => {
+  const rule = (pattern, color, cont) => ({ enabled: true, pattern, caseSensitive: false, continue: cont, colors: { dark: color, light: color } });
+  const span = (color, inner) => `<span class="log-custom" style="--hl-custom-dark:${color};--hl-custom-light:${color}">${inner}</span>`;
+  const text = "Values for a SPECIAL b";
+  const word = rule("SPECIAL", "#222222");
+  assert.equal(formatter.applyHighlighting(text, "", [], [rule("Values for.+", "#111111", true), word]),
+    span("#111111", `Values for a ${span("#222222", "SPECIAL")} b`));
+  assert.equal(formatter.applyHighlighting(text, "", [], [rule("Values for.+", "#111111", false), word]),
+    span("#111111", text));
 });

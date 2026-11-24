@@ -337,6 +337,41 @@ test("Apply saves without closing, and Cancel discards only subsequent edits", (
   assert.equal(settings.popup.hidden, true);
 });
 
+test("custom rules: add, reorder and delete in the draft, Reset keeps them, invalid patterns block Save, empty rows are dropped", () => {
+  const { settings, preferences, storage, toasts, context } = createSettings();
+  settings.addCustomRule();
+  settings.addCustomRule();
+  settings.addCustomRule();
+  const rule = index => settings.highlightDraft.custom[index];
+  assert.equal(rule(0).colors.dark, "#ff922b");
+  assert.equal(rule(0).caseSensitive, false);
+  ["abc", "[", ""].forEach((pattern, index) => {
+    settings.customRows[index].input.value = pattern;
+    settings.customRows[index].input.dispatch("input");
+  });
+  assert.equal(settings.customRows[1].input.attributes["aria-invalid"], "true");
+  assert.equal(settings.customRows[0].input.attributes["aria-invalid"], "false");
+
+  settings.moveCustomRule(0, 1);
+  assert.deepEqual([...settings.highlightDraft.custom.map(item => item.pattern)], ["[", "abc", ""]);
+  settings.moveCustomRule(1, 5);
+  assert.equal(rule(1).pattern, "abc");
+
+  settings.highlightResetButton.dispatch("click");
+  assert.equal(settings.highlightDraft.custom.length, 3);
+
+  settings.saveButton.dispatch("click");
+  assert.equal(settings.popup.hidden, false);
+  assert.equal(toasts.at(-1)[0], "Invalid custom rule");
+  assert.equal(storage.has("elkHighlightSettings"), false);
+
+  settings.customRows[0].remove.dispatch("click");
+  settings.saveButton.dispatch("click");
+  assert.deepEqual([...preferences.getHighlightSettings().custom.map(item => item.pattern)], ["abc"]);
+  assert.deepEqual(JSON.parse(storage.get("elkHighlightSettings")).custom.map(item => item.pattern), ["abc"]);
+  assert.equal(context.applyHighlighting("xABCx"), 'x<span class="log-custom" style="--hl-custom-dark:#ff922b;--hl-custom-light:#d9480f">ABC</span>x');
+});
+
 test("restores and persists both timestamp sort orders, refreshes the label and output, and preserves the sort toggle", () => {
   const { settings, preferences, storage } = createSettings();
   const renderedOrders = [];
