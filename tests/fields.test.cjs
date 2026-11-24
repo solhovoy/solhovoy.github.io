@@ -442,3 +442,16 @@ test("custom rules with continue apply the following rules inside their matches"
   assert.equal(formatter.applyHighlighting(text, "", [], [rule("Values for.+", "#111111", false), word]),
     span("#111111", text));
 });
+
+test("stack trace color follows its token setting and is plain when disabled", () => {
+  const publish = stack => {
+    const props = {};
+    const root = { style: { setProperty: (name, value) => { props[name] = value; } } };
+    formatter.applyHighlightColors(root, { ...SYNTAX_HIGHLIGHTS, stack: { ...SYNTAX_HIGHLIGHTS.stack, enabled: stack } });
+    return props["--hl-stack-dark"];
+  };
+  assert.equal(publish(true), "#fa5252");
+  assert.equal(publish(false), "#e9ecef");
+  assert.doesNotMatch(formatter.applyHighlighting("stack", "", getEnabledStackTypes()), /undefined/);
+});
+const getEnabledStackTypes = () => Object.keys(SYNTAX_HIGHLIGHTS);

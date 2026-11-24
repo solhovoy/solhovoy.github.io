@@ -181,7 +181,7 @@ function formatHit(hit, index, outputSettings = {}) {
   const fieldsHtml = outputFields.map(field => ` <span class="${field.className}">${esc(field.value)}</span>`).join("");
   // Stack trace HTML (inline with preserved formatting)
   const stackHtml = stackTrace && !selectedFields.length ?
-    `<pre class="stack-trace">${esc(stackTrace)}</pre>` : "";
+    `<pre class="stack-trace log-stack">${esc(stackTrace)}</pre>` : "";
   const contentHtml = selectedFields.length
     ? selectedValues.map((value, i) =>
         `<span class="col msg" data-field="${esc(selectedFields[i]).replace(/"/g, "&quot;")}" title="${esc(value).replace(/"/g, "&quot;")}">${applyHighlighting(value, selectedFields[i])}</span>`
@@ -346,7 +346,7 @@ function esc(str) {
  *   label   — name shown in Settings → Highlighting
  *   sample  — text previewed next to the label in Settings
  *   colors  — text color per theme, exposed as CSS variables --hl-<type>-dark / --hl-<type>-light
- *   pattern — regex source (case-insensitive, no named groups)
+ *   pattern — regex source (case-insensitive, no named groups); omitted for rules that only supply a color
  *   inner   — rule types still highlighted inside this token (e.g. URLs inside strings)
  *   field   — colors a whole selected-field column value when the column name matches
  */
@@ -416,6 +416,15 @@ const SYNTAX_HIGHLIGHTS = {
     className: "log-number",
     colors: { dark: "#e5b567", light: "#906016" },
     pattern: String.raw`(?<![\w.-])[-+]?(?:\d+(?:\.\d+)*|\.\d+)(?:e[-+]?\d+)?(?:[ \t]*(?:ns|us|ms|s|m|h|d))?(?![\w.-])`
+  },
+  // Stack traces are whole blocks rendered separately, so this rule has no pattern and only supplies the color;
+  // when disabled the block is drawn in the plain text color.
+  stack: {
+    enabled: true,
+    label: "Stack trace",
+    sample: "at com.example.Service.run(Service.java:42)",
+    className: "log-stack",
+    colors: { dark: "#fa5252", light: "#e03131" }
   }
 };
 
@@ -503,7 +512,7 @@ function applyHighlightColors(root = globalThis.document?.documentElement, types
     root.style.setProperty(`--hl-${id}-dark`, dark);
     root.style.setProperty(`--hl-${id}-light`, light);
   };
-  for (const [type, { colors }] of Object.entries(types)) publish(type, colors);
+  for (const [type, { enabled, colors }] of Object.entries(types)) publish(type, enabled || SYNTAX_HIGHLIGHTS[type]?.pattern ? colors : PLAIN_TEXT_COLORS);
   for (const [id, { enabled, colors }] of Object.entries(elements)) publish(id, enabled ? colors : PLAIN_TEXT_COLORS);
 }
 
@@ -665,7 +674,7 @@ function getEnabledHighlightTypes() {
 
 // Combined regex for the given types; rule order in SYNTAX_HIGHLIGHTS is the priority order.
 function getHighlightRegex(types) {
-  const ordered = Object.keys(SYNTAX_HIGHLIGHTS).filter(type => types.includes(type));
+  const ordered = Object.keys(SYNTAX_HIGHLIGHTS).filter(type => types.includes(type) && SYNTAX_HIGHLIGHTS[type].pattern);
   const key = ordered.join();
   if (!compiledHighlights.has(key)) {
     const source = ordered.map(type => `(?<${type}>${SYNTAX_HIGHLIGHTS[type].pattern})`).join("|");

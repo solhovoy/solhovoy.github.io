@@ -361,9 +361,10 @@ class SettingsController {
       const active = enabled && state.enabled;
       toggle.checked = state.enabled;
       toggle.disabled = !enabled;
-      sample.innerHTML = group === "types"
-        ? applyHighlighting(SYNTAX_HIGHLIGHTS[id].sample, "", active ? [id] : [], [])
-        : `<span class="${LOG_ELEMENTS[id].className}">${esc(LOG_ELEMENTS[id].sample)}</span>`;
+      const rule = HIGHLIGHT_GROUPS[group][id];
+      sample.innerHTML = rule.pattern
+        ? applyHighlighting(rule.sample, "", active ? [id] : [], [])
+        : `<span class="${rule.className}">${esc(rule.sample)}</span>`;
       for (const [theme, { picker, hex }] of Object.entries(colors)) {
         picker.value = state.colors[theme];
         picker.disabled = !active;
@@ -381,7 +382,9 @@ class SettingsController {
     // Unsaved colors are scoped to the dialog; the output keeps the saved ones until Save.
     const elements = Object.fromEntries(Object.entries(draft.elements).map(([id, element]) =>
       [id, { ...element, enabled: enabled && element.enabled }]));
-    applyHighlightColors(this.popup, types, elements);
+    const tokenTypes = Object.fromEntries(Object.entries(types).map(([id, type]) =>
+      [id, { ...type, enabled: enabled && type.enabled }]));
+    applyHighlightColors(this.popup, tokenTypes, elements);
   }
 
   selectCategory(category) {

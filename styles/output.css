@@ -346,6 +346,7 @@ body.is-resizing-fields {
 :is(#output, .settings-highlight-sample, .settings-preview-entry) .log-number { color: var(--hl-number-dark); }
 :is(#output, .settings-highlight-sample, .settings-preview-entry) .log-identifier { color: var(--hl-identifier-dark); }
 :is(#output, .settings-highlight-sample, .settings-preview-entry) .log-string { color: var(--hl-string-dark); }
+:is(#output, .settings-highlight-sample, .settings-preview-entry) .log-stack { color: var(--hl-stack-dark); }
 :is(#output, .settings-highlight-sample, .settings-preview-entry) .ts { color: var(--hl-ts-dark); }
 :is(#output, .settings-highlight-sample, .settings-preview-entry) .meta { color: var(--hl-meta-dark); }
 :is(#output, .settings-highlight-sample, .settings-preview-entry) .cls { color: var(--hl-cls-dark); }
@@ -362,6 +363,7 @@ body.is-resizing-fields {
 :root.light :is(#output, .settings-highlight-sample, .settings-preview-entry) .log-number { color: var(--hl-number-light); }
 :root.light :is(#output, .settings-highlight-sample, .settings-preview-entry) .log-identifier { color: var(--hl-identifier-light); }
 :root.light :is(#output, .settings-highlight-sample, .settings-preview-entry) .log-string { color: var(--hl-string-light); }
+:root.light :is(#output, .settings-highlight-sample, .settings-preview-entry) .log-stack { color: var(--hl-stack-light); }
 :root.light :is(#output, .settings-highlight-sample, .settings-preview-entry) .ts { color: var(--hl-ts-light); }
 :root.light :is(#output, .settings-highlight-sample, .settings-preview-entry) .meta { color: var(--hl-meta-light); }
 :root.light :is(#output, .settings-highlight-sample, .settings-preview-entry) .cls { color: var(--hl-cls-light); }
@@ -734,7 +736,6 @@ span.break {
   padding: 0px calc(36px + var(--lnum-w));
   font-size: 12px;
   line-height: 1.4;
-  color: var(--error);
   white-space: pre-wrap;
   word-break: break-word;
   font-family: var(--mono);

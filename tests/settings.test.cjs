@@ -241,7 +241,7 @@ test("merges partial highlighting imports over the saved settings and applies th
   const rules = vm.runInContext("SYNTAX_HIGHLIGHTS", context);
   assert.deepEqual(
     Object.fromEntries(Object.entries(rules).map(([type, rule]) => [type, rule.enabled])),
-    { string: true, url: true, identifier: true, key: true, literal: true, number: false }
+    { string: true, url: true, identifier: true, key: true, literal: true, number: false, stack: true }
   );
   assert.equal(rules.url.colors.light, "#aabbcc");
   assert.equal(context.document.documentElement.style["--hl-url-light"], "#aabbcc");
