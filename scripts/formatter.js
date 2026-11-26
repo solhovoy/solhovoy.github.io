@@ -146,7 +146,14 @@ function formatHit(hit, index, outputSettings = {}) {
 
   // ── plain text ────────────────────────────────────────────────────────────
   const plainFields = outputFields.map(field => field.value).join(" ");
-  let plain = `${ts}${plainFields ? ` ${plainFields} ` : " "}${level} ${clsField}=${clsValue}`;
+  const hideEmpty = outputSettings.hideEmptyMetadata === true;
+  const levelEmpty = isEmptyMetadataValue(fields["log.level"]);
+  const clsEmpty = isEmptyMetadataValue(fields["c"]) && isEmptyMetadataValue(fields["s"]);
+  const showLevel = !(hideEmpty && levelEmpty);
+  const showCls = !(hideEmpty && clsEmpty);
+  const levelPlain = showLevel ? `${level} ` : "";
+  const clsPlain = showCls ? `${clsField}=${clsValue}` : "";
+  let plain = `${ts}${plainFields ? ` ${plainFields} ` : " "}${levelPlain}${clsPlain}`.trimEnd();
   if (displayMessage) {
     plain += ` ${displayMessage}`;
   }
@@ -187,8 +194,8 @@ function formatHit(hit, index, outputSettings = {}) {
         `<span class="col msg" data-field="${esc(selectedFields[i]).replace(/"/g, "&quot;")}" title="${esc(value).replace(/"/g, "&quot;")}">${applyHighlighting(value, selectedFields[i])}</span>`
       ).join("")
     : fieldsHtml +
-      ` <span class="level ${lvlClass}">${esc(level)}</span>` +
-      ` <span class="cls">${clsField}=${esc(clsValue)}</span>` +
+      (showLevel ? ` <span class="level ${lvlClass}">${esc(level)}</span>` : "") +
+      (showCls ? ` <span class="cls">${clsField}=${esc(clsValue)}</span>` : "") +
       msgHtml + customHtml + extraHtml;
 
   const html =
